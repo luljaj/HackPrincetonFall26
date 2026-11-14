@@ -47,6 +47,24 @@ Spots without a known answer skip the model step, and the show reveals the answe
 
 Tests: `node --test apps/web/app/lab/machine.test.ts`
 
+## Lessons: a clear question at every pause
+
+Spot detection finds where the show pauses, but many of those lines aren't questions to the kid ("I know what I want to be.") or are said between characters.
+
+`python3 tools/build-lessons.py <transcript.json>` sends Luna the transcript around each pause, including the show's next line, which is usually the answer. It writes `apps/web/app/lab/lessons.json`:
+
+- Dora's question (clear, under 16 words, never addressing herself)
+- the expected answer (what the show reveals next) and accepted variants
+- the type: answer, say, open, choice or count
+- `visual`: whether the kid needs to see the scene
+
+For every spot, Dora asks the lesson question out loud. Her nudges, re-asks, modelling and answer reveal are built from it. Hand-written fields in `spots.json` win over generated ones (for example ep3-25's answer, and Diego where Whisper heard "Beagle").
+
+**Dora's look while asking and waiting:**
+- **Most spots:** a presenter close-up (`presenter-talk.mp4` / `presenter-wait.mp4`, cut by `tools/cut-loops.py` from the "What do you want to be?" shot). She faces the camera with open hands, breathing and blinking, and talk and wait are the same pose.
+- **Visual spots** ("What shape goes here?", "Can you find the bridge?"): the frozen scene stays on screen and Dora asks over it.
+- **The firehouse:** keeps its own close-up.
+
 ## Turn judging and pronunciation
 
 - **Luna judge** (`/api/judge`, `server/judge/judge.ts`): one tool call picks the stage-machine event (`correct` / `wrong` / `unclear`) and writes Dora's next line, told in advance what the machine will do for each event. 26/26 on the test answers, about 1.2 s.

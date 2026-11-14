@@ -12,6 +12,10 @@ LAB = ROOT / 'apps/web/app/lab'
 SRC = ROOT / 'apps/web/public/media/dora-ep3.mp4'
 OUT = ROOT / 'apps/web/public/media/loops'
 WAIT_S, MIN_S, PAD = 1.2, 0.4, 0.05
+# Dora's "presenter" close-up (ep3, "What do you want to be when you grow up?"): she faces the camera,
+# talks, then waits with open hands, breathing and blinking. One shot, no camera cut, same pose in both,
+# so swapping talk/wait is seamless. Used for every spot without its own good close-up.
+PRESENTER = {'talk': (92.7, 94.7), 'wait': (94.75, 98.65)}
 
 
 def scene_cuts():
@@ -53,6 +57,9 @@ def main():
     args = p.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     cuts = scene_cuts()
+    for name, (a, b) in PRESENTER.items():
+        assert not any(a < c < b for c in cuts), f'presenter {name} crosses a camera cut'
+        boomerang(a, b, False, OUT / f'presenter-{name}.mp4')
     for sp in json.loads((LAB / 'spots.json').read_text()):
         if args.only and sp['id'] not in args.only: continue
         for name, (a, b, rev) in windows(sp, cuts).items():

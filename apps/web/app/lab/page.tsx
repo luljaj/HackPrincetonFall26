@@ -5,6 +5,7 @@ import { INITIAL, MAX_NUDGES, MAX_TRIES, STAGES, next, type Ctx, type Event, typ
 import { Graph } from "./graph";
 import lines from "./lines.json";
 import spotsData from "./spots.json";
+import lessonsData from "./lessons.json";
 import trialEpisode from "./episode.json";
 import s from "./lab.module.css";
 import { speakFallback, streamVoice } from "./voice";
@@ -26,10 +27,34 @@ type Spot = {
   answer?: string; // custom spots: what Luna judges against
   accept?: string[]; // answers clear enough to celebrate instantly, without waiting for Luna
   say?: { word: string; language: string; ipa: string }; // "say X" spots: scored for pronunciation
+  question?: string; // what Dora asks the kid here (from lessons.json): the show often doesn't ask clearly
+  open?: boolean; // opinion/imagination question: any sensible answer is right
+  visual?: boolean; // the kid needs to see the scene to answer: keep it on screen instead of Dora's close-up
+  keep?: boolean;
+};
+type Lesson = {
+  keep: boolean; visual: boolean; question: string; type: "answer" | "say" | "open" | "choice" | "count"; answer: string; accept: string[];
+  say_word: string | null; say_language: string | null; say_ipa: string | null;
 };
 type Pronunciation = { verdict: "good" | "close" | "retry" | "silent"; heard: string; target: string; coach: { expected: string; heard: string } | null; ms: number };
 const RECORD_MS = 4000; // the scorer's window
-const SPOTS = spotsData as Spot[];
+// Each spot gets its lesson (tools/build-lessons.py). Hand-written fields in spots.json win.
+const LESSONS = lessonsData as Record<string, Lesson>;
+const SPOTS = (spotsData as Spot[]).map((sp): Spot => {
+  const l = LESSONS[sp.id];
+  if (!l) return sp;
+  const open = l.type === "open";
+  return {
+    ...sp,
+    question: sp.custom ? undefined : l.question,
+    keep: l.keep,
+    visual: l.visual,
+    open,
+    answer: sp.answer ?? (open ? undefined : l.answer),
+    accept: sp.accept ?? (l.accept.length ? l.accept : undefined),
+    say: sp.say ?? (l.type === "say" && l.say_word && l.say_language && l.say_ipa ? { word: l.say_word, language: l.say_language, ipa: l.say_ipa } : undefined),
+  };
+});
 const EPISODE = trialEpisode.src;
 const DURATION = trialEpisode.durationSeconds;
 const FADE_MS = 300;
@@ -51,6 +76,26 @@ function lineFor(stage: Stage, spot: Spot, tries: number): string | null {
   if (base === "ask") return null;
   return `g_${base}`;
 }
+
+// Dora's lines built from the spot's lesson, for spots without hand-written lines. No saved audio exists
+// for these, so they're spoken live (voice server, or the browser voice when it's off).
+function lessonText(stage: Stage, sp: Spot): string | null {
+  if (sp.custom || !sp.question) return null;
+  const q = sp.question;
+  const target = sp.say?.word ?? sp.answer;
+  switch (stage) {
+    case "asking": return q;
+    case "nudging": return `Take your time! ${q}`;
+    case "clarifying": return `Oops, I didn't hear you. ${q}`;
+    case "welcome": return `Ayyy, you're back! ${q}`;
+    case "modeling": return target && !sp.open ? (sp.say ? `Listen: ${target}! Now you say it!` : `It's ${target}! Can you say ${target}?`) : null;
+    case "giving": return target && !sp.open ? `It's ${target}! Let's see what happens!` : "Great thinking! Let's see what happens!";
+    default: return null;
+  }
+}
+
+const isKnown = (sp: Spot) => !!(sp.custom || sp.say || (sp.answer && !sp.open));
+const askedText = (sp: Spot) => sp.question ?? (sp.custom ? LINES.ask : undefined) ?? sp.text;
 
 // What the machine will do next, in words Luna can write a fitting line for.
 function outcome(c: Ctx): string {
@@ -182,7 +227,7 @@ export default function Lab() {
     const form = new FormData();
     form.append("audio", clip);
     // The question only, never the answer: priming Whisper with "seatbelt" would make it hear seatbelt.
-    form.append("hint", (sp.custom && LINES.ask) || sp.text.slice(-200));
+    form.append("hint", askedText(sp).slice(-200));
     for (const l of new Set(["en", "es", sp.say?.language ?? "en"])) form.append("languages", l);
     const mine = ++turn.current;
     try {
@@ -217,8 +262,10 @@ export default function Lab() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          question: sp.custom ? LINES.ask : sp.text.slice(-300),
-          answerGuide: sp.answer ?? (sp.say ? `The child should say "${sp.say.word}" (${sp.say.language}).` : "Not given: judge from the question; the show reveals the answer next."),
+          question: askedText(sp).slice(-300),
+          answerGuide: sp.say ? `The child should say "${sp.say.word}" (${sp.say.language}).`
+            : sp.open ? "Open question: any sensible answer is right."
+            : sp.answer ?? "Not given: judge from the question; the show reveals the answer next.",
           said,
           // Only the sound to model goes to Luna, so the line can't dwell on what the kid got wrong.
           pronunciation: pronunciation && { verdict: pronunciation.verdict, expected: pronunciation.coach?.expected ?? null },
@@ -297,7 +344,7 @@ export default function Lab() {
   function pickSpot(sp: Spot) {
     spotRef.current = sp;
     setSpot(sp);
-    ctxRef.current = { ...ctxRef.current, known: !!(sp.custom || sp.say) };
+    ctxRef.current = { ...ctxRef.current, known: isKnown(sp) };
   }
 
   function jump(sp: Spot) {
@@ -310,7 +357,7 @@ export default function Lab() {
     pickSpot(sp);
     lastResumed.current = null;
     episode.current!.currentTime = Math.max(0, sp.t - 2);
-    commit({ ...INITIAL, known: !!(sp.custom || sp.say) }, `jump ${sp.id}`);
+    commit({ ...INITIAL, known: isKnown(sp) }, `jump ${sp.id}`);
     episode.current!.play();
   }
 
@@ -358,7 +405,7 @@ export default function Lab() {
       // Freeze at whichever spot the playhead crosses.
       const watch = () => {
         const hit = autoRef.current
-          ? SPOTS.find((x) => ep.currentTime >= x.pauseAt && ep.currentTime < x.pauseAt + 0.5 && x.id !== lastResumed.current)
+          ? SPOTS.find((x) => x.keep !== false && ep.currentTime >= x.pauseAt && ep.currentTime < x.pauseAt + 0.5 && x.id !== lastResumed.current)
           : undefined;
         if (hit) {
           pickSpot(hit);
@@ -392,13 +439,14 @@ export default function Lab() {
     if (meta.line) {
       filler.current!.pause(); // never talk over her own "Hmm!"
       const file = lineFor(stage, sp, ctxRef.current.tries);
-      if (file) {
+      const fromLesson = lessonText(stage, sp);
+      if (file || fromLesson) {
         const customText = liveText.current;
         liveText.current = null;
-        const text = customText ?? LINES[file];
+        const text = customText ?? fromLesson ?? (file ? LINES[file] : undefined);
         setSpeechCaption(text ?? null);
         setVoiceError("");
-        if ((voiceMode.current || customText !== null) && text) {
+        if ((voiceMode.current || customText !== null || fromLesson !== null) && text) {
           const a = audio.current!;
           void streamVoice({
             text, context: a.ctx, destination: a.analyser, signal: speechAbort.signal,
@@ -516,7 +564,10 @@ export default function Lab() {
   }, [started]);
 
   const file = lineFor(stage, spot, ctx.tries);
-  const caption = file ? (speechCaption ?? LINES[file]) : stage === "listening" ? (hearing ? "🗣️ I'm listening…" : `🎤 listening… “${spot.text.slice(-70)}”`) : stage === "thinking" ? "…" : "";
+  const lineText = lessonText(stage, spot) ?? (file ? LINES[file] : null);
+  const caption = lineText ? (speechCaption ?? lineText)
+    : stage === "listening" ? (hearing ? "🗣️ I'm listening…" : `🎤 ${askedText(spot)}`)
+    : stage === "thinking" ? "…" : "";
   const shown = likelyOnly ? SPOTS.filter((x) => x.gap >= LIKELY_GAP) : SPOTS;
 
   return (
@@ -524,14 +575,14 @@ export default function Lab() {
       <section className={s.stageWrap}>
         <div className={s.screen}>
           <video ref={episode} crossOrigin="anonymous" src={EPISODE} playsInline preload="auto" className={s.layer} />
-          <div className={`${s.layer} ${s.assistant} ${meta.assistant ? s.show : ""}`}>
+          <div className={`${s.layer} ${s.assistant} ${meta.assistant && !spot.visual ? s.show : ""}`}>
             {(["wait", "talk"] as Loop[]).map((n) => (
               <video
                 key={n}
                 ref={(el) => {
                   loops.current[n] = el;
                 }}
-                src={`/media/loops/${spot.id}-${n}.mp4`}
+                src={spot.custom ? `/media/loops/${spot.id}-${n}.mp4` : `/media/loops/presenter-${n}.mp4`}
                 muted
                 loop
                 autoPlay
@@ -541,8 +592,8 @@ export default function Lab() {
                 style={{ opacity: n === "wait" ? 1 : 0 }}
               />
             ))}
-            {stage === "listening" && <div className={s.listenRing} />}
           </div>
+          {stage === "listening" && <div className={s.listenRing} />}
           {stage === "away" && <div className={`${s.layer} ${s.away}`}>📺 Another channel…</div>}
           {caption && <p className={s.caption}>{caption}</p>}
           {!started && (

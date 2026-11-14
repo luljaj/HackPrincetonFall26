@@ -424,7 +424,13 @@
    570.18,
    571.88
   ],
-  "id": "ep3-25"
+  "id": "ep3-25",
+  "answer": "bridge",
+  "accept": [
+   "bridge",
+   "the bridge",
+   "el puente"
+  ]
  },
  {
   "t": 579.86,
@@ -504,7 +510,11 @@
    638.88,
    639.68
   ],
-  "id": "ep3-30"
+  "id": "ep3-30",
+  "answer": "Diego",
+  "accept": [
+   "Diego"
+  ]
  },
  {
   "t": 662.86,

@@ -1,0 +1,972 @@
+{
+ "ep3-01": {
+  "keep": true,
+  "visual": false,
+  "question": "What does Boots want to be when he grows up?",
+  "type": "answer",
+  "answer": "A baseball player",
+  "accept": [
+   "a baseball player",
+   "baseball player"
+  ],
+  "skill": "story",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-02": {
+  "keep": true,
+  "visual": false,
+  "question": "What do you want to be when you grow up?",
+  "type": "open",
+  "answer": "any sensible answer",
+  "accept": [],
+  "skill": "imagination",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-03": {
+  "keep": true,
+  "visual": false,
+  "question": "What is Mommy looking for at the pyramid?",
+  "type": "answer",
+  "answer": "a special treasure",
+  "accept": [
+   "a special treasure",
+   "a lost jewel",
+   "treasure"
+  ],
+  "skill": "story",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-04": {
+  "keep": true,
+  "visual": false,
+  "question": "What is Mommy looking for?",
+  "type": "answer",
+  "answer": "A lost jewel",
+  "accept": [
+   "a lost jewel",
+   "jewel"
+  ],
+  "skill": "objects",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-05": {
+  "keep": true,
+  "visual": false,
+  "question": "What does Mommy need help finding?",
+  "type": "answer",
+  "answer": "the lost jewel",
+  "accept": [
+   "the lost jewel",
+   "a jewel"
+  ],
+  "skill": "story",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-06": {
+  "keep": true,
+  "visual": false,
+  "question": "Who are we going to help look for lost treasures?",
+  "type": "answer",
+  "answer": "Dora’s Mommy",
+  "accept": [
+   "Mommy",
+   "Dora’s mom",
+   "her mother"
+  ],
+  "skill": "story",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-07": {
+  "keep": true,
+  "visual": false,
+  "question": "Who do we ask for help when we don’t know which way to go?",
+  "type": "answer",
+  "answer": "The map",
+  "accept": [
+   "map",
+   "the map"
+  ],
+  "skill": "places",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-08": {
+  "keep": true,
+  "visual": false,
+  "question": "Can you say “map” with me?",
+  "type": "say",
+  "answer": "map",
+  "accept": [
+   "map"
+  ],
+  "skill": "words",
+  "say_word": "map",
+  "say_language": "en",
+  "say_ipa": "m æ p"
+ },
+ "ep3-09": {
+  "keep": true,
+  "visual": false,
+  "question": "Who does Dora and Boots need to help at her job?",
+  "type": "answer",
+  "answer": "Dora’s mommy",
+  "accept": [
+   "Dora’s mommy",
+   "Dora’s mom",
+   "her mommy"
+  ],
+  "skill": "story",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-10": {
+  "keep": true,
+  "visual": false,
+  "question": "Can you remember the three places we go to?",
+  "type": "answer",
+  "answer": "Firehouse, bridge, pyramid",
+  "accept": [
+   "Firehouse, bridge, pyramid",
+   "Firehouse, then bridge, then pyramid"
+  ],
+  "skill": "places",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-11": {
+  "keep": true,
+  "visual": false,
+  "question": "Where do we go first?",
+  "type": "answer",
+  "answer": "Firehouse",
+  "accept": [
+   "firehouse"
+  ],
+  "skill": "places",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-12": {
+  "keep": true,
+  "visual": true,
+  "question": "Can you point to the firehouse?",
+  "type": "answer",
+  "answer": "the firehouse",
+  "accept": [
+   "firehouse"
+  ],
+  "skill": "places",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-13": {
+  "keep": true,
+  "visual": false,
+  "question": "Can you say, “Firehouse, bridge, pyramid”?",
+  "type": "say",
+  "answer": "Firehouse, bridge, pyramid",
+  "accept": [
+   "Firehouse, bridge, pyramid"
+  ],
+  "skill": "words",
+  "say_word": "Firehouse, bridge, pyramid",
+  "say_language": "en",
+  "say_ipa": "ˈfaɪɚˌhaʊs brɪdʒ ˈpɪɹəˌmɪd"
+ },
+ "ep3-14": {
+  "keep": true,
+  "visual": false,
+  "question": "What job might you like to have when you grow up?",
+  "type": "open",
+  "answer": "any sensible answer",
+  "accept": [],
+  "skill": "imagination",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-15": {
+  "keep": true,
+  "visual": false,
+  "question": "Can you say, “choo-choo”?",
+  "type": "say",
+  "answer": "choo-choo",
+  "accept": [
+   "choo-choo"
+  ],
+  "skill": "words",
+  "say_word": "choo-choo",
+  "say_language": "en",
+  "say_ipa": "tʃ uː tʃ uː"
+ },
+ "ep3-16": {
+  "keep": true,
+  "visual": false,
+  "question": "Can you say, “Boo-boo!”?",
+  "type": "say",
+  "answer": "boo-boo",
+  "accept": [
+   "boo-boo"
+  ],
+  "skill": "words",
+  "say_word": "boo-boo",
+  "say_language": "en",
+  "say_ipa": "b uː b uː"
+ },
+ "ep3-17": {
+  "keep": true,
+  "visual": false,
+  "question": "What will you be when you grow up?",
+  "type": "open",
+  "answer": "any sensible answer",
+  "accept": [],
+  "skill": "imagination",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-18": {
+  "keep": true,
+  "visual": true,
+  "question": "Can you find the firehouse?",
+  "type": "answer",
+  "answer": "firehouse",
+  "accept": [
+   "the firehouse"
+  ],
+  "skill": "places",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-19": {
+  "keep": true,
+  "visual": false,
+  "question": "What does Benny need?",
+  "type": "answer",
+  "answer": "Help",
+  "accept": [
+   "help",
+   "their help"
+  ],
+  "skill": "story",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-20": {
+  "keep": true,
+  "visual": false,
+  "question": "Will you help us rescue Benny?",
+  "type": "answer",
+  "answer": "yes",
+  "accept": [
+   "yes",
+   "I will"
+  ],
+  "skill": "story",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-21": {
+  "keep": true,
+  "visual": false,
+  "question": "What does Tico’s mama need to climb to rescue Benny?",
+  "type": "answer",
+  "answer": "the ladder",
+  "accept": [
+   "the ladder",
+   "ladder"
+  ],
+  "skill": "story",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-22": {
+  "keep": true,
+  "visual": false,
+  "question": "Can you say, “Arriba!”?",
+  "type": "say",
+  "answer": "Arriba",
+  "accept": [
+   "Arriba",
+   "Up"
+  ],
+  "skill": "spanish",
+  "say_word": "Arriba",
+  "say_language": "es",
+  "say_ipa": "a ˈri.βa"
+ },
+ "ep3-23": {
+  "keep": true,
+  "visual": false,
+  "question": "Can you say, abajo!",
+  "type": "say",
+  "answer": "abajo",
+  "accept": [
+   "abajo",
+   "down"
+  ],
+  "skill": "spanish",
+  "say_word": "abajo",
+  "say_language": "es",
+  "say_ipa": "a ˈβa xo"
+ },
+ "ep3-24": {
+  "keep": true,
+  "visual": false,
+  "question": "Can you say, abajo?",
+  "type": "say",
+  "answer": "abajo",
+  "accept": [
+   "abajo",
+   "down"
+  ],
+  "skill": "spanish",
+  "say_word": "abajo",
+  "say_language": "es",
+  "say_ipa": "a ˈβa xo"
+ },
+ "ep3-25": {
+  "keep": true,
+  "visual": false,
+  "question": "Where do we go next?",
+  "type": "choice",
+  "answer": "Firehouse",
+  "accept": [
+   "the firehouse"
+  ],
+  "skill": "places",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-26": {
+  "keep": true,
+  "visual": true,
+  "question": "Where do we go next?",
+  "type": "choice",
+  "answer": "Bridge",
+  "accept": [
+   "the bridge"
+  ],
+  "skill": "places",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-27": {
+  "keep": true,
+  "visual": true,
+  "question": "Can you find the bridge?",
+  "type": "answer",
+  "answer": "the bridge",
+  "accept": [
+   "bridge"
+  ],
+  "skill": "places",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-28": {
+  "keep": true,
+  "visual": false,
+  "question": "Where are we going to help Mommy at her job?",
+  "type": "answer",
+  "answer": "The pyramid",
+  "accept": [
+   "the pyramid"
+  ],
+  "skill": "places",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-29": {
+  "keep": true,
+  "visual": true,
+  "question": "Do you see Baby Jaguar?",
+  "type": "answer",
+  "answer": "Baby Jaguar",
+  "accept": [
+   "Baby Jaguar"
+  ],
+  "skill": "objects",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-30": {
+  "keep": true,
+  "visual": false,
+  "question": "Who’s my cousin?",
+  "type": "answer",
+  "answer": "Beagle",
+  "accept": [
+   "Beagle"
+  ],
+  "skill": "story",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-31": {
+  "keep": true,
+  "visual": false,
+  "question": "Can you say, “Baby jaguar”?",
+  "type": "say",
+  "answer": "baby jaguar",
+  "accept": [
+   "baby jaguar"
+  ],
+  "skill": "words",
+  "say_word": "baby jaguar",
+  "say_language": "en",
+  "say_ipa": "ˈbeɪ.bi ˈdʒæɡ.wɑɹ"
+ },
+ "ep3-32": {
+  "keep": true,
+  "visual": false,
+  "question": "Oh no! What happened to baby jaguar?",
+  "type": "answer",
+  "answer": "He got a scratch",
+  "accept": [
+   "got a scratch",
+   "has a scratch",
+   "has a boo-boo"
+  ],
+  "skill": "story",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-33": {
+  "keep": true,
+  "visual": false,
+  "question": "Can you say “backpack” with me?",
+  "type": "say",
+  "answer": "backpack",
+  "accept": [
+   "backpack"
+  ],
+  "skill": "words",
+  "say_word": "backpack",
+  "say_language": "en",
+  "say_ipa": "ˈbæk pæk"
+ },
+ "ep3-34": {
+  "keep": true,
+  "visual": true,
+  "question": "Can you find my doctor bag?",
+  "type": "answer",
+  "answer": "doctor bag",
+  "accept": [
+   "doctor bag",
+   "Dora's doctor bag"
+  ],
+  "skill": "objects",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-35": {
+  "keep": true,
+  "visual": true,
+  "question": "What do you see?",
+  "type": "answer",
+  "answer": "stars",
+  "accept": [
+   "stars"
+  ],
+  "skill": "objects",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-36": {
+  "keep": true,
+  "visual": false,
+  "question": "What can the Explorer job stars do to help us?",
+  "type": "answer",
+  "answer": "Help us along the way",
+  "accept": [
+   "help us along the way",
+   "help us"
+  ],
+  "skill": "story",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-37": {
+  "keep": true,
+  "visual": false,
+  "question": "What does Boots say is missing from the bridge?",
+  "type": "answer",
+  "answer": "Some pieces",
+  "accept": [
+   "some pieces",
+   "pieces"
+  ],
+  "skill": "story",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-38": {
+  "keep": true,
+  "visual": false,
+  "question": "Will you help us finish building the bridge?",
+  "type": "answer",
+  "answer": "Yes",
+  "accept": [
+   "yes",
+   "yeah"
+  ],
+  "skill": "objects",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-39": {
+  "keep": true,
+  "visual": true,
+  "question": "What shape piece goes here?",
+  "type": "answer",
+  "answer": "triangle",
+  "accept": [
+   "triangle"
+  ],
+  "skill": "shapes",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-40": {
+  "keep": true,
+  "visual": true,
+  "question": "What shape piece goes here?",
+  "type": "answer",
+  "answer": "rectangle",
+  "accept": [
+   "rectangle",
+   "a rectangle"
+  ],
+  "skill": "shapes",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-41": {
+  "keep": true,
+  "visual": true,
+  "question": "What shape pieces go here?",
+  "type": "answer",
+  "answer": "squares",
+  "accept": [
+   "squares",
+   "square"
+  ],
+  "skill": "shapes",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-42": {
+  "keep": true,
+  "visual": false,
+  "question": "What are we going to help Mommy look for?",
+  "type": "answer",
+  "answer": "Lost treasures",
+  "accept": [
+   "lost treasures",
+   "treasures"
+  ],
+  "skill": "objects",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-43": {
+  "keep": true,
+  "visual": false,
+  "question": "Where do we go next?",
+  "type": "answer",
+  "answer": "Pyramid",
+  "accept": [
+   "the pyramid"
+  ],
+  "skill": "places",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-44": {
+  "keep": true,
+  "visual": true,
+  "question": "Which place do we go to next?",
+  "type": "choice",
+  "answer": "The pyramid",
+  "accept": [
+   "pyramid"
+  ],
+  "skill": "places",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-45": {
+  "keep": true,
+  "visual": true,
+  "question": "Can you find the pyramid?",
+  "type": "answer",
+  "answer": "The pyramid",
+  "accept": [
+   "the pyramid",
+   "pyramid"
+  ],
+  "skill": "places",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-46": {
+  "keep": true,
+  "visual": false,
+  "question": "Where do we need to go to help my mommy?",
+  "type": "answer",
+  "answer": "The pyramid",
+  "accept": [
+   "the pyramid"
+  ],
+  "skill": "places",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-47": {
+  "keep": true,
+  "visual": false,
+  "question": "Who can help us get across?",
+  "type": "answer",
+  "answer": "policía",
+  "accept": [
+   "policía",
+   "policia",
+   "police"
+  ],
+  "skill": "words",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-48": {
+  "keep": true,
+  "visual": false,
+  "question": "Can you say “policía” with me?",
+  "type": "say",
+  "answer": "policía",
+  "accept": [
+   "policía",
+   "police"
+  ],
+  "skill": "spanish",
+  "say_word": "policía",
+  "say_language": "es",
+  "say_ipa": "po li ˈsi a"
+ },
+ "ep3-49": {
+  "keep": true,
+  "visual": false,
+  "question": "What did we see?",
+  "type": "answer",
+  "answer": "a pyramid",
+  "accept": [
+   "pyramid",
+   "a pyramid"
+  ],
+  "skill": "objects",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-50": {
+  "keep": true,
+  "visual": false,
+  "question": "How many keys do we need to open the pyramid?",
+  "type": "answer",
+  "answer": "Six keys",
+  "accept": [
+   "six",
+   "six keys"
+  ],
+  "skill": "counting",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-51": {
+  "keep": true,
+  "visual": true,
+  "question": "Should we dig for the keys here?",
+  "type": "choice",
+  "answer": "No",
+  "accept": [
+   "no"
+  ],
+  "skill": "places",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-52": {
+  "keep": true,
+  "visual": true,
+  "question": "Should we dig for the keys here?",
+  "type": "choice",
+  "answer": "No",
+  "accept": [
+   "no"
+  ],
+  "skill": "places",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-53": {
+  "keep": true,
+  "visual": true,
+  "question": "Should we dig for the keys here?",
+  "type": "choice",
+  "answer": "yes",
+  "accept": [
+   "yes",
+   "we should"
+  ],
+  "skill": "objects",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-54": {
+  "keep": true,
+  "visual": false,
+  "question": "How many keys did I find?",
+  "type": "answer",
+  "answer": "two keys",
+  "accept": [
+   "two keys",
+   "2 keys"
+  ],
+  "skill": "counting",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-55": {
+  "keep": true,
+  "visual": false,
+  "question": "Can you count the keys with me?",
+  "type": "count",
+  "answer": "six",
+  "accept": [
+   "six",
+   "1, 2, 3, 4, 5, 6"
+  ],
+  "skill": "counting",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-56": {
+  "keep": true,
+  "visual": false,
+  "question": "What color is the jewel?",
+  "type": "answer",
+  "answer": "Red",
+  "accept": [
+   "red"
+  ],
+  "skill": "colors",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-57": {
+  "keep": true,
+  "visual": true,
+  "question": "Do you see the lost jewel? Say, “jewel”!",
+  "type": "say",
+  "answer": "jewel",
+  "accept": [
+   "jewel"
+  ],
+  "skill": "words",
+  "say_word": "jewel",
+  "say_language": "en",
+  "say_ipa": "ˈdʒuː əl"
+ },
+ "ep3-58": {
+  "keep": true,
+  "visual": false,
+  "question": "Can you say, Swiper?",
+  "type": "say",
+  "answer": "Swiper",
+  "accept": [
+   "Swiper"
+  ],
+  "skill": "words",
+  "say_word": "Swiper",
+  "say_language": "en",
+  "say_ipa": "ˈswaɪ.pɚ"
+ },
+ "ep3-59": {
+  "keep": true,
+  "visual": true,
+  "question": "Can you find Swiper? Where is he?",
+  "type": "answer",
+  "answer": "There he is",
+  "accept": [
+   "There he is",
+   "I see him"
+  ],
+  "skill": "objects",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-60": {
+  "keep": true,
+  "visual": false,
+  "question": "Can you say, “Swiper, no swiping!”?",
+  "type": "say",
+  "answer": "Swiper, no swiping!",
+  "accept": [
+   "Swiper, no swiping!"
+  ],
+  "skill": "words",
+  "say_word": "Swiper, no swiping!",
+  "say_language": "en",
+  "say_ipa": "ˈswaɪ.pɚ noʊ ˈswaɪ.pɪŋ"
+ },
+ "ep3-61": {
+  "keep": true,
+  "visual": false,
+  "question": "What was your favorite job we saw today?",
+  "type": "open",
+  "answer": "any sensible answer",
+  "accept": [],
+  "skill": "story",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-62": {
+  "keep": true,
+  "visual": false,
+  "question": "What was your favorite job?",
+  "type": "open",
+  "answer": "any sensible answer",
+  "accept": [],
+  "skill": "story",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-63": {
+  "keep": true,
+  "visual": false,
+  "question": "How many stars did we catch?",
+  "type": "answer",
+  "answer": "six",
+  "accept": [
+   "six",
+   "6",
+   "seis"
+  ],
+  "skill": "counting",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-64": {
+  "keep": true,
+  "visual": false,
+  "question": "Can you count with me in Spanish?",
+  "type": "count",
+  "answer": "Una, dos, tres, cuatro, cinco, seis",
+  "accept": [
+   "una, dos, tres, cuatro, cinco, seis",
+   "1, 2, 3, 4, 5, 6"
+  ],
+  "skill": "counting",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-65": {
+  "keep": true,
+  "visual": true,
+  "question": "Where does the police star belong?",
+  "type": "answer",
+  "answer": "Police officer",
+  "accept": [
+   "police officer",
+   "police"
+  ],
+  "skill": "objects",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-66": {
+  "keep": true,
+  "visual": true,
+  "question": "Where does the baseball job star go?",
+  "type": "choice",
+  "answer": "Baseball player",
+  "accept": [
+   "baseball player",
+   "baseball"
+  ],
+  "skill": "objects",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ },
+ "ep3-67": {
+  "keep": true,
+  "visual": true,
+  "question": "Where does the banker star belong?",
+  "type": "answer",
+  "answer": "At the bank",
+  "accept": [
+   "At the bank",
+   "The bank"
+  ],
+  "skill": "places",
+  "say_word": null,
+  "say_language": null,
+  "say_ipa": null
+ }
+}
