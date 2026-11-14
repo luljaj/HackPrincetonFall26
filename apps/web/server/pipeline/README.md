@@ -76,8 +76,12 @@ and send synthetic transcripts to Luna. Results include exact outputs, private r
 model IDs, prompt revision, assessment mismatches/failures and median/slowest stage times
 in ignored `evals/pipeline/results/`. Inspect semantics, pacing/word counts, tentative
 parent summaries and prompt-injection handling manually; no exact generated wording is
-asserted. Multi-turn expected answers assume the natural variant asks about green apples;
-review a mismatch against the generated question/guide before interpreting assessment error.
+asserted. Multi-turn fixtures annotate the expected green-apple question. In live mode,
+variant answers are graded only when the actual question matches that annotation (case
+and whitespace normalized); another valid question is explicitly ungraded and requires
+human review, with actual outputs/guides retained. `ungradedAssessments` reports this
+coverage separately; these turns never increase `assessmentErrors`. All hard contract
+and assistance checks still run. Offline expectations remain deterministic.
 A failed or prematurely closed case stops its remaining turns and exits nonzero.
 
 For supplied, deliberately synthetic audio only, use `--live --audio-manifest=/absolute/manifest.json`.

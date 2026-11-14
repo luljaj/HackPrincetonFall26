@@ -6,7 +6,7 @@ import path from "node:path";
 import { performance } from "node:perf_hooks";
 import OpenAI from "openai";
 import { z } from "zod";
-import { cases, offlineDraft, type EvalCase } from "./cases";
+import { cases, offlineDraft, type EvalCase, type EvalStep } from "./cases";
 import { exampleScene } from "../../server/scenes/example.scene";
 import { MemoryPipelineStore } from "../../server/storage/memory";
 import { processTurn } from "../../server/pipeline/process-turn";
@@ -40,17 +40,29 @@ export function timingSummary(samples: number[]) {
     slowestMs: sorted.at(-1)!,
   } : { medianMs: null, slowestMs: null };
 }
-export async function evaluate(options: { live?: boolean; audioCases?: Array<EvalCase & { audioPath: string }> } = {}) {
+export function gradeAssessment(step: EvalStep, actual: string, question: { live: boolean; isVariant: boolean; text: string }) {
+  const normalize = (text: string) => text.trim().replace(/\s+/g, " ").toLowerCase();
+  const ungraded = question.live && question.isVariant && (!step.expectedQuestion || normalize(question.text) !== normalize(step.expectedQuestion));
+  return {
+    grading: ungraded ? "requires_human_review" : "graded",
+    mismatch: ungraded ? null : actual !== step.expected,
+    reason: ungraded ? "Generated variant differs from the fixture's annotated question; review its answer guide and assessment." : null,
+  };
+}
+
+export async function evaluate(options: { live?: boolean; audioCases?: Array<EvalCase & { audioPath: string }> } = {},
+  injectedProviders?: Pick<PipelineDependencies, "luna" | "transcribe">) {
   if (options.audioCases?.length && !options.live) throw new Error("Audio fixtures require --live; offline mode does not decode audio.");
   // No client construction or key validation in offline mode.
-  const config = options.live ? readProviderConfig() : null;
+  const config = options.live && !injectedProviders ? readProviderConfig() : null;
   const client = config ? new OpenAI({ apiKey: config.apiKey, timeout: 30_000, maxRetries: 0 }) : null;
-  const luna = client && config ? createLunaAdapter(client, config.lunaModel) : null;
-  const transcribe = client && config ? createTranscriptionAdapter(client, config.transcriptionModel) : null;
+  const luna = injectedProviders?.luna ?? (client && config ? createLunaAdapter(client, config.lunaModel) : null);
+  const transcribe = injectedProviders?.transcribe ?? (client && config ? createTranscriptionAdapter(client, config.transcriptionModel) : null);
   const outputs: Array<Record<string, unknown>> = [];
   const traces: PipelineTrace[] = [];
   let assessmentErrors = 0;
   let failures = 0;
+  let ungradedAssessments = 0;
   const allCases: Array<EvalCase & { audioPath?: string }> = [...cases, ...(options.audioCases ?? [])];
   for (const fixture of allCases) {
     const store = new MemoryPipelineStore();
@@ -75,14 +87,17 @@ export async function evaluate(options: { live?: boolean; audioCases?: Array<Eva
         const result = await processTurn({ sessionId: session.sessionId, metadata: {
           interactionId: randomUUID(), questionId, expectedTurnNumber: index,
         }, audio }, deps);
-        const mismatch = result.assessment.answerStatus !== step.expected;
-        if (mismatch) assessmentErrors++;
         const saved = (await store.loadSession(session.sessionId))!;
         const record = saved.interactions.at(-1)!;
+        const grade = gradeAssessment(step, result.assessment.answerStatus, {
+          live: !!options.live, isVariant: record.questionId !== exampleScene.initialQuestion.questionId, text: record.questionText,
+        });
+        if (grade.mismatch) assessmentErrors++;
+        if (grade.grading === "requires_human_review") ungradedAssessments++;
         // Additional hard assertions complement processTurn's schema/context guards.
         if (record.assessment.assistanceBeforeAnswer !== (exampleScene.assistanceAlreadyProvided || saved.interactions.slice(0, -1).some((turn) => turn.assistanceInResponse))) throw new Error("assistance attribution");
         if (!result.response.nextQuestion && index < fixture.steps.length - 1) throw new Error("closed before fixture finished");
-        outputs.push({ caseId: fixture.id, step: index + 1, expected: step.expected, mismatch, notes: fixture.notes,
+        outputs.push({ caseId: fixture.id, step: index + 1, expected: step.expected, expectedQuestion: step.expectedQuestion ?? null, ...grade, notes: fixture.notes,
           response: result, record, trace: caseTraces.at(-1), spokenWords: result.response.text.split(/\s+/).length });
         if (result.response.nextQuestion) questionId = result.response.nextQuestion.questionId;
       } catch (error) {
@@ -96,8 +111,8 @@ export async function evaluate(options: { live?: boolean; audioCases?: Array<Eva
   return {
     mode: options.live ? "live" : "offline", generatedAt: new Date().toISOString(),
     promptRevision: options.live ? LUNA_PROMPT_REVISION : "offline-oracle-v1",
-    models: { luna: config?.lunaModel ?? "offline-oracle", transcription: config?.transcriptionModel ?? "synthetic-text-bypass" },
-    caseCount: allCases.length, assessmentErrors, failures,
+    models: { luna: config?.lunaModel ?? (injectedProviders ? "injected-luna" : "offline-oracle"), transcription: config?.transcriptionModel ?? (injectedProviders ? "injected-transcription" : "synthetic-text-bypass") },
+    caseCount: allCases.length, assessmentErrors, ungradedAssessments, failures,
     timings: Object.fromEntries([
       ...stageNames.map((stage) => [stage, timingSummary(traces.flatMap((t) => { const value = t.record.diagnostics.timings[stage]; return value === null ? [] : [value]; }))]),
       ["persistenceMs", timingSummary(traces.map((t) => t.persistenceMs))],
@@ -118,7 +133,7 @@ async function main() {
   await mkdir(results, { recursive: true });
   const destination = path.join(results, `${Date.now()}-${report.mode}.json`);
   await writeFile(destination, JSON.stringify(report, null, 2));
-  console.log(JSON.stringify({ report: destination, mode: report.mode, caseCount: report.caseCount, assessmentErrors: report.assessmentErrors, failures: report.failures, timings: report.timings }, null, 2));
+  console.log(JSON.stringify({ report: destination, mode: report.mode, caseCount: report.caseCount, assessmentErrors: report.assessmentErrors, ungradedAssessments: report.ungradedAssessments, failures: report.failures, timings: report.timings }, null, 2));
   if (report.failures || report.assessmentErrors) process.exitCode = 1;
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
