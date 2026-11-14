@@ -1,4 +1,4 @@
-# Workflow brief
+# UX brief
 
 How a Dora episode becomes an interactive one, end to end. One episode (ep3, "When I Grow Up") runs fully today; the rest follow the same steps.
 
@@ -46,6 +46,33 @@ Other paths:
 Spots without a known answer skip the model step, and the show reveals the answer itself.
 
 Tests: `node --test apps/web/app/lab/machine.test.ts`
+
+## Turn judging and pronunciation
+
+- **Luna judge** (`/api/judge`, `server/judge/judge.ts`): one tool call picks the stage-machine event (`correct` / `wrong` / `unclear`) and writes Dora's next line, told in advance what the machine will do for each event. 26/26 on the test answers, about 1.2 s.
+- **Pronunciation** for "say X" spots (`spots.json` → `say: {word, language, ipa}`): `uv run tools/pronounce-server.py` (port 8767), reached through `/api/pronounce`.
+  - Verdict comes from Whisper's likelihood of the target word plus end-of-text, using a 4 s window: good / close / retry / silent.
+  - The sound to coach comes from wav2vec2-xlsr espeak phonemes, aligned to the target with kid-lenient costs (any r is fine, b/β/v and seseo are free, r↔l costs half).
+  - About 100 ms per clip: Whisper and the phoneme model run at the same time. Both models are multilingual, so another language only needs target IPA for each word.
+  - The verdict forces Luna's tool, so Luna only writes the line. Only the sound to model is sent to Luna, never what the kid got wrong.
+  - Cutoffs were tuned on 198 synthetic clips (on mic-style recordings: 88% of attempts praised, 83% of wrong words caught). The results hold for clean and mic-style recordings alike: clips are trimmed and padded, and the browser records lossless PCM. Retune on 20–30 real kid recordings.
+
+## The spoken loop (hands-free)
+
+Turn on **🎙 Hands-free** in `/lab`. Each listening stage then:
+
+1. Opens the mic. Energy-based voice detection (`app/lab/listen.ts`) decides when the kid starts and stops.
+2. Sends the clip to `/api/transcribe` (local Whisper, primed with the question and answer), or to `/api/pronounce` for "say X" spots.
+3. Luna picks the event and Dora's line.
+4. Dora speaks: the voice server if it's running, otherwise the browser's own speech synthesis.
+
+Silence → nudge. A failed step re-arms the mic.
+
+Run it:
+```bash
+uv run tools/pronounce-server.py
+```
+Optionally also start `uv run tools/voice-server.py`.
 
 ## Fast and cheap at runtime
 

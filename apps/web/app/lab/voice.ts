@@ -125,3 +125,29 @@ export async function streamVoice({ text, context, destination, signal, onSpeaki
     stop();
   }
 }
+
+/** Fallback when the local voice server is down: the browser's own speech synthesis, so the loop still talks. */
+export function speakFallback(text: string, signal: AbortSignal, onSpeaking: (speaking: boolean) => void): Promise<void> {
+  return new Promise((resolve) => {
+    if (!("speechSynthesis" in window)) return resolve();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.05;
+    utterance.pitch = 1.35; // brighter, closer to a young character than the default voice
+    // Some browsers never fire onend for a background tab; don't let that stall the stage machine.
+    // On timeout, cancel the speech too, or the hands-free mic would open while Dora is still talking.
+    const guard = setTimeout(() => cancel(), 1500 + text.split(/\s+/).length * 450);
+    const finish = () => {
+      clearTimeout(guard);
+      signal.removeEventListener("abort", cancel);
+      onSpeaking(false);
+      resolve();
+    };
+    const cancel = () => { speechSynthesis.cancel(); finish(); };
+    utterance.onstart = () => onSpeaking(true);
+    utterance.onend = finish;
+    utterance.onerror = finish;
+    signal.addEventListener("abort", cancel, { once: true });
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utterance);
+  });
+}

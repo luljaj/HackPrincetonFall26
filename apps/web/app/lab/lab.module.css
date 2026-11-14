@@ -253,3 +253,31 @@
   text-overflow: ellipsis;
   opacity: 0.85;
 }
+
+.kid form {
+  display: flex;
+  gap: 6px;
+}
+
+.kid input {
+  font: inherit;
+  font-size: 14px;
+  width: 230px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid #4a3d33;
+  background: #16120f;
+  color: inherit;
+}
+
+.kid .say {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  opacity: 1;
+}
+
+.kid .say input {
+  width: 190px;
+  font-size: 12px;
+}

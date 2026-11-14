@@ -7,7 +7,8 @@ import lines from "./lines.json";
 import spotsData from "./spots.json";
 import trialEpisode from "./episode.json";
 import s from "./lab.module.css";
-import { streamVoice } from "./voice";
+import { speakFallback, streamVoice } from "./voice";
+import { listenOnce, openMic, recorderOptions } from "./listen";
 
 // Episode 3 with every detected question spot. Spots come from tools-side detection (spots.json);
 // `custom` spots have hand-written lines, every other spot uses the generic g_* lines.
@@ -21,7 +22,11 @@ type Spot = {
   talk: [number, number]; // episode range looped while Dora talks
   wait: [number, number]; // episode range looped while she listens
   custom?: boolean;
+  answer?: string; // custom spots: what Luna judges against
+  say?: { word: string; language: string; ipa: string }; // "say X" spots: scored for pronunciation
 };
+type Pronunciation = { verdict: "good" | "close" | "retry" | "silent"; heard: string; target: string; coach: { expected: string; heard: string } | null; ms: number };
+const RECORD_MS = 4000; // the scorer's window
 const SPOTS = spotsData as Spot[];
 const EPISODE = trialEpisode.src;
 const DURATION = trialEpisode.durationSeconds;
@@ -43,6 +48,18 @@ function lineFor(stage: Stage, spot: Spot, tries: number): string | null {
   if (spot.custom || base === "graceful") return base;
   if (base === "ask") return null;
   return `g_${base}`;
+}
+
+// What the machine will do next, in words Luna can write a fitting line for.
+function outcome(c: Ctx): string {
+  switch (c.stage) {
+    case "celebrating": return "celebrate the right answer";
+    case "teaching": return c.tries <= 1 ? "give a gentle clue without revealing the answer, then re-ask" : "offer two choices, one of them right, then re-ask";
+    case "modeling": return "say the answer and ask the child to repeat it";
+    case "giving": return "warmly reveal the answer and move on with the story; no question";
+    case "clarifying": return "say you didn't catch that and re-ask simply";
+    default: return "say a short warm line";
+  }
 }
 
 const KID: { label: string; result: Event | "SILENCE" }[] = [
@@ -76,7 +93,21 @@ export default function Lab() {
   const spotRef = useRef(spot);
   const autoRef = useRef(autoPause);
   const lastResumed = useRef<string | null>(null);
-  const pending = useRef<Event>("CORRECT");
+  const pending = useRef<Event | null>("CORRECT"); // null = Luna is deciding
+  const [kidText, setKidText] = useState("");
+  const [judgeInfo, setJudgeInfo] = useState("");
+  const [pron, setPron] = useState<Pronunciation | null>(null);
+  const [recording, setRecording] = useState(false);
+  const recorder = useRef<MediaRecorder | null>(null);
+  const [handsFree, setHandsFree] = useState(false);
+  const [hearing, setHearing] = useState(false);
+  const [mic, setMic] = useState<MediaStream | null>(null); // one stream for the whole hands-free session
+  const [listenKey, setListenKey] = useState(0); // bump to re-arm the mic after a failed turn
+  const [loopInfo, setLoopInfo] = useState("");
+  const [heardInfo, setHeardInfo] = useState("");
+  const speechEndedAt = useRef<number | null>(null); // for the "kid stopped → Dora speaking" latency
+  const synthSpeaking = useRef(false);
+  const turn = useRef(0); // bumped on every new turn, jump or forced stage: late replies from older turns are dropped
   const episode = useRef<HTMLVideoElement>(null);
   const line = useRef<HTMLAudioElement>(null);
   const loops = useRef<Record<Loop, HTMLVideoElement | null>>({ talk: null, wait: null });
@@ -97,22 +128,143 @@ export default function Lab() {
     if (n !== ctxRef.current) commit(n, e);
   }
 
+  function doraStartedSpeaking() {
+    if (speechEndedAt.current === null) return;
+    setLoopInfo(`Kid stopped → Dora speaking: ${Math.round(performance.now() - speechEndedAt.current)} ms`);
+    speechEndedAt.current = null;
+  }
+
+  function onSynth(on: boolean) {
+    synthSpeaking.current = on;
+    if (on) doraStartedSpeaking();
+  }
+
+  // Hands-free: the kid's spoken answer → local Whisper → Luna.
+  async function transcribeAndJudge(clip: Blob) {
+    const sp = spotRef.current;
+    const form = new FormData();
+    form.append("audio", clip);
+    // The question only, never the answer: priming Whisper with "seatbelt" would make it hear seatbelt.
+    form.append("hint", (sp.custom && LINES.ask) || sp.text.slice(-200));
+    for (const l of new Set(["en", "es", sp.say?.language ?? "en"])) form.append("languages", l);
+    const mine = ++turn.current;
+    try {
+      const res = await fetch("/api/transcribe", { method: "POST", body: form });
+      const out = await res.json();
+      if (mine !== turn.current || ctxRef.current.stage !== "listening") return;
+      if (!res.ok) throw new Error(out.error ?? "Transcription failed.");
+      setHeardInfo(`Heard “${out.text}” (${out.language ?? "silence"}) · transcribed in ${out.ms} ms`);
+      void askLuna(out.text);
+    } catch (error) {
+      if (mine !== turn.current) return;
+      setJudgeInfo(error instanceof Error ? error.message : "Transcription failed.");
+      setListenKey((k) => k + 1);
+    }
+  }
+
+  // Kid's words → Luna picks the event and Dora's line in one tool call → machine switches.
+  async function askLuna(said: string, pronunciation?: Pronunciation) {
+    const sp = spotRef.current;
+    const c = { ...ctxRef.current, stage: "thinking" as const };
+    const ev = { correct: "CORRECT", wrong: "WRONG", unclear: "UNCLEAR" } as const;
+    const mine = ++turn.current;
+    pending.current = null;
+    send("SPEECH_END");
+    const started = performance.now();
+    try {
+      const res = await fetch("/api/judge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: sp.custom ? LINES.ask : sp.text.slice(-300),
+          answerGuide: sp.answer ?? (sp.say ? `The child should say "${sp.say.word}" (${sp.say.language}).` : "Not given: judge from the question; the show reveals the answer next."),
+          said,
+          // Only the sound to model goes to Luna, so the line can't dwell on what the kid got wrong.
+          pronunciation: pronunciation && { verdict: pronunciation.verdict, expected: pronunciation.coach?.expected ?? null },
+          outcomes: { correct: outcome(next(c, "CORRECT")), wrong: outcome(next(c, "WRONG")), unclear: outcome(next(c, "UNCLEAR")) },
+        }),
+      });
+      const out = await res.json();
+      if (!res.ok) throw new Error(out.error ?? "Judge failed.");
+      if (mine !== turn.current || ctxRef.current.stage !== "thinking") return; // kid left, or a newer turn started
+      setJudgeInfo(`Luna: ${out.event} · ${out.skill} · ${out.ms} ms model / ${Math.round(performance.now() - started)} ms total`);
+      liveText.current = out.say;
+      setSpeechCaption(out.say); // so the saved generic line never flashes first
+      send(ev[out.event as keyof typeof ev]);
+    } catch (error) {
+      if (mine !== turn.current) return;
+      setJudgeInfo(error instanceof Error ? error.message : "Judge failed.");
+      if (ctxRef.current.stage === "thinking") commit({ ...ctxRef.current, stage: "listening" }, "judge failed");
+    }
+  }
+
+  // "Say X" spots: score the clip locally, then let Luna write the line for that verdict.
+  async function scoreClip(clip: Blob) {
+    const sp = spotRef.current;
+    if (!sp.say || ctxRef.current.stage !== "listening") return setJudgeInfo("Clip ignored: Dora wasn't listening anymore.");
+    const form = new FormData();
+    form.append("audio", clip);
+    for (const [k, v] of Object.entries(sp.say)) form.append(k, v);
+    setPron(null);
+    const mine = ++turn.current;
+    try {
+      const res = await fetch("/api/pronounce", { method: "POST", body: form });
+      const out = await res.json();
+      if (mine !== turn.current || ctxRef.current.stage !== "listening") return setJudgeInfo("Clip ignored: a newer turn started."); // stale
+      if (!res.ok) throw new Error(out.error ?? "Scoring failed.");
+      setPron(out);
+      void askLuna(out.verdict === "silent" ? "" : `(sounded like: ${out.heard})`, out);
+    } catch (error) {
+      if (mine !== turn.current) return;
+      setJudgeInfo(error instanceof Error ? error.message : "Scoring failed.");
+      setListenKey((k) => k + 1);
+    }
+  }
+
+  async function toggleRecording() {
+    if (recorder.current) return recorder.current.stop();
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rec = new MediaRecorder(stream, recorderOptions());
+      const chunks: Blob[] = [];
+      rec.ondataavailable = (e) => chunks.push(e.data);
+      rec.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        recorder.current = null;
+        setRecording(false);
+        void scoreClip(new Blob(chunks, { type: rec.mimeType }));
+      };
+      recorder.current = rec;
+      rec.start();
+      setRecording(true);
+      setTimeout(() => rec.state === "recording" && rec.stop(), RECORD_MS);
+    } catch {
+      setJudgeInfo("Microphone unavailable. Use a clip instead.");
+    }
+  }
+
   function force(st: Stage) {
+    turn.current++;
     commit({ ...ctxRef.current, stage: st }, "forced");
   }
 
   function pickSpot(sp: Spot) {
     spotRef.current = sp;
     setSpot(sp);
-    ctxRef.current = { ...ctxRef.current, known: !!sp.custom };
+    ctxRef.current = { ...ctxRef.current, known: !!(sp.custom || sp.say) };
   }
 
   function jump(sp: Spot) {
     if (!started) return;
+    turn.current++;
+    setPron(null);
+    setJudgeInfo("");
+    setHeardInfo("");
+    setLoopInfo("");
     pickSpot(sp);
     lastResumed.current = null;
     episode.current!.currentTime = Math.max(0, sp.t - 2);
-    commit({ ...INITIAL, known: !!sp.custom }, `jump ${sp.id}`);
+    commit({ ...INITIAL, known: !!(sp.custom || sp.say) }, `jump ${sp.id}`);
     episode.current!.play();
   }
 
@@ -186,7 +338,10 @@ export default function Lab() {
       ep.currentTime = sp.resumeAt;
       timers.push(setTimeout(() => ep.removeEventListener("seeked", done), 5000));
     }
-    if (stage === "thinking") timers.push(setTimeout(() => send(pending.current), THINK_MS));
+    if (stage === "thinking" && pending.current) {
+      const e = pending.current;
+      timers.push(setTimeout(() => send(e), THINK_MS));
+    }
     if (meta.line) {
       const file = lineFor(stage, sp, ctxRef.current.tries);
       if (file) {
@@ -199,21 +354,31 @@ export default function Lab() {
           const a = audio.current!;
           void streamVoice({
             text, context: a.ctx, destination: a.analyser, signal: speechAbort.signal,
-            onSpeaking: (speaking) => { if (!speechAbort.signal.aborted) liveSpeaking.current = speaking; },
+            onSpeaking: (speaking) => {
+              if (speechAbort.signal.aborted) return;
+              liveSpeaking.current = speaking;
+              if (speaking) doraStartedSpeaking();
+            },
             onMetrics: ({ firstAudioSeconds, generationSeconds }) => {
               if (!speechAbort.signal.aborted) setVoiceMetrics(`First audio ${firstAudioSeconds.toFixed(2)}s · generated in ${generationSeconds.toFixed(2)}s`);
             },
           }).then(() => {
             if (!speechAbort.signal.aborted) send("LINE_DONE");
-          }).catch((error: unknown) => {
+          }).catch(async (error: unknown) => {
             if (speechAbort.signal.aborted) return;
-            setVoiceError(error instanceof Error ? error.message : "Speech failed.");
-            send("LINE_DONE");
+            setVoiceError(`${error instanceof Error ? error.message : "Speech failed."} Using the browser voice.`);
+            await speakFallback(text, speechAbort.signal, onSynth);
+            if (!speechAbort.signal.aborted) send("LINE_DONE");
           });
         } else {
           ln.src = `/media/lab/${file}.m4a`;
+          ln.onplaying = doraStartedSpeaking;
           ln.onended = () => send("LINE_DONE");
-          ln.onerror = () => { setVoiceError("Saved voice line could not be loaded."); send("LINE_DONE"); };
+          ln.onerror = () => {
+            setVoiceError("Saved voice line could not be loaded. Using the browser voice.");
+            void speakFallback(text ?? "", speechAbort.signal, onSynth)
+              .then(() => { if (!speechAbort.signal.aborted) send("LINE_DONE"); });
+          };
           void ln.play().catch(() => { if (!speechAbort.signal.aborted) { setVoiceError("Audio playback failed."); send("LINE_DONE"); } });
         }
       } else timers.push(setTimeout(() => send("LINE_DONE"), 0)); // the show already asked
@@ -223,13 +388,57 @@ export default function Lab() {
       cancelAnimationFrame(raf);
       timers.forEach(clearTimeout);
       liveSpeaking.current = false;
+      synthSpeaking.current = false;
       speechAbort.abort();
       ln.onended = null;
       ln.onerror = null;
+      ln.onplaying = null;
       ln.pause();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once per stage entry
   }, [stage, started, speechVersion]);
+
+  // Hands-free on: open the mic once and keep it until hands-free is turned off.
+  useEffect(() => {
+    if (!started || !handsFree) return;
+    let cancelled = false;
+    let stream: MediaStream | null = null;
+    openMic()
+      .then((s) => {
+        stream = s;
+        if (cancelled) s.getTracks().forEach((t) => t.stop());
+        else setMic(s);
+      })
+      .catch(() => setJudgeInfo("Microphone unavailable: allow mic access, or turn hands-free off."));
+    return () => {
+      cancelled = true;
+      stream?.getTracks().forEach((t) => t.stop());
+      setMic(null);
+    };
+  }, [started, handsFree]);
+
+  // Hands-free: in the listening stage, wait for the kid's answer on the open mic.
+  useEffect(() => {
+    if (!mic || stage !== "listening") return;
+    const abort = new AbortController();
+    setHearing(false);
+    listenOnce(mic, audio.current!.ctx, abort.signal, () => setHearing(true))
+      .then((heard) => {
+        if (abort.signal.aborted) return;
+        setHearing(false);
+        if (!heard.spoke || !heard.clip) return send("SILENCE");
+        speechEndedAt.current = heard.endedAt;
+        if (spotRef.current.say) void scoreClip(heard.clip);
+        else void transcribeAndJudge(heard.clip);
+      })
+      .catch(() => {
+        if (abort.signal.aborted) return;
+        setHearing(false);
+        setJudgeInfo("Listening failed. Trying again on the next turn.");
+      });
+    return () => abort.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-arm per listening stage
+  }, [stage, mic, listenKey]);
 
   // Mouth follows the voice: talk loop while she speaks (held through short gaps), wait loop otherwise.
   // Loops are pre-cut boomerang clips (tools/cut-loops.py), so <video loop> never seeks.
@@ -243,8 +452,9 @@ export default function Lab() {
     const tick = (now: number) => {
       a.analyser.getFloatTimeDomainData(buf);
       const rms = Math.sqrt(buf.reduce((sum, x) => sum + x * x, 0) / buf.length);
-      const speaking = !line.current!.paused || liveSpeaking.current;
-      if (speaking && rms > TALK_RMS) openUntil = now + MOUTH_HOLD_MS;
+      const speaking = !line.current!.paused || liveSpeaking.current || synthSpeaking.current;
+      // The browser voice can't be measured, so the mouth just talks while it speaks.
+      if (speaking && (rms > TALK_RMS || synthSpeaking.current)) openUntil = now + MOUTH_HOLD_MS;
       const show: Loop = speaking && now < openUntil ? "talk" : "wait";
       if (show !== shown) {
         shown = show;
@@ -260,7 +470,7 @@ export default function Lab() {
   }, [started]);
 
   const file = lineFor(stage, spot, ctx.tries);
-  const caption = file ? (speechCaption ?? LINES[file]) : stage === "listening" ? `🎤 listening… “${spot.text.slice(-70)}”` : stage === "thinking" ? "…" : "";
+  const caption = file ? (speechCaption ?? LINES[file]) : stage === "listening" ? (hearing ? "🗣️ I'm listening…" : `🎤 listening… “${spot.text.slice(-70)}”`) : stage === "thinking" ? "…" : "";
   const shown = likelyOnly ? SPOTS.filter((x) => x.gap >= LIKELY_GAP) : SPOTS;
 
   return (
@@ -311,6 +521,21 @@ export default function Lab() {
               {k.label}
             </button>
           ))}
+          <label className={s.say}>
+            <input type="checkbox" checked={handsFree} onChange={(e) => setHandsFree(e.target.checked)} /> 🎙 Hands-free
+          </label>
+          <form onSubmit={(e) => { e.preventDefault(); void askLuna(kidText.trim()); setKidText(""); }}>
+            <input value={kidText} maxLength={300} placeholder="Kid says… (Luna judges)" disabled={stage !== "listening"} onChange={(e) => setKidText(e.target.value)} />
+            <button disabled={stage !== "listening"} type="submit">Say</button>
+          </form>
+          {spot.say && (
+            <span className={s.say}>
+              Say “{spot.say.word}”:
+              <button disabled={stage !== "listening" && !recording} onClick={() => void toggleRecording()}>{recording ? "■ Stop" : "🎤 Record"}</button>
+              <input type="file" accept="audio/*" aria-label="Score an audio clip" disabled={stage !== "listening"}
+                onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void scoreClip(f); }} />
+            </span>
+          )}
           <button disabled={!started} onClick={() => send(stage === "away" ? "BACK" : "AWAY")}>
             {stage === "away" ? "↩ Come back" : "📺 Switch channel"}
           </button>
@@ -368,6 +593,15 @@ export default function Lab() {
         </form>
         {voiceError && <p role="alert">{voiceError}</p>}
         {voiceMetrics && <p className={s.meta}>{voiceMetrics}</p>}
+        {judgeInfo && <p className={s.meta}>{judgeInfo}</p>}
+        {heardInfo && <p className={s.meta}>{heardInfo}</p>}
+        {loopInfo && <p className={s.meta}>{loopInfo}</p>}
+        {pron && (
+          <p className={s.meta}>
+            Pronunciation: <b>{pron.verdict}</b> · heard /{pron.heard}/ vs /{pron.target}/
+            {pron.coach && <> · coach {pron.coach.heard ? `/${pron.coach.heard}/ → /${pron.coach.expected}/` : `missing /${pron.coach.expected}/`}</>} · {pron.ms} ms
+          </p>
+        )}
         <h2>Stage machine</h2>
         <Graph ctx={ctx} onEvent={send} onForce={force} disabled={!started} />
         <p className={s.meta}>

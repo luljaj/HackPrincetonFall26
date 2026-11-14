@@ -125,7 +125,12 @@
    188.56,
    191.72
   ],
-  "id": "ep3-08"
+  "id": "ep3-08",
+  "say": {
+   "word": "map",
+   "language": "en",
+   "ipa": "m æ p"
+  }
  },
  {
   "t": 200.3,
@@ -318,7 +323,8 @@
    434.2
   ],
   "id": "ep3-20",
-  "custom": true
+  "custom": true,
+  "answer": "seatbelt"
  },
  {
   "t": 469.64,
@@ -350,7 +356,12 @@
    492.7,
    495.56
   ],
-  "id": "ep3-22"
+  "id": "ep3-22",
+  "say": {
+   "word": "arriba",
+   "language": "es",
+   "ipa": "a r i β a"
+  }
  },
  {
   "t": 520.54,
@@ -366,7 +377,12 @@
    528.7,
    531.74
   ],
-  "id": "ep3-23"
+  "id": "ep3-23",
+  "say": {
+   "word": "abajo",
+   "language": "es",
+   "ipa": "a β a x o"
+  }
  },
  {
   "t": 531.74,
@@ -382,7 +398,12 @@
    532.64,
    537.0
   ],
-  "id": "ep3-24"
+  "id": "ep3-24",
+  "say": {
+   "word": "abajo",
+   "language": "es",
+   "ipa": "a β a x o"
+  }
  },
  {
   "t": 567.7,
@@ -419,7 +440,7 @@
  {
   "t": 592.44,
   "pauseAt": 599.38,
-  "text": "So next we need to find the bridge. \u00bfD\u00f3nde est\u00e1? Where is the bridge?",
+  "text": "So next we need to find the bridge. ¿Dónde está? Where is the bridge?",
   "talk": [
    597.32,
    599.38
@@ -526,7 +547,12 @@
    702.64,
    707.54
   ],
-  "id": "ep3-33"
+  "id": "ep3-33",
+  "say": {
+   "word": "backpack",
+   "language": "en",
+   "ipa": "b æ k p æ k"
+  }
  },
  {
   "t": 715.24,
@@ -707,7 +733,7 @@
  {
   "t": 976.0,
   "pauseAt": 980.7,
-  "text": "So we need to find the pyramid. \u00bfD\u00f3nde est\u00e1 the pyramid?",
+  "text": "So we need to find the pyramid. ¿Dónde está the pyramid?",
   "talk": [
    979.12,
    980.7
@@ -766,7 +792,12 @@
    1007.06,
    1008.8
   ],
-  "id": "ep3-48"
+  "id": "ep3-48",
+  "say": {
+   "word": "policía",
+   "language": "es",
+   "ipa": "p o l i s i a"
+  }
  },
  {
   "t": 1035.56,
