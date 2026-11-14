@@ -143,6 +143,30 @@ How it plugs in:
 
 Fallback: if the team decides to demo from a single machine with no deployment, use the same Drizzle schema on a SQLite file. Deployment is still not chosen, so confirm the host before creating the production database.
 
+### Implementation status (Nov 14)
+
+Built on the `parent-dashboard` branch in `apps/web/server/storage/`. All 11 tests in `postgres.test.ts` pass against PGlite. It hasn't been run against a hosted database yet. Differences from the table above:
+
+- `sessions` adds `is_sample` (boolean, default false), which drives the dashboard's "Sample data" badge.
+- `interactions` uses the primary key (`session_id`, `interaction_id`) instead of a globally unique `interaction_id`, so a duplicate check never matches a record from another session. (`session_id`, `turn_number`) is still unique.
+- `interactions` also stores `scene_id` and `objective_id` per record, as the identity group in pipeline plan §9 requires.
+- `interaction_diagnostics` is keyed and cascades on (`session_id`, `interaction_id`).
+
+**Host: Tiger Cloud (Tiger Data's managed Postgres)**, chosen for HackPrinceton's MLH "Best Use of Tiger Data" prize. The migration was applied on Nov 14, and a live round trip through the adapter passed: commit, replay and parent read.
+
+To connect: get the connection string privately from the dashboard owner (never commit it). Put `DATABASE_URL="..."` and `PIPELINE_STORE=postgres` in `apps/web/.env.local`, then run `npm run db:migrate -w web`. `drizzle.config.ts` loads `.env.local` automatically.
+
+Possible extra for the prize: a TimescaleDB hypertable for a separate time-ordered learning-event log. Don't convert `interactions`, because hypertables restrict primary keys and that would break duplicate-safe commits.
+
+### Demo tools status (Nov 14)
+
+Built and tested against PGlite (15 tests) and Tiger Cloud:
+- **Sample session:** `npm run db:seed -w web` writes it, flagged `is_sample`. The no-database fixture is derived from the same records, so the two can't drift.
+- **Live view:** `/parent/live` shows the newest non-sample session and switches automatically when a new one starts. This is the demo's interim answer to view pairing ("the newest session is the live one"). The team can replace it once pairing is agreed.
+- **Reset:** `POST /api/parent/demo/reset` deletes every non-sample session and reseeds the sample. It requires `DEMO_TOOLS=true` and parent access.
+- **Delete:** `DELETE /api/parent/sessions/{id}` deletes one session and its evidence. The sample returns 403.
+- **Dependency:** a new judge's session only appears once the pipeline's `POST /api/learning/sessions` (Luka) creates it.
+
 ## 7. Integration agreement
 
 | With | Agreement | Boundary |
@@ -172,9 +196,9 @@ Not added: accounts and logins, charts across sessions, scores or percentages, a
 
 The dashboard owner builds the technical foundation for the parent view: styling setup, routes, data wiring and UI states. **Visual design (layout, colors, type, illustration) is not part of this work.** The foundation exposes design tokens and unstyled-but-structured components so the design can be applied in one place later.
 
-### Tailwind setup (Tailwind CSS v4)
+### Tailwind setup (Tailwind CSS v4): done
 
-The `web` app currently has no Tailwind. It uses the starter's `globals.css` and `page.module.css`.
+**Status: done** on the `parent-dashboard` branch (Nov 14). Tailwind 4.3.5 is set up, and build, lint and type check pass. The steps below are kept for reference.
 
 1. Run this from the repo root: `npm install -w web tailwindcss @tailwindcss/postcss postcss`
 2. Add `apps/web/postcss.config.mjs`:
