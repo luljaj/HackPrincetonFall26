@@ -16,5 +16,6 @@
   "g_clarify": "Oops, I didn't hear you. Can you say it again?",
   "g_give": "That was a tricky one! Let's see what happens!",
   "g_welcome": "Ayyy, you're back! I missed you! Let's try again!",
-  "g_model": "Listen closely and say it with me! Your turn!"
+  "g_model": "Listen closely and say it with me! Your turn!",
+  "hmm": "Hmm!"
 }

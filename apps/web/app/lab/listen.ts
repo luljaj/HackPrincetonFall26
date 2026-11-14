@@ -8,7 +8,7 @@ export const VAD = {
   minRms: 0.012, // never trigger below this, however quiet the room
   floorFactor: 3, // speech = louder than 3x the noise floor
   startMs: 90, // this much speech in a row counts as the kid starting
-  endSilenceMs: 700, // this much quiet after speech ends the answer
+  endSilenceMs: 500, // this much quiet after speech ends the answer (people take turns within a few hundred ms)
   noSpeechMs: 6000, // nobody spoke: let the stage machine nudge
   maxMs: 8000, // hard cap on one answer
 };
@@ -20,7 +20,8 @@ export const recorderOptions = (): MediaRecorderOptions => {
   return mimeType ? { mimeType } : {};
 };
 
-export type Heard = { clip: Blob | null; spoke: boolean; endedAt: number };
+// lastSpeechAt = the kid's last loud frame: the honest start of the turn gap (endedAt is endSilenceMs later).
+export type Heard = { clip: Blob | null; spoke: boolean; endedAt: number; lastSpeechAt: number };
 
 type VadState = { floor: number; elapsed: number; loudFor: number; quietFor: number; started: boolean };
 export const VAD_START: VadState = { floor: Infinity, elapsed: 0, loudFor: 0, quietFor: 0, started: false };
@@ -79,7 +80,8 @@ export async function listenOnce(stream: MediaStream, context: AudioContext, sig
     const stopped = new Promise<void>((resolve) => { recorder.onstop = () => resolve(); });
     recorder.stop();
     await stopped;
-    return { clip: result === "spoke" ? new Blob(chunks, { type: recorder.mimeType }) : null, spoke: result === "spoke", endedAt: performance.now() };
+    const endedAt = performance.now();
+    return { clip: result === "spoke" ? new Blob(chunks, { type: recorder.mimeType }) : null, spoke: result === "spoke", endedAt, lastSpeechAt: endedAt - state.quietFor };
   } finally {
     clearInterval(timer);
     if (recorder.state !== "inactive") recorder.stop();

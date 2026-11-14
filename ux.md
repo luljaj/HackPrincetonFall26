@@ -68,6 +68,13 @@ Turn on **🎙 Hands-free** in `/lab`. Each listening stage then:
 
 Silence → nudge. A failed step re-arms the mic.
 
+**Turn-taking speed.** People usually start their turn within a few hundred ms of the other person finishing:
+
+- **First sound in about 0.5 s:** the moment the kid stops (500 ms of quiet), Dora says "Hmm!". The audio is `hmm` in `lines.json`; generate it with `tools/gen-voice-lines.py --only hmm`. Until then it uses the browser voice.
+- **Real answer in about 1.2 s when it's clear:** if the transcript matches an accepted answer (`accept` in `spots.json`, allowing about one slip per four letters, so "Seedbelt" counts), or the pronunciation verdict is good, Dora plays her pre-made line without calling Luna.
+- **Luna only when needed:** wrong, unclear, or close-but-coachable answers go to Luna (about 1.3–2 s; lower reasoning settings weren't faster), with the "Hmm!" covering the wait.
+- **Honest timing:** measured from the kid's last sound and shown in the lab panel.
+
 Run it:
 ```bash
 uv run tools/pronounce-server.py

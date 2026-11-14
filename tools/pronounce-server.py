@@ -132,7 +132,9 @@ def main():
     logging.info('Warming the listening models…')
     warm = base64.b64encode(silence_wav()).decode()
     handle({'word': 'hola', 'language': 'es', 'ipa': 'o l a', 'audio': warm})
-    transcribe({'audio': warm, 'hint': 'hola', 'languages': ['en', 'es']})
+    # The silent warm clip returns early from transcribe(), so warm the library's transcribe path directly:
+    # otherwise the first kid's answer pays ~0.9 s of one-time setup.
+    mlx_transcribe(decode(warm), path_or_hf_repo=args.whisper, language='en', condition_on_previous_text=False, verbose=None)
     logging.info('Pronunciation ready on http://127.0.0.1:%s', args.port)
 
     class Handler(BaseHTTPRequestHandler):

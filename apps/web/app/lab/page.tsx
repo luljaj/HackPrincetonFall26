@@ -9,6 +9,7 @@ import trialEpisode from "./episode.json";
 import s from "./lab.module.css";
 import { speakFallback, streamVoice } from "./voice";
 import { listenOnce, openMic, recorderOptions } from "./listen";
+import { clearlyCorrect } from "./quick-judge";
 
 // Episode 3 with every detected question spot. Spots come from tools-side detection (spots.json);
 // `custom` spots have hand-written lines, every other spot uses the generic g_* lines.
@@ -23,6 +24,7 @@ type Spot = {
   wait: [number, number]; // episode range looped while she listens
   custom?: boolean;
   answer?: string; // custom spots: what Luna judges against
+  accept?: string[]; // answers clear enough to celebrate instantly, without waiting for Luna
   say?: { word: string; language: string; ipa: string }; // "say X" spots: scored for pronunciation
 };
 type Pronunciation = { verdict: "good" | "close" | "retry" | "silent"; heard: string; target: string; coach: { expected: string; heard: string } | null; ms: number };
@@ -78,7 +80,7 @@ export default function Lab() {
   const [spot, setSpot] = useState<Spot>(FIREHOUSE);
   const [autoPause, setAutoPause] = useState(true);
   const [likelyOnly, setLikelyOnly] = useState(false);
-  const [localVoice, setLocalVoice] = useState(true);
+  const [localVoice, setLocalVoice] = useState(false); // saved lines start instantly; Luna's own lines are still generated live
   const [voiceText, setVoiceText] = useState("Hola! A bigger number on the bottom means smaller pieces. Shall we try again?");
   const [voiceError, setVoiceError] = useState("");
   const [voiceMetrics, setVoiceMetrics] = useState("");
@@ -105,11 +107,13 @@ export default function Lab() {
   const [listenKey, setListenKey] = useState(0); // bump to re-arm the mic after a failed turn
   const [loopInfo, setLoopInfo] = useState("");
   const [heardInfo, setHeardInfo] = useState("");
-  const speechEndedAt = useRef<number | null>(null); // for the "kid stopped → Dora speaking" latency
+  // Turn-gap timing from the kid's last sound: when Dora's first sound (the "Hmm!") and her answer started.
+  const gap = useRef<{ from: number; first: number | null } | null>(null);
   const synthSpeaking = useRef(false);
   const turn = useRef(0); // bumped on every new turn, jump or forced stage: late replies from older turns are dropped
   const episode = useRef<HTMLVideoElement>(null);
   const line = useRef<HTMLAudioElement>(null);
+  const filler = useRef<HTMLAudioElement>(null); // its own element: stage changes pause `line`, which would cut the "Hmm!" off
   const loops = useRef<Record<Loop, HTMLVideoElement | null>>({ talk: null, wait: null });
   const audio = useRef<{ ctx: AudioContext; epGain: GainNode; analyser: AnalyserNode } | null>(null);
   const stage = ctx.stage;
@@ -129,10 +133,44 @@ export default function Lab() {
   }
 
   function doraStartedSpeaking() {
-    if (speechEndedAt.current === null) return;
-    setLoopInfo(`Kid stopped → Dora speaking: ${Math.round(performance.now() - speechEndedAt.current)} ms`);
-    speechEndedAt.current = null;
+    const g = gap.current;
+    if (!g) return;
+    const ms = Math.round(performance.now() - g.from);
+    setLoopInfo(`Kid stopped → Dora's first sound ${g.first ?? ms} ms · her answer ${ms} ms`);
+    gap.current = null;
   }
+
+  // A quick "Hmm!" the moment the kid stops, the way people acknowledge before answering.
+  function playFiller() {
+    const el = filler.current!;
+    const started = () => { if (gap.current && gap.current.first === null) gap.current.first = Math.round(performance.now() - gap.current.from); };
+    // No saved hmm.m4a yet (generate it with tools/gen-voice-lines.py --only hmm): use the browser voice.
+    const fallback = () => void speakFallback(LINES.hmm ?? "Hmm!", new AbortController().signal, (on) => { synthSpeaking.current = on; if (on) started(); });
+    el.onplaying = started;
+    el.onerror = fallback;
+    if (el.error) return fallback();
+    el.currentTime = 0;
+    void el.play().catch(fallback);
+  }
+
+  // Hands-free end of turn: think out loud, then judge. Clear answers skip Luna entirely.
+  function onKidDone(clip: Blob, lastSpeechAt: number) {
+    gap.current = { from: lastSpeechAt, first: null };
+    pending.current = null;
+    send("SPEECH_END");
+    playFiller();
+    if (spotRef.current.say) void scoreClip(clip);
+    else void transcribeAndJudge(clip);
+  }
+
+  // A listening step failed: go back to listening (the mic re-arms).
+  function backToListening(why: string) {
+    setJudgeInfo(why);
+    if (ctxRef.current.stage === "thinking") commit({ ...ctxRef.current, stage: "listening" }, "retry listening");
+    else setListenKey((k) => k + 1);
+  }
+
+  const answering = () => ["listening", "thinking"].includes(ctxRef.current.stage);
 
   function onSynth(on: boolean) {
     synthSpeaking.current = on;
@@ -151,14 +189,18 @@ export default function Lab() {
     try {
       const res = await fetch("/api/transcribe", { method: "POST", body: form });
       const out = await res.json();
-      if (mine !== turn.current || ctxRef.current.stage !== "listening") return;
+      if (mine !== turn.current || !answering()) return;
       if (!res.ok) throw new Error(out.error ?? "Transcription failed.");
       setHeardInfo(`Heard “${out.text}” (${out.language ?? "silence"}) · transcribed in ${out.ms} ms`);
+      if (clearlyCorrect(out.text, sp.accept ?? (sp.answer ? [sp.answer] : []))) {
+        setJudgeInfo("Instant: clear answer, no Luna call");
+        send("SPEECH_END");
+        return send("CORRECT");
+      }
       void askLuna(out.text);
     } catch (error) {
       if (mine !== turn.current) return;
-      setJudgeInfo(error instanceof Error ? error.message : "Transcription failed.");
-      setListenKey((k) => k + 1);
+      backToListening(error instanceof Error ? error.message : "Transcription failed.");
     }
   }
 
@@ -201,7 +243,7 @@ export default function Lab() {
   // "Say X" spots: score the clip locally, then let Luna write the line for that verdict.
   async function scoreClip(clip: Blob) {
     const sp = spotRef.current;
-    if (!sp.say || ctxRef.current.stage !== "listening") return setJudgeInfo("Clip ignored: Dora wasn't listening anymore.");
+    if (!sp.say || !answering()) return setJudgeInfo("Clip ignored: Dora wasn't listening anymore.");
     const form = new FormData();
     form.append("audio", clip);
     for (const [k, v] of Object.entries(sp.say)) form.append(k, v);
@@ -210,14 +252,19 @@ export default function Lab() {
     try {
       const res = await fetch("/api/pronounce", { method: "POST", body: form });
       const out = await res.json();
-      if (mine !== turn.current || ctxRef.current.stage !== "listening") return setJudgeInfo("Clip ignored: a newer turn started."); // stale
+      if (mine !== turn.current || !answering()) return setJudgeInfo("Clip ignored: a newer turn started."); // stale
       if (!res.ok) throw new Error(out.error ?? "Scoring failed.");
       setPron(out);
-      void askLuna(out.verdict === "silent" ? "" : `(sounded like: ${out.heard})`, out);
+      // Good or silent needs no tailored line: answer instantly. Close or retry gets Luna's coaching.
+      if (out.verdict === "good" || out.verdict === "silent") {
+        setJudgeInfo(`Instant: pronunciation ${out.verdict}, no Luna call`);
+        send("SPEECH_END");
+        return send(out.verdict === "good" ? "CORRECT" : "UNCLEAR");
+      }
+      void askLuna(`(sounded like: ${out.heard})`, out);
     } catch (error) {
       if (mine !== turn.current) return;
-      setJudgeInfo(error instanceof Error ? error.message : "Scoring failed.");
-      setListenKey((k) => k + 1);
+      backToListening(error instanceof Error ? error.message : "Scoring failed.");
     }
   }
 
@@ -283,6 +330,7 @@ export default function Lab() {
     ctx.createMediaElementSource(episode.current!).connect(epGain).connect(ctx.destination);
     const analyser = ctx.createAnalyser();
     ctx.createMediaElementSource(line.current!).connect(analyser).connect(ctx.destination);
+    ctx.createMediaElementSource(filler.current!).connect(analyser); // same analyser: the mouth moves on "Hmm!" too
     audio.current = { ctx, epGain, analyser };
     Object.values(loops.current).forEach((v) => v?.play());
     setStarted(true);
@@ -427,9 +475,7 @@ export default function Lab() {
         if (abort.signal.aborted) return;
         setHearing(false);
         if (!heard.spoke || !heard.clip) return send("SILENCE");
-        speechEndedAt.current = heard.endedAt;
-        if (spotRef.current.say) void scoreClip(heard.clip);
-        else void transcribeAndJudge(heard.clip);
+        onKidDone(heard.clip, heard.lastSpeechAt);
       })
       .catch(() => {
         if (abort.signal.aborted) return;
@@ -452,7 +498,7 @@ export default function Lab() {
     const tick = (now: number) => {
       a.analyser.getFloatTimeDomainData(buf);
       const rms = Math.sqrt(buf.reduce((sum, x) => sum + x * x, 0) / buf.length);
-      const speaking = !line.current!.paused || liveSpeaking.current || synthSpeaking.current;
+      const speaking = !line.current!.paused || !filler.current!.paused || liveSpeaking.current || synthSpeaking.current;
       // The browser voice can't be measured, so the mouth just talks while it speaks.
       if (speaking && (rms > TALK_RMS || synthSpeaking.current)) openUntil = now + MOUTH_HOLD_MS;
       const show: Loop = speaking && now < openUntil ? "talk" : "wait";
@@ -616,6 +662,7 @@ export default function Lab() {
         </ol>
       </aside>
       <audio ref={line} preload="auto" />
+      <audio ref={filler} src="/media/lab/hmm.m4a" preload="auto" />
     </main>
   );
 }

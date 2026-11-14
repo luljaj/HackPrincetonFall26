@@ -324,7 +324,12 @@
   ],
   "id": "ep3-20",
   "custom": true,
-  "answer": "seatbelt"
+  "answer": "seatbelt",
+  "accept": [
+   "seatbelt",
+   "seat belt",
+   "cinturón"
+  ]
  },
  {
   "t": 469.64,
