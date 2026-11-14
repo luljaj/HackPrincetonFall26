@@ -168,9 +168,9 @@ Not added: accounts and logins, charts across sessions, scores or percentages, a
 
 The dashboard owner builds the technical foundation for the parent view: styling setup, routes, data wiring and UI states. **Visual design (layout, colors, type, illustration) is not part of this work.** The foundation exposes design tokens and unstyled-but-structured components so the design can be applied in one place later.
 
-### Tailwind setup (Tailwind CSS v4)
+### Tailwind setup (Tailwind CSS v4): done
 
-The `web` app currently has no Tailwind. It uses the starter's `globals.css` and `page.module.css`.
+**Status: done** on the `parent-dashboard` branch (Nov 14). Tailwind 4.3.5 is set up, and build, lint and type check pass. The steps below are kept for reference.
 
 1. Run this from the repo root: `npm install -w web tailwindcss @tailwindcss/postcss postcss`
 2. Add `apps/web/postcss.config.mjs`:
