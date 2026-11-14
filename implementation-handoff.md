@@ -4,9 +4,9 @@ Updated November 14, 2026. This document consolidates the planning conversation 
 
 ## Repository and implementation status
 
-- This is the research repository. The application is in a separate GitHub repository with a Turborepo setup, according to the user.
-- The application repository has not been inspected. Framework, backend runtime, database, deployment, package manager, and existing application structure remain unknown.
-- This document is a plan, not evidence that the pipeline or application has been implemented.
+- This is now the application repository: an npm-workspaces Turborepo starter with Next.js App Router apps at `apps/web` and `apps/docs`. Earlier notes describing a separate uninspected application repository are superseded.
+- Shared payload schemas are documented in [the pipeline plan](./model-pipeline-implementation-plan.md) and [the dashboard/storage plan](./learning-progress-plan.md). These are Markdown specifications only; no contract files, fixtures, tests, routes, provider clients, storage adapters, realtime, or product UI have been added.
+- Managed Postgres with Drizzle is selected in the storage plan; concrete hosting, database provider, and realtime ownership remain open.
 - The local Rhubarb experiment was implemented and tested; its visual result was rejected. Details appear below.
 - Original vision: `cartoon-learning-idea.md`. Keep that file as background; use this handoff for the latest scope.
 - The user requests **GPT-6.1 Sol subagents for research**. When evaluating choices, include alternatives, justify recommendations, and have agents challenge one another where useful.
@@ -35,7 +35,9 @@ An existing cartoon becomes an interactive learning experience. At a prepared st
 - Dora initiates at specific prepared pause points. Child-initiated interruptions anywhere in an episode are outside this scope.
 - Listening starts automatically after Dora finishes speaking. A microphone button is not the intended main interaction.
 - Dora remains quietly attentive while processing. No filler acknowledgment is planned.
-- Detailed wrong-answer pedagogy, follow-up limits, scene choice, and dashboard UI design belong with their owners and were deliberately deferred.
+- **Settled wrong-answer flow:** explain the correct answer, then ask exactly one different variant of the same objective. Save/show the original incorrect answer and show the pending variant on the parent dashboard immediately. For the intended demo, the participant answers the variant correctly. After the variant answer, end the teaching moment regardless of correctness; a second wrong answer does not create a third question. Save its actual result rather than fabricating success.
+- Empty/unclear-input clarification can repeat the current question without creating another variant. Question IDs/history distinguish the original from its variant; clarification turns are not additional pedagogical questions. The controller retains the overall demo stopping limit.
+- The actual scene/objective, learner style, and dashboard UI design remain with their owners.
 
 ### Pitch and proof
 
@@ -76,12 +78,12 @@ The user's ownership is the **model/conversation pipeline and shared interfaces*
 4. The backend transcribes the audio.
 5. The backend uses session history and scene context for Luna.
 6. **Luna returns proposed dialogue and a learning assessment in one call.** The same call also returns a one-sentence parent summary of the session so far. Do not add a second evaluator to the critical path by default.
-7. Application code composes the final response: teaching or clarification.
+7. Application code composes the final response: teaching or clarification. An incorrect original answer produces the explanation plus a new variant; an answered variant produces a short closing response and no active question, even if incorrect.
 8. **Save the interaction after processing finishes.** Do not wait for playback acknowledgment.
-9. After the write succeeds, notify the parent view through the shared realtime integration. Return the selected response text and response type to the cartoon controller, with the agreed assessment metadata.
+9. After the write succeeds, notify the parent view through the shared realtime integration. It fetches `SessionProgress`, which includes completed interactions and the pending public `activeQuestion`. Return `TurnResponse` to the controller: complete speech, response type, public next-question metadata, and assessment.
 10. The cartoon teammate generates speech, drives visuals, and decides whether another turn happens or the episode resumes.
 
-The exact endpoint layout, transport, response schema, and persistence-call ordering need to be defined in the application repository. These steps express responsibilities rather than finalized API signatures.
+The [pipeline plan](./model-pipeline-implementation-plan.md) documents the canonical scene, turn, draft, storage, and realtime payload schemas and processing order. [Learning progress plan section 5](./learning-progress-plan.md#5-read-interface-for-the-dashboard) defines the matching parent read payload. These are specifications for later implementation, not existing code.
 
 ## Luna and context
 
@@ -123,17 +125,18 @@ Accordingly, a saved response means it was selected/generated by the pipeline, n
 
 The pipeline produces the evidence and triggers its write; the dashboard teammate owns its storage implementation. Backend session history ownership does not require duplicating the dashboard data store; decide the practical arrangement once the existing app is inspected.
 
-## Shared interface design to finalize
+## Shared interfaces
 
-These are required concepts, not locked field names or technology choices:
+The table summarizes boundaries. Use the exact field names documented in [the pipeline schema specification](./model-pipeline-implementation-plan.md) and [the dashboard read schema](./learning-progress-plan.md#5-read-interface-for-the-dashboard) when implementation begins; do not define competing payloads in each workstream:
 
 | Boundary | Information |
 | --- | --- |
 | Cartoon → pipeline: scene/session setup | Scene facts, learning objective/task context, starting question, scene/question identity, relevant character configuration. |
 | Cartoon → pipeline: answer | Session ID, recorded audio, enough question/turn identity to associate it correctly. |
-| Pipeline → cartoon | Selected response text, type (`teaching` or `clarification` as conceptual values), agreed learning metadata. |
+| Pipeline → cartoon | Selected response text, type (`teaching` or `clarification`), agreed learning metadata. |
 | Pipeline → persistence | Question, transcript, selected response, learning evidence, parent summary, identifiers. |
-| Dashboard → persistence | Read session/interaction evidence for presentation. |
+| Dashboard → persistence | `SessionProgress`: completed question/answer evidence, summary, and public `activeQuestion` (initial question, pending variant, or null). |
+| Realtime → parent view | `SessionUpdatedEvent`: committed session ID, interaction ID, and turn number; refetch authorized progress. |
 
 The pipeline does **not** issue a mandatory “resume episode” command. The cartoon controller owns progression. Scene resume anchors can remain in the cartoon configuration rather than becoming a required model input.
 
@@ -237,8 +240,8 @@ Sources: [Paramount series description](https://www.paramountplus.com/shows/dora
 
 ## Next work in the application repository
 
-1. Inspect the actual Turborepo and repository instructions before choosing framework/package layout.
-2. Agree on shared scene, audio-turn, pipeline-response, and persistence types with teammates.
+1. Repository inspection is complete; preserve its Next.js/npm workspace layout and repository instructions.
+2. Confirm the documented scene, audio-turn, response, storage, progress, and realtime payload agreement with teammates. Create runtime schemas and synthetic fixtures only when implementation is requested.
 3. Select a transcription service and confirm accepted audio formats from the cartoon recorder.
 4. Verify Luna SDK/API details; define structured outputs and the prepared clarification line.
 5. Decide the smallest backend/session-history/storage arrangement supported by the existing app.

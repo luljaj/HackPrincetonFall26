@@ -1,6 +1,6 @@
 # Learning progress and storage plan
 
-Prepared November 14, 2026 by the dashboard and persistence owner. This builds on [implementation-handoff.md](./implementation-handoff.md) and [model-pipeline-implementation-plan.md](./model-pipeline-implementation-plan.md). The handoff stays authoritative for product scope and ownership, and the pipeline plan stays authoritative for the turn contract and `PipelineStore`. This document is a plan. Nothing in it has been built yet.
+Prepared November 14, 2026 by the dashboard and persistence owner. This builds on [implementation-handoff.md](./implementation-handoff.md) and [model-pipeline-implementation-plan.md](./model-pipeline-implementation-plan.md). The handoff stays authoritative for product scope and ownership, and the pipeline plan stays authoritative for the turn contract and `PipelineStore`. This document and the pipeline plan specify matching payload schemas in Markdown only. Runtime schemas, fixtures, tests, storage, dashboard UI, realtime delivery, and model processing remain unimplemented. The pipeline plan defines scene/turn/draft/storage/event shapes; section 5 here defines the parent read shape.
 
 ## 1. What this workstream covers
 
@@ -16,7 +16,7 @@ The handoff gives the dashboard teammate persistent storage implementation, read
 
 The cartoon controller handles recording, playback, and episode progression. It does not choose pedagogical questions or assess answers.
 
-## 2. The implemented learning flow
+## 2. Planned learning flow and agreed demo behavior
 
 ```mermaid
 flowchart LR
@@ -31,13 +31,15 @@ flowchart LR
 
 The kid TV hub presents cartoons as channels or show tiles, such as Dora and Bluey. Its detailed layout and interaction design belong to a separate teammate. Only prepared, supported content should launch an interactive session; multiple tiles do not imply multiple implemented learning pipelines. The initial working demo still uses one prepared scene/objective.
 
-The parent dashboard retains the actual questions, transcripts, assessments, assistance evidence, and parent summary. Its owner may present learning preferences such as “I want my child to learn math.” Whether those controls actually affect playback or the pipeline in this demo is that teammate's decision, not a requirement of Luka's current work. The pipeline uses its prepared scene/objective without depending on functional parent controls.
+The parent dashboard retains the actual questions, transcripts, assessments, assistance evidence, and parent summary. On an incorrect original answer, show that incorrect result and immediately show the pending variant while Dora explains the original answer and asks the variant. On the variant answer, show its actual assessment and end the moment regardless of correctness; no third question. “Ignore” a second wrong answer means stop remediation, not erase evidence or display success. Its owner may present learning preferences such as “I want my child to learn math.” Whether those controls actually affect playback or the pipeline in this demo is that teammate's decision, not a requirement of Luka's current work. The pipeline uses its prepared scene/objective without depending on functional parent controls.
 
 ### What updates live
 
 | Saved change | Receiving view | Visible effect |
 | --- | --- | --- |
-| A child's interaction completes and is committed | Parent dashboard | Refresh the transcript, assessment, assistance evidence, and summary, whether the answer is correct, incorrect, or unclear. |
+| Original incorrect answer and its explanation/variant are committed | Parent dashboard | Show the original incorrect question/answer and `activeQuestion` for the pending variant immediately. |
+| Variant answer is committed | Parent dashboard | Add the variant question/answer and actual assessment; clear `activeQuestion` regardless of correctness. |
+| Another interaction (for example clarification) is committed | Parent dashboard | Refresh saved evidence and current question without inventing an outcome. |
 | Parent changes a learning preference, if its owner implements this | Kid TV hub/pipeline integration, as agreed separately | Not required or assumed functional for this demo; define the contract with that owner only if taken on. |
 
 There is no need to send a reward to the kid view merely because the parent dashboard received a new assessment. Rewards are not an implied feature of the live connection.
@@ -47,7 +49,7 @@ There is no need to send a reward to the kid view merely because the parent dash
 - Both views connect to a shared backend/realtime service, not directly to each other's browser. Two views can live in the same Next.js app; two separate deployments are not required.
 - Persist changes first, then publish WebSocket notifications. The database remains authoritative. Notifications identify which state changed; recipients fetch their authorized current state through read endpoints.
 - Keep session creation and recorded-audio uploads on the existing HTTP path. WebSockets provide live update notifications rather than replacing transcription or model calls.
-- After `commitTurn` succeeds, publish a session update carrying its session ID, interaction ID, and turn number to the authorized parent view. Do not broadcast raw model drafts, private answer guides, or audio. Parent-setting events are not part of the required current contract.
+- After `commitTurn` succeeds, publish `SessionUpdatedEvent` (`{ sessionId, interactionId, turnNumber }`) to the authorized parent view. Its payload schema is documented in pipeline plan section 4; a future implementation can place its runtime schema in `apps/web/lib/contracts/realtime.ts`. Do not broadcast raw model drafts, private answer guides, or audio. Parent-setting events are not part of the required current contract.
 - Load current state on initial connection and reconnect. Ignore duplicate/older notifications and prevent older read responses from overwriting newer state. A notification failure must not roll back a committed interaction or cause the model turn to run again; a refresh/resync reads the saved result. Include a lightweight periodic resync fallback so a missed event is eventually recovered even if the socket remains connected.
 - Scope access separately for parent controls/evidence and kid playback state. A session ID or socket channel name alone is not authorization. A paired demo context can keep setup small; the team must agree how the two views are paired before wiring subscriptions.
 - Choose a socket-capable backend or managed realtime service alongside deployment. Do not assume adding an HTTP route provides a persistent WebSocket server. Realtime transport ownership is a team integration assignment, not additional model reasoning work for Luka.
@@ -72,7 +74,7 @@ Pre/post checks remain future-work mentions only. The two-minute demo cap is unc
 
 ## 4. Data model
 
-Use the existing scene, question, assessment, and interaction contracts from pipeline plan sections 3 and 9. There are no pre/post additions to `SceneConfig` or `InteractionRecord`.
+Use the documented scene/question/assessment schemas in pipeline plan section 3 and `InteractionRecord` / `PipelineStore` in section 9. Section 5 below defines `SessionProgress` / `ProgressReader`. Future implementation should share runtime schemas rather than create independently maintained payload definitions; no TypeScript files are added now. There are no pre/post additions to `SceneConfig` or `InteractionRecord`.
 
 ### Tables
 
@@ -80,10 +82,10 @@ Use the existing scene, question, assessment, and interaction contracts from pip
 | --- | --- | --- |
 | `learners` | `learner_id`, `display_label`, `created_at` | Optional for the demo; a pseudonymous label only. |
 | `sessions` | `session_id`, `learner_id` (nullable), `scene_id`, `objective_id`, `scene_snapshot` (JSON), `turn_number`, `active_question` (JSON), `assistance_provided`, `latest_parent_summary`, `created_at` | Matches `SessionRecord` and `SessionSnapshot`. `turn_number` is the expected-version check for `commitTurn`. |
-| `interactions` | `interaction_id` (unique), `session_id`, `turn_number`, `question_id`, `question_text`, `answer_guide`, `transcript`, `response_type`, `response_text`, `next_question` (nullable JSON), `answer_status`, `evidence`, `possible_misconception`, `assistance_before`, `assistance_in_response`, `parent_summary`, `turn_response` (JSON), `completed_at` | Unique on (`session_id`, `turn_number`). No audio column. |
+| `interactions` | `interaction_id` (unique), `session_id`, `turn_number`, `scene_id`, `objective_id`, `question_id`, `question_text`, `answer_guide`, `transcript`, `response_type`, `response_text`, `next_question` (nullable JSON), `answer_status`, `evidence`, `possible_misconception`, `assistance_before`, `assistance_in_response`, `parent_summary`, `turn_response` (JSON), `completed_at` | Unique on (`session_id`, `turn_number`). No audio column. |
 | `interaction_diagnostics` | `interaction_id`, `luna_draft` (JSON), model IDs, prompt revision, timings | Kept apart so parent-facing queries never touch drafts. |
 
-`next_question` stores the full next active question: ID, text, and private answer guide, or null. It is distinct from the public question in `turn_response`, which omits the guide. Persist it on every interaction so later session updates do not erase that turn's context. Public readers must omit private guides.
+`next_question` stores the full next active question: ID, text, and private answer guide, or null. After the variant answer it is null even if incorrect. After the first incorrect answer it holds the new variant, and `sessions.active_question` is updated in the same transaction. It is distinct from the public question in `turn_response`, which omits the guide. Persist it on every interaction so later session updates do not erase that turn's context. Public readers must omit private guides.
 
 `commitTurn` runs as one transaction. It looks up a duplicate by both session ID and interaction ID before applying the expected-turn check. A matching duplicate returns its stored record; an interaction ID belonging to another session must never replay that session's data. A globally unique ID collision across sessions is rejected.
 
@@ -99,9 +101,11 @@ interface ProgressReader {
 type SessionProgress = {
   sessionId: string;
   objective: string;
+  activeQuestion: PublicQuestion | null;
   interactions: Array<{
     interactionId: string;
     turnNumber: number;
+    questionId: string;
     questionText: string;
     transcript: string;
     responseText: string;
@@ -118,9 +122,9 @@ type SessionProgress = {
 };
 ```
 
-Reuse `LearningAssessment` from the shared contracts. Return interactions ordered by turn number. `turns` counts committed interactions; `responsesWithAssistance` counts their true `assistance_in_response` values. `finalStatus` is the latest committed interaction's status, including `not_assessed`; it is null if there are no interactions. Do not silently substitute an earlier correct answer. `parentSummary` is the latest non-null stored summary, which an empty-transcript turn does not erase.
+This block is the parent-facing payload specification, not implemented code. Reuse the exact `LearningAssessment` and `PublicQuestion` definitions from pipeline plan section 3. During implementation, define shared runtime schemas for these shapes and have both producers and consumers use them. `activeQuestion` is the session's current question projected to ID/text only: initially the prepared question, after the original wrong answer the pending variant, and after its assessed answer null. Expose it before another interaction exists; do not wait for the variant answer. Return interactions ordered by turn number and retain each `questionId`. `turns` counts committed interactions; `responsesWithAssistance` counts their true `assistance_in_response` values. `finalStatus` is the latest committed interaction's status, including `not_assessed`; it is null if there are no interactions. Do not silently substitute an earlier correct answer. `parentSummary` is the latest non-null stored summary, which an empty-transcript turn does not erase.
 
-There is no before/after comparison or comparison-outcome enum. A synthetic example with an incorrect answer followed by a correct answer describes the episode conversation only.
+There is no before/after comparison or comparison-outcome enum. The intended demo uses an incorrect original answer followed by a correct variant answer after the explanation. Both remain separate question/answer records. If the variant is wrong, preserve that result and end the moment. This describes the episode conversation only, not a pre/post comparison.
 
 ## 6. Storage decision
 
@@ -143,7 +147,7 @@ Fallback: if the team decides to demo from a single machine with no deployment, 
 
 | With | Agreement | Boundary |
 | --- | --- | --- |
-| Luka | Implement the existing `PipelineStore` and share `InteractionRecord` / `SessionProgress` fixtures | Luka supplies completed evidence; dashboard owner supplies durable storage and reads |
+| Luka | Implement the documented `PipelineStore` and share `InteractionRecord` / `SessionProgress` fixtures when implementation begins | Luka supplies completed evidence; dashboard owner supplies durable storage and reads |
 | Luka | Store the full private `next_question` and preserve the public response for replay | Question context stays consistent without exposing answer guides |
 | Luka | Use assistance wording from section 3 in summaries and dashboard metrics | No unsupported hint counts or mastery claims |
 | Cartoon teammate | Consume pipeline speech/question metadata and coordinate recording, playback, and episode progression | No pedagogical reasoning or check flow in the controller |
@@ -158,7 +162,7 @@ These are in scope for the hackathon, in priority order.
 1. **Two live views during the demo.** Show the kid TV hub/player and parent dashboard. WebSocket notifications trigger authorized state refreshes after committed interactions, as specified in section 2. This supersedes the earlier once-per-second polling-only plan. Retain resync for missed notifications.
 2. **Demo reset and fallback.** Add a development-only "reset demo" action that starts a clean session for each judge. Also seed one completed session, visibly labeled "Sample data." The dashboard can show it if the microphone, transcription or Luna fails on stage.
 3. **Possible misconception, worded tentatively.** Show `possibleMisconception` from the stored assessment as "This answer *might* mean…", never as a diagnosis. Hide it when it's null.
-4. **Shared sample files on day one.** Commit synthetic `InteractionRecord` and `SessionProgress` JSON in `apps/web/lib/contracts/fixtures/`. Then the dashboard UI and the pipeline can each be built and tested without waiting for the other.
+4. **Shared sample files on day one.** During implementation, create synthetic `InteractionRecord` and `SessionProgress` JSON in `apps/web/lib/contracts/fixtures/`, alongside public turn, clarification, terminal-incorrect, and notification examples. Do not add fixture files during this planning update. Then the dashboard UI and the pipeline can each be built and tested without waiting for the other.
 5. **A pre-written next step for parents.** Write one short at-home suggestion per objective (for example, "Try counting toys together at bedtime"). Keep it as dashboard-authored content keyed by objective ID. No comparison function, scene-contract extension, or extra model call is needed.
 6. **A private parent view.** Gate the dashboard behind a simple access code from an environment variable, and add a delete-session action. Accounts are out of scope.
 
@@ -179,9 +183,9 @@ Not added: accounts and logins, charts across sessions, scores or percentages, a
 
 ## 11. Build order
 
-1. Share the existing turn/evidence contract and synthetic interaction/session-progress fixtures with Luka. No check-related contract changes.
+1. Agree the documented turn/evidence/progress/realtime schemas with Luka. When implementation begins, create shared runtime types and synthetic fixtures, including `activeQuestion` and per-interaction `questionId`. No check-related contract changes.
 2. Implement `PipelineStore` against section 4, including full private question context, atomic updates, and session-scoped duplicate handling. Run the store contract tests against the durable adapter.
-3. Implement `getSessionProgress` and test empty sessions, correct/incorrect/unclear answers, assistance counts, and preservation of the latest non-null summary.
+3. Implement `getSessionProgress` and test empty sessions, original wrong answer with pending variant, terminal correct/incorrect variant answers, unclear answers, assistance counts, and preservation of the latest non-null summary. Omit private answer guides from active questions and interaction reads.
 4. Build the parent dashboard around ordered question/answer evidence, tentative assessments, and the session summary. Verify private guides and drafts are excluded from public responses.
 5. Connect both views through the agreed realtime service. Verify that a committed child interaction refreshes parent evidence, reconnect/missed events resync from storage, and duplicate notifications do not duplicate evidence. The dashboard must read the same committed evidence returned by the pipeline.
 6. Prove records survive backend restart and rehearse the two-minute demo. Mention future checks in the pitch only.
