@@ -1,0 +1,1075 @@
+[
+ {
+  "t": 49.84,
+  "pauseAt": 55.5,
+  "text": "We're thinking about what we want to be when we grow up. I know what I want to be.",
+  "talk": [
+   53.52,
+   55.5
+  ],
+  "gap": 1.2,
+  "resumeAt": 56.7,
+  "wait": [
+   55.5,
+   56.7
+  ],
+  "id": "ep3-01"
+ },
+ {
+  "t": 91.78,
+  "pauseAt": 94.7,
+  "text": "What do you want to be when you grow up?",
+  "talk": [
+   91.78,
+   94.7
+  ],
+  "gap": 4.08,
+  "resumeAt": 98.78,
+  "wait": [
+   94.7,
+   98.78
+  ],
+  "id": "ep3-02"
+ },
+ {
+  "t": 121.08,
+  "pauseAt": 123.12,
+  "text": "What are you doing today, mommy?",
+  "talk": [
+   121.08,
+   123.12
+  ],
+  "gap": 0.32,
+  "resumeAt": 123.44,
+  "wait": [
+   123.12,
+   123.92
+  ],
+  "id": "ep3-03"
+ },
+ {
+  "t": 127.24,
+  "pauseAt": 130.62,
+  "text": "Treasure? What kind of treasure, mommy?",
+  "talk": [
+   128.4,
+   130.62
+  ],
+  "gap": 0.3,
+  "resumeAt": 130.92,
+  "wait": [
+   130.62,
+   131.42
+  ],
+  "id": "ep3-04"
+ },
+ {
+  "t": 143.16,
+  "pauseAt": 145.66,
+  "text": "but I'm going to need your help, Dora.",
+  "talk": [
+   143.16,
+   145.66
+  ],
+  "gap": 0.68,
+  "resumeAt": 146.34,
+  "wait": [
+   145.66,
+   146.46
+  ],
+  "id": "ep3-05"
+ },
+ {
+  "t": 158.96,
+  "pauseAt": 161.4,
+  "text": "to help my Mommy look for lost treasures.",
+  "talk": [
+   158.96,
+   161.4
+  ],
+  "gap": 0.54,
+  "resumeAt": 161.94,
+  "wait": [
+   161.4,
+   162.2
+  ],
+  "id": "ep3-06"
+ },
+ {
+  "t": 170.94,
+  "pauseAt": 174.3,
+  "text": "Who do we ask for help when we don't know which way to go?",
+  "talk": [
+   170.94,
+   174.3
+  ],
+  "gap": 2.22,
+  "resumeAt": 176.52,
+  "wait": [
+   174.3,
+   176.52
+  ],
+  "id": "ep3-07"
+ },
+ {
+  "t": 179.74,
+  "pauseAt": 188.56,
+  "text": "Will you check the map to find out where the pyramid is? You have to say map! Say map, say map!",
+  "talk": [
+   186.98,
+   188.56
+  ],
+  "gap": 3.16,
+  "resumeAt": 191.72,
+  "wait": [
+   188.56,
+   191.72
+  ],
+  "id": "ep3-08"
+ },
+ {
+  "t": 200.3,
+  "pauseAt": 203.56,
+  "text": "to help Dora's mommy at her job.",
+  "talk": [
+   200.3,
+   203.56
+  ],
+  "gap": 0.38,
+  "resumeAt": 203.94,
+  "wait": [
+   203.56,
+   204.36
+  ],
+  "id": "ep3-09"
+ },
+ {
+  "t": 237.74,
+  "pauseAt": 239.2,
+  "text": "Say it with me.",
+  "talk": [
+   237.74,
+   239.2
+  ],
+  "gap": 0.62,
+  "resumeAt": 239.82,
+  "wait": [
+   239.2,
+   240.0
+  ],
+  "id": "ep3-10"
+ },
+ {
+  "t": 263.96,
+  "pauseAt": 265.52,
+  "text": "Where do we go first?",
+  "talk": [
+   263.96,
+   265.52
+  ],
+  "gap": 3.74,
+  "resumeAt": 269.26,
+  "wait": [
+   265.52,
+   269.26
+  ],
+  "id": "ep3-11"
+ },
+ {
+  "t": 277.44,
+  "pauseAt": 279.5,
+  "text": "Where is the firehouse?",
+  "talk": [
+   277.44,
+   279.5
+  ],
+  "gap": 3.54,
+  "resumeAt": 283.04,
+  "wait": [
+   279.5,
+   283.04
+  ],
+  "id": "ep3-12"
+ },
+ {
+  "t": 285.12,
+  "pauseAt": 291.62,
+  "text": "We've got to go to the pyramid to help Mommy at her job! Come on, say it with us!",
+  "talk": [
+   289.56,
+   291.62
+  ],
+  "gap": 0.56,
+  "resumeAt": 292.18,
+  "wait": [
+   291.62,
+   292.42
+  ],
+  "id": "ep3-13"
+ },
+ {
+  "t": 302.88,
+  "pauseAt": 308.2,
+  "text": "When you grow up, what will you be? There are so many jobs, just look and see.",
+  "talk": [
+   305.32,
+   308.2
+  ],
+  "gap": 1.14,
+  "resumeAt": 309.34,
+  "wait": [
+   308.2,
+   309.34
+  ],
+  "id": "ep3-14"
+ },
+ {
+  "t": 322.08,
+  "pauseAt": 324.96,
+  "text": "Bow the whistle and say, choo-choo!",
+  "talk": [
+   322.08,
+   324.96
+  ],
+  "gap": 2.86,
+  "resumeAt": 327.82,
+  "wait": [
+   324.96,
+   327.82
+  ],
+  "id": "ep3-15"
+ },
+ {
+  "t": 365.76,
+  "pauseAt": 368.78,
+  "text": "Bang your drums and say, boo-boo.",
+  "talk": [
+   365.76,
+   368.78
+  ],
+  "gap": 2.68,
+  "resumeAt": 371.46,
+  "wait": [
+   368.78,
+   371.46
+  ],
+  "id": "ep3-16"
+ },
+ {
+  "t": 373.68,
+  "pauseAt": 379.5,
+  "text": "When you grow up, what will you be? There's so many jobs, just look and see.",
+  "talk": [
+   376.86,
+   379.5
+  ],
+  "gap": 3.64,
+  "resumeAt": 383.14,
+  "wait": [
+   379.5,
+   383.14
+  ],
+  "id": "ep3-17"
+ },
+ {
+  "t": 383.14,
+  "pauseAt": 385.58,
+  "text": "Look, there's the firehouse.",
+  "talk": [
+   383.14,
+   385.58
+  ],
+  "gap": 0.32,
+  "resumeAt": 385.9,
+  "wait": [
+   385.58,
+   386.38
+  ],
+  "id": "ep3-18"
+ },
+ {
+  "t": 416.5,
+  "pauseAt": 417.52,
+  "text": "Help! Help!",
+  "talk": [
+   417.22,
+   417.52
+  ],
+  "gap": 0.92,
+  "resumeAt": 418.44,
+  "wait": [
+   417.52,
+   418.44
+  ],
+  "id": "ep3-19"
+ },
+ {
+  "t": 425.98,
+  "pauseAt": 432.4,
+  "text": "We've got to help Tico's mama rescue Benny. Will you help us rescue Benny?",
+  "talk": [
+   430.5,
+   432.0
+  ],
+  "gap": 2.1,
+  "resumeAt": 434.3,
+  "wait": [
+   432.5,
+   434.2
+  ],
+  "id": "ep3-20",
+  "custom": true
+ },
+ {
+  "t": 469.64,
+  "pauseAt": 476.66,
+  "text": "How are we gonna get Benny down? Look, Tico's mama needs to climb the ladder to rescue Benny.",
+  "talk": [
+   471.74,
+   476.66
+  ],
+  "gap": 0.84,
+  "resumeAt": 477.5,
+  "wait": [
+   476.66,
+   477.5
+  ],
+  "id": "ep3-21"
+ },
+ {
+  "t": 482.92,
+  "pauseAt": 492.7,
+  "text": "To get the ladder up, we say, Arriba. Can you say Arriba? Say, Arriba!",
+  "talk": [
+   490.92,
+   492.7
+  ],
+  "gap": 2.86,
+  "resumeAt": 495.56,
+  "wait": [
+   492.7,
+   495.56
+  ],
+  "id": "ep3-22"
+ },
+ {
+  "t": 520.54,
+  "pauseAt": 528.7,
+  "text": "Let's help Benny and Tico's Mama get down. To get the ladder down, we say, abajo. Can you say, abajo?",
+  "talk": [
+   527.28,
+   528.7
+  ],
+  "gap": 3.04,
+  "resumeAt": 531.74,
+  "wait": [
+   528.7,
+   531.74
+  ],
+  "id": "ep3-23"
+ },
+ {
+  "t": 531.74,
+  "pauseAt": 532.64,
+  "text": "Say, abajo!",
+  "talk": [
+   531.74,
+   532.64
+  ],
+  "gap": 4.36,
+  "resumeAt": 537.0,
+  "wait": [
+   532.64,
+   537.0
+  ],
+  "id": "ep3-24"
+ },
+ {
+  "t": 567.7,
+  "pauseAt": 570.18,
+  "text": "Where do we go next, Dora?",
+  "talk": [
+   567.7,
+   570.18
+  ],
+  "gap": 1.7,
+  "resumeAt": 571.88,
+  "wait": [
+   570.18,
+   571.88
+  ],
+  "id": "ep3-25"
+ },
+ {
+  "t": 579.86,
+  "pauseAt": 581.56,
+  "text": "Where do we go next?",
+  "talk": [
+   579.86,
+   581.56
+  ],
+  "gap": 4.9,
+  "resumeAt": 586.46,
+  "wait": [
+   581.56,
+   586.46
+  ],
+  "id": "ep3-26"
+ },
+ {
+  "t": 592.44,
+  "pauseAt": 599.38,
+  "text": "So next we need to find the bridge. \u00bfD\u00f3nde est\u00e1? Where is the bridge?",
+  "talk": [
+   597.32,
+   599.38
+  ],
+  "gap": 4.76,
+  "resumeAt": 604.14,
+  "wait": [
+   599.38,
+   604.14
+  ],
+  "id": "ep3-27"
+ },
+ {
+  "t": 607.78,
+  "pauseAt": 613.28,
+  "text": "Come on, we've got to go to the pyramid to help Mommy at her job!",
+  "talk": [
+   607.78,
+   613.28
+  ],
+  "gap": 4.64,
+  "resumeAt": 617.92,
+  "wait": [
+   613.28,
+   617.92
+  ],
+  "id": "ep3-28"
+ },
+ {
+  "t": 620.54,
+  "pauseAt": 625.8,
+  "text": "And it sounds like he needs help! Quick! Do you see Baby Jaguar?",
+  "talk": [
+   623.02,
+   625.8
+  ],
+  "gap": 5.12,
+  "resumeAt": 630.92,
+  "wait": [
+   625.8,
+   630.92
+  ],
+  "id": "ep3-29"
+ },
+ {
+  "t": 636.22,
+  "pauseAt": 638.88,
+  "text": "Look, it's my cousin, Beagle!",
+  "talk": [
+   636.22,
+   638.88
+  ],
+  "gap": 0.44,
+  "resumeAt": 639.32,
+  "wait": [
+   638.88,
+   639.68
+  ],
+  "id": "ep3-30"
+ },
+ {
+  "t": 662.86,
+  "pauseAt": 665.32,
+  "text": "You say baby jaguar!",
+  "talk": [
+   662.86,
+   665.32
+  ],
+  "gap": 0.56,
+  "resumeAt": 665.88,
+  "wait": [
+   665.32,
+   666.12
+  ],
+  "id": "ep3-31"
+ },
+ {
+  "t": 671.98,
+  "pauseAt": 674.68,
+  "text": "Diego, is baby jaguar okay?",
+  "talk": [
+   671.98,
+   674.68
+  ],
+  "gap": 0.76,
+  "resumeAt": 675.44,
+  "wait": [
+   674.68,
+   675.48
+  ],
+  "id": "ep3-32"
+ },
+ {
+  "t": 698.36,
+  "pauseAt": 702.64,
+  "text": "You have to say backpack. Say backpack!",
+  "talk": [
+   701.5,
+   702.64
+  ],
+  "gap": 4.9,
+  "resumeAt": 707.54,
+  "wait": [
+   702.64,
+   707.54
+  ],
+  "id": "ep3-33"
+ },
+ {
+  "t": 715.24,
+  "pauseAt": 717.66,
+  "text": "Do you see Dora's doctor bag?",
+  "talk": [
+   715.24,
+   717.66
+  ],
+  "gap": 4.98,
+  "resumeAt": 722.64,
+  "wait": [
+   717.66,
+   722.64
+  ],
+  "id": "ep3-34"
+ },
+ {
+  "t": 768.86,
+  "pauseAt": 774.32,
+  "text": "Do you see stars? Look, stars!",
+  "talk": [
+   773.04,
+   774.32
+  ],
+  "gap": 1.02,
+  "resumeAt": 775.34,
+  "wait": [
+   774.32,
+   775.34
+  ],
+  "id": "ep3-35"
+ },
+ {
+  "t": 800.18,
+  "pauseAt": 802.24,
+  "text": "they can help us along the way.",
+  "talk": [
+   800.18,
+   802.24
+  ],
+  "gap": 2.08,
+  "resumeAt": 804.32,
+  "wait": [
+   802.24,
+   804.32
+  ],
+  "id": "ep3-36"
+ },
+ {
+  "t": 834.74,
+  "pauseAt": 841.92,
+  "text": "How are we going to get across? Look, Dora! There's my Daddy!",
+  "talk": [
+   839.04,
+   841.92
+  ],
+  "gap": 0.4,
+  "resumeAt": 842.32,
+  "wait": [
+   841.92,
+   842.72
+  ],
+  "id": "ep3-37"
+ },
+ {
+  "t": 857.1,
+  "pauseAt": 864.98,
+  "text": "Do you want to help me finish building the bridge? Will you help us finish building the bridge?",
+  "talk": [
+   862.2,
+   864.98
+  ],
+  "gap": 1.56,
+  "resumeAt": 866.54,
+  "wait": [
+   864.98,
+   866.54
+  ],
+  "id": "ep3-38"
+ },
+ {
+  "t": 870.84,
+  "pauseAt": 873.04,
+  "text": "What shape piece goes here?",
+  "talk": [
+   870.84,
+   873.04
+  ],
+  "gap": 4.5,
+  "resumeAt": 877.54,
+  "wait": [
+   873.04,
+   877.54
+  ],
+  "id": "ep3-39"
+ },
+ {
+  "t": 884.98,
+  "pauseAt": 886.82,
+  "text": "What shape piece goes here?",
+  "talk": [
+   884.98,
+   886.82
+  ],
+  "gap": 5.38,
+  "resumeAt": 892.2,
+  "wait": [
+   886.82,
+   892.2
+  ],
+  "id": "ep3-40"
+ },
+ {
+  "t": 897.88,
+  "pauseAt": 900.2,
+  "text": "What shape pieces go here?",
+  "talk": [
+   897.88,
+   900.2
+  ],
+  "gap": 5.56,
+  "resumeAt": 905.76,
+  "wait": [
+   900.2,
+   905.76
+  ],
+  "id": "ep3-41"
+ },
+ {
+  "t": 931.4,
+  "pauseAt": 936.68,
+  "text": "to help Dora's mommy at her job. We're going to help her look for lost treasures.",
+  "talk": [
+   934.1,
+   936.68
+  ],
+  "gap": 0.38,
+  "resumeAt": 937.06,
+  "wait": [
+   936.68,
+   937.48
+  ],
+  "id": "ep3-42"
+ },
+ {
+  "t": 952.98,
+  "pauseAt": 959.88,
+  "text": "Where do we go next, Dora? Firehouse? Bridge?",
+  "talk": [
+   959.04,
+   959.88
+  ],
+  "gap": 1.36,
+  "resumeAt": 961.24,
+  "wait": [
+   959.88,
+   961.24
+  ],
+  "id": "ep3-43"
+ },
+ {
+  "t": 966.86,
+  "pauseAt": 968.32,
+  "text": "Where do we go next?",
+  "talk": [
+   966.86,
+   968.32
+  ],
+  "gap": 3.9,
+  "resumeAt": 972.22,
+  "wait": [
+   968.32,
+   972.22
+  ],
+  "id": "ep3-44"
+ },
+ {
+  "t": 976.0,
+  "pauseAt": 980.7,
+  "text": "So we need to find the pyramid. \u00bfD\u00f3nde est\u00e1 the pyramid?",
+  "talk": [
+   979.12,
+   980.7
+  ],
+  "gap": 3.8,
+  "resumeAt": 984.5,
+  "wait": [
+   980.7,
+   984.5
+  ],
+  "id": "ep3-45"
+ },
+ {
+  "t": 986.82,
+  "pauseAt": 990.94,
+  "text": "Come on, we've got to get to the pyramid to help my mommy at her job.",
+  "talk": [
+   986.82,
+   990.94
+  ],
+  "gap": 2.32,
+  "resumeAt": 993.26,
+  "wait": [
+   990.94,
+   993.26
+  ],
+  "id": "ep3-46"
+ },
+ {
+  "t": 997.68,
+  "pauseAt": 1000.32,
+  "text": "We need someone to help us get across.",
+  "talk": [
+   997.68,
+   1000.32
+  ],
+  "gap": 0.58,
+  "resumeAt": 1000.9,
+  "wait": [
+   1000.32,
+   1001.12
+  ],
+  "id": "ep3-47"
+ },
+ {
+  "t": 1005.4,
+  "pauseAt": 1007.06,
+  "text": "Say, policia!",
+  "talk": [
+   1005.4,
+   1007.06
+  ],
+  "gap": 1.74,
+  "resumeAt": 1008.8,
+  "wait": [
+   1007.06,
+   1008.8
+  ],
+  "id": "ep3-48"
+ },
+ {
+  "t": 1035.56,
+  "pauseAt": 1037.82,
+  "text": "Look, there's a pyramid!",
+  "talk": [
+   1035.56,
+   1037.82
+  ],
+  "gap": 0.98,
+  "resumeAt": 1038.8,
+  "wait": [
+   1037.82,
+   1038.8
+  ],
+  "id": "ep3-49"
+ },
+ {
+  "t": 1059.74,
+  "pauseAt": 1062.3,
+  "text": "How are we going to open the pyramid?",
+  "talk": [
+   1059.74,
+   1062.3
+  ],
+  "gap": 0.62,
+  "resumeAt": 1062.92,
+  "wait": [
+   1062.3,
+   1063.1
+  ],
+  "id": "ep3-50"
+ },
+ {
+  "t": 1071.76,
+  "pauseAt": 1087.72,
+  "text": "Will you help me dig to find the missing keys? We'll help you dig, Mommy. First, we need to figure out where to dig. Should we dig for the keys here?",
+  "talk": [
+   1085.72,
+   1087.72
+  ],
+  "gap": 3.44,
+  "resumeAt": 1091.16,
+  "wait": [
+   1087.72,
+   1091.16
+  ],
+  "id": "ep3-51"
+ },
+ {
+  "t": 1093.56,
+  "pauseAt": 1095.72,
+  "text": "Should we dig for the keys here?",
+  "talk": [
+   1093.56,
+   1095.72
+  ],
+  "gap": 2.22,
+  "resumeAt": 1097.94,
+  "wait": [
+   1095.72,
+   1097.94
+  ],
+  "id": "ep3-52"
+ },
+ {
+  "t": 1100.46,
+  "pauseAt": 1102.74,
+  "text": "Should we dig for the keys here?",
+  "talk": [
+   1100.46,
+   1102.74
+  ],
+  "gap": 3.46,
+  "resumeAt": 1106.2,
+  "wait": [
+   1102.74,
+   1106.2
+  ],
+  "id": "ep3-53"
+ },
+ {
+  "t": 1119.18,
+  "pauseAt": 1121.96,
+  "text": "Look! I found two keys!",
+  "talk": [
+   1119.18,
+   1121.96
+  ],
+  "gap": 0.52,
+  "resumeAt": 1122.48,
+  "wait": [
+   1121.96,
+   1122.76
+  ],
+  "id": "ep3-54"
+ },
+ {
+  "t": 1133.7,
+  "pauseAt": 1138.58,
+  "text": "Let's count to see if we have all six keys. Count with me!",
+  "talk": [
+   1137.42,
+   1138.58
+  ],
+  "gap": 1.88,
+  "resumeAt": 1140.46,
+  "wait": [
+   1138.58,
+   1140.46
+  ],
+  "id": "ep3-55"
+ },
+ {
+  "t": 1183.66,
+  "pauseAt": 1185.5,
+  "text": "What's it look like, Mommy?",
+  "talk": [
+   1183.66,
+   1185.5
+  ],
+  "gap": 0.44,
+  "resumeAt": 1185.94,
+  "wait": [
+   1185.5,
+   1186.3
+  ],
+  "id": "ep3-56"
+ },
+ {
+  "t": 1191.42,
+  "pauseAt": 1194.68,
+  "text": "If you see the jewel, say, jewel.",
+  "talk": [
+   1191.42,
+   1194.68
+  ],
+  "gap": 5.6,
+  "resumeAt": 1200.28,
+  "wait": [
+   1194.68,
+   1200.28
+  ],
+  "id": "ep3-57"
+ },
+ {
+  "t": 1221.34,
+  "pauseAt": 1224.38,
+  "text": "If you see Swiper, say Swiper!",
+  "talk": [
+   1221.34,
+   1224.38
+  ],
+  "gap": 2.88,
+  "resumeAt": 1227.26,
+  "wait": [
+   1224.38,
+   1227.26
+  ],
+  "id": "ep3-58"
+ },
+ {
+  "t": 1227.9,
+  "pauseAt": 1231.48,
+  "text": "Do you see Swiper? Where?",
+  "talk": [
+   1230.84,
+   1231.48
+  ],
+  "gap": 6.0,
+  "resumeAt": 1237.48,
+  "wait": [
+   1231.48,
+   1237.48
+  ],
+  "id": "ep3-59"
+ },
+ {
+  "t": 1240.1,
+  "pauseAt": 1244.94,
+  "text": "Wait, we have to say, Swiper, no swiping! Say it with us!",
+  "talk": [
+   1243.88,
+   1244.94
+  ],
+  "gap": 0.7,
+  "resumeAt": 1245.64,
+  "wait": [
+   1244.94,
+   1245.74
+  ],
+  "id": "ep3-60"
+ },
+ {
+  "t": 1304.82,
+  "pauseAt": 1314.02,
+  "text": "Mommy needed our help in her job today. What an amazing day! Yay! Woo! Hooray!",
+  "talk": [
+   1309.88,
+   1314.02
+  ],
+  "gap": 0.98,
+  "resumeAt": 1315.0,
+  "wait": [
+   1314.02,
+   1315.0
+  ],
+  "id": "ep3-61"
+ },
+ {
+  "t": 1322.52,
+  "pauseAt": 1324.36,
+  "text": "What was your favorite job?",
+  "talk": [
+   1322.52,
+   1324.36
+  ],
+  "gap": 7.52,
+  "resumeAt": 1331.88,
+  "wait": [
+   1324.36,
+   1331.88
+  ],
+  "id": "ep3-62"
+ },
+ {
+  "t": 1345.38,
+  "pauseAt": 1347.74,
+  "text": "Let's see how many stars we caught.",
+  "talk": [
+   1345.38,
+   1347.74
+  ],
+  "gap": 0.3,
+  "resumeAt": 1348.04,
+  "wait": [
+   1347.74,
+   1348.54
+  ],
+  "id": "ep3-63"
+ },
+ {
+  "t": 1355.3,
+  "pauseAt": 1357.48,
+  "text": "Count with me in Spanish.",
+  "talk": [
+   1355.3,
+   1357.48
+  ],
+  "gap": 1.06,
+  "resumeAt": 1358.54,
+  "wait": [
+   1357.48,
+   1358.54
+  ],
+  "id": "ep3-64"
+ },
+ {
+  "t": 1402.88,
+  "pauseAt": 1405.54,
+  "text": "Where does the police star belong?",
+  "talk": [
+   1402.88,
+   1405.54
+  ],
+  "gap": 6.92,
+  "resumeAt": 1412.46,
+  "wait": [
+   1405.54,
+   1412.46
+  ],
+  "id": "ep3-65"
+ },
+ {
+  "t": 1412.46,
+  "pauseAt": 1415.72,
+  "text": "Where does the baseball job star go?",
+  "talk": [
+   1412.46,
+   1415.72
+  ],
+  "gap": 5.12,
+  "resumeAt": 1420.84,
+  "wait": [
+   1415.72,
+   1420.84
+  ],
+  "id": "ep3-66"
+ },
+ {
+  "t": 1420.84,
+  "pauseAt": 1423.58,
+  "text": "Where does the banker star belong?",
+  "talk": [
+   1420.84,
+   1423.58
+  ],
+  "gap": 9.08,
+  "resumeAt": 1432.66,
+  "wait": [
+   1423.58,
+   1432.66
+  ],
+  "id": "ep3-67"
+ }
+]

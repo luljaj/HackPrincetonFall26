@@ -1,0 +1,10 @@
+{
+  "id": "dora",
+  "reference": "reference.wav",
+  "language": "en",
+  "source": "Local episode 1, 00:42.08\u201300:54.00; Dora solo introduction",
+  "method": "Chatterbox Turbo MLX LoRA fine-tune, rank 8, final 8 T3 layers",
+  "processing": "Demucs htdemucs vocal separation, mono 24 kHz, loudness normalization",
+  "watermark": "Perth; enabled by Chatterbox",
+  "lora_adapter": "checkpoints/adapter.safetensors"
+}
