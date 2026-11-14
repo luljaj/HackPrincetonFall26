@@ -34,6 +34,9 @@ export default async function ParentHome() {
           <Link className="underline" href="/parent/live">
             Live now
           </Link>
+          <Link className="underline" href="/parent/preview">
+            Preview by subject (sample)
+          </Link>
           {demoToolsEnabled() && (
             <Link className="underline" href="/parent/insights">
               Insights

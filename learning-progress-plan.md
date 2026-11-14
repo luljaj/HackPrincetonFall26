@@ -222,6 +222,22 @@ Dependency: steps 2 and 3 need kid mode to call `POST /api/learning/sessions` at
   - Show name, episode and colour come from `lib/parent/shows.ts`, keyed by `sceneId`.
 - **CSS fix:** the starter's global reset (`* { padding: 0; margin: 0 }`, `a { … }`) now sits in Tailwind's base layer, so padding, margin and link utilities work. It was silently stripping padding from Tailwind classes everywhere. Play mode looks unchanged.
 
+### Vision preview with sample data (Nov 14)
+
+`/parent/preview`, linked from the parent home as "Preview by subject (sample)", shows how the parent view could look after a few weeks. It uses **hard-coded sample data** (`lib/parent/preview-data.ts`):
+
+- **Three subjects:** Math, English and Science.
+- **A Grade 1 → Grade 2 path for each,** with skills marked "Answered on the first try", "Answered after help", "Practicing" or "Up next", plus try counts.
+- **Made-up recent moments** across Dora, Bluey, Peppa and Daniel Tiger.
+
+Rules it follows:
+
+- A dashed **"Preview with sample data"** banner sits at the top, every subject has a "Sample" badge, and the footer repeats that it's sample data.
+- It's **fully separate from real data:** it never feeds `/parent` counts, `/parent/live` or `/parent/insights`.
+- The **only real data** on the page is the green "Live today" box under Math, which counts real sessions. Today's Dora apple-counting session is presented as part of Math.
+- **No mastery or scores.** A test checks the sample text for words like "mastered", "score" or "%".
+- This is a demo of future work (progress across sessions, from section 10). It isn't an implemented progress model.
+
 ## 7. Integration agreement
 
 | With | Agreement | Boundary |
