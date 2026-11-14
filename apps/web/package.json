@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint --max-warnings 0",
     "check-types": "next typegen && tsc --noEmit",
-    "test": "tsx --test lib/contracts/contracts.test.ts"
+    "test": "tsx --test lib/contracts/contracts.test.ts server/pipeline/pipeline.test.ts"
   },
   "dependencies": {
     "@repo/ui": "*",
