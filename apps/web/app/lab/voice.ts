@@ -17,7 +17,7 @@ function parseMessage(line: string): VoiceMessage {
       if ("pcm" in value && typeof value.pcm === "string") return { type: "audio", pcm: value.pcm };
       break;
     case "done":
-      if ("firstAudioSeconds" in value && typeof value.firstAudioSeconds === "number" && "generationSeconds" in value && typeof value.generationSeconds === "number") {
+      if ("firstAudioSeconds" in value && typeof value.firstAudioSeconds === "number" && "generationSeconds" in value && typeof value.generationSeconds === "number" && Number.isFinite(value.firstAudioSeconds) && value.firstAudioSeconds >= 0 && Number.isFinite(value.generationSeconds) && value.generationSeconds >= 0) {
         return { type: "done", firstAudioSeconds: value.firstAudioSeconds, generationSeconds: value.generationSeconds };
       }
       break;
@@ -38,8 +38,11 @@ export async function streamVoice({ text, context, destination, signal, onSpeaki
   const sources = new Set<AudioBufferSourceNode>();
   let finishPlayback: (() => void) | undefined;
   let streamDone = false;
+  let hasAudio = false;
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   const playbackDone = new Promise<void>((resolve) => { finishPlayback = resolve; });
   const stop = () => {
+    if (signal.aborted) void reader?.cancel().catch(() => undefined);
     for (const source of sources) {
       source.onended = null;
       source.stop();
@@ -51,9 +54,10 @@ export async function streamVoice({ text, context, destination, signal, onSpeaki
   };
   signal.throwIfAborted();
   signal.addEventListener("abort", stop, { once: true });
-  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   try {
-    await context.resume();
+    // A suspended context may keep resume pending until another user gesture.
+    await Promise.race([context.resume(), playbackDone]);
+    signal.throwIfAborted();
     const response = await fetch("/api/voice", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }), signal,
@@ -65,6 +69,7 @@ export async function streamVoice({ text, context, destination, signal, onSpeaki
     let sampleRate: number | undefined;
     let nextAt = context.currentTime + 0.06;
     const consume = (line: string) => {
+      signal.throwIfAborted();
       if (!line.trim()) return;
       const message = parseMessage(line);
       if (streamDone) throw new Error("Unexpected data after voice completion.");
@@ -81,6 +86,7 @@ export async function streamVoice({ text, context, destination, signal, onSpeaki
           const buffer = context.createBuffer(1, bytes.length / 2, sampleRate);
           const samples = buffer.getChannelData(0);
           for (let i = 0; i < samples.length; i++) samples[i] = pcm.getInt16(i * 2, true) / 32768;
+          hasAudio = true;
           const source = context.createBufferSource();
           source.buffer = buffer;
           source.connect(destination);
@@ -97,6 +103,7 @@ export async function streamVoice({ text, context, destination, signal, onSpeaki
           break;
         }
         case "done":
+          if (!hasAudio) throw new Error("Voice stream completed without audio.");
           streamDone = true;
           onMetrics(message);
           if (sources.size === 0) finishPlayback?.();
@@ -106,6 +113,7 @@ export async function streamVoice({ text, context, destination, signal, onSpeaki
     };
     while (true) {
       const result = await reader.read();
+      signal.throwIfAborted();
       if (result.done) break;
       pending += decoder.decode(result.value, { stream: true });
       let end: number;

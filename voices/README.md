@@ -9,10 +9,20 @@ The small trained adapter, training metadata and reference recording are tracked
 From the repository root:
 
 ```sh
-uv run tools/gen-voice-lines.py --verify
+node --version # >=24
+npm --version # exactly 11.19.0
+npm ci
 uv run tools/voice-server.py
 ```
 
+In a second terminal, run `npm run dev -- --filter=web` and open
+[the lab](http://localhost:3000/lab). Wait for `curl http://127.0.0.1:8766/health`
+to report readiness before enabling live lines. The voice server needs its local
+model dependencies and trained adapter; installing npm packages alone does not
+provide them. Without the local voice runtime, turn **Generate lines live** off
+to use checked-in saved lines. **Speak reply** always requires the live runtime.
+
+To regenerate saved lines explicitly, run `uv run tools/gen-voice-lines.py --verify`.
 With `--verify`, generation tries up to four deterministic seeds and selects speech using Whisper transcript checks before writing a line. Live speech streams immediately and does not wait for this offline check.
 
 The generator reads `apps/web/app/lab/lines.json` and writes the existing `.m4a` files consumed by the lab. The server stays loaded at `127.0.0.1:8766`. Open `/lab`, start playback, and enable **Generate lines live**. You can also type a personalized reply and press **Speak reply**. Stopping speech or changing stages aborts generation and scheduled playback. Turning live generation off uses the saved lines.
@@ -20,6 +30,17 @@ The generator reads `apps/web/app/lab/lines.json` and writes the existing `.m4a`
 The browser calls `POST /api/voice` with `{"text":"..."}`; Next.js proxies to the local speech service. The service streams newline-delimited JSON: a sample-rate header, base64 signed little-endian 16-bit PCM chunks, and a completion message with observed generation timing. Audio goes through the same Web Audio analyser as saved lines, so the mouth animation follows it. The state machine advances after audio playback finishes, rather than when generation ends.
 
 `GET http://127.0.0.1:8766/health` reports readiness. The local server serializes model access and rejects overlapping requests. Chatterbox's Perth watermark remains enabled. Turbo is an English model; Hindi requires a separately tested multilingual model.
+
+## Verification
+
+Run `npm run test:lab -w web` for deterministic stage-machine, NDJSON playback,
+cancellation/replacement and proxy checks, and `python3 tools/voice_runtime_test.py`
+for runtime request validation. These tests mock Web Audio/fetch; they do not
+establish audible voice quality or model performance. Exercise saved/live lines,
+**Stop speaking**, repeated **Speak reply**, channel switching and spot jumps in
+a browser with the local runtime for integration verification. The lab remains a
+simulation harness: its kid-answer buttons do not record a microphone or call the
+learning pipeline.
 
 ## Reproduce training
 

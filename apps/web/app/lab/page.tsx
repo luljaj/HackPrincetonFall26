@@ -249,7 +249,7 @@ export default function Lab() {
   }, [started]);
 
   const file = lineFor(stage, spot);
-  const caption = file ? (speechCaption ?? LINES[file]) : stage === "listening" ? `🎤 listening… “${spot.text.slice(-70)}”` : stage === "thinking" ? "…" : "";
+  const caption = file ? (speechCaption ?? LINES[file]) : stage === "listening" ? `🎤 listening… “${(spot.custom ? LINES.ask ?? spot.text : spot.text).slice(-70)}”` : stage === "thinking" ? "…" : "";
   const shown = likelyOnly ? SPOTS.filter((x) => x.gap >= LIKELY_GAP) : SPOTS;
 
   return (
