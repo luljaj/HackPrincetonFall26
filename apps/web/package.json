@@ -8,24 +8,34 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint --max-warnings 0",
-    "check-types": "next typegen && tsc --noEmit"
+    "check-types": "next typegen && tsc --noEmit",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@repo/ui": "*",
     "@tailwindcss/postcss": "^4.3.5",
+    "drizzle-orm": "^0.45.4",
     "next": "^16.4.6",
     "postcss": "^8.5.23",
+    "postgres": "^4.1.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "server-only": "^0.0.1",
     "tailwindcss": "^4.3.5"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "@types/node": "26.4.1",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
+    "drizzle-kit": "^0.31.11",
     "eslint": "^10.15.0",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "vitest": "^5.1.0"
   }
 }

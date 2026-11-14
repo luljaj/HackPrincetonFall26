@@ -139,6 +139,17 @@ How it plugs in:
 
 Fallback: if the team decides to demo from a single machine with no deployment, use the same Drizzle schema on a SQLite file. Deployment is still not chosen, so confirm the host before creating the production database.
 
+### Implementation status (Nov 14)
+
+Built on the `parent-dashboard` branch in `apps/web/server/storage/`. All 11 tests in `postgres.test.ts` pass against PGlite. It hasn't been run against a hosted database yet. Differences from the table above:
+
+- `sessions` adds `is_sample` (boolean, default false), which drives the dashboard's "Sample data" badge.
+- `interactions` uses the primary key (`session_id`, `interaction_id`) instead of a globally unique `interaction_id`, so a duplicate check never matches a record from another session. (`session_id`, `turn_number`) is still unique.
+- `interactions` also stores `scene_id` and `objective_id` per record, as the identity group in pipeline plan §9 requires.
+- `interaction_diagnostics` is keyed and cascades on (`session_id`, `interaction_id`).
+
+To connect a real database: create the managed Postgres database, set `DATABASE_URL` and `PIPELINE_STORE=postgres` in `apps/web/.env.local`, then run `npm run db:migrate -w web`.
+
 ## 7. Integration agreement
 
 | With | Agreement | Boundary |

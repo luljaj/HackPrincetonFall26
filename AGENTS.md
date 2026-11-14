@@ -32,7 +32,14 @@ Don't build anything those docs mark as future work or as owned by another teamm
 - `apps/web` is the real app (Next.js 16, App Router). `apps/docs` is untouched starter code.
 - **Tailwind CSS v4 is set up in `apps/web`** through `postcss.config.mjs` and `@import "tailwindcss"` in `app/globals.css`. Design tokens go in the `@theme` block in `globals.css`. Don't add a `tailwind.config.js`, because v4 doesn't use one. `@source` also scans `packages/ui/src`.
 - Only `web` uses Tailwind.
-- The parent dashboard lives under `apps/web/app/parent/` (planned in `learning-progress-plan.md` section 9; not created yet).
+- **Parent dashboard skeleton exists** under `apps/web/app/parent/`, with logic in `apps/web/lib/parent/`. It reads through `getProgressReader()`. With `PIPELINE_STORE` unset it shows the sample fixture. `lib/parent/subscribe.ts` is a timer stub until the realtime service exists.
+- **Storage is implemented** in `apps/web/server/storage/`:
+  - `contract.ts`: `PipelineStore`, the record types and errors. This is the interface Luka's pipeline calls.
+  - `schema.ts`: Drizzle tables. Migrations live in `apps/web/drizzle/`. After any schema change, run `npm run db:generate -w web` and commit the SQL.
+  - `postgres.ts`: the adapter (`commitTurn` is one transaction: duplicate check, expected-turn update, insert). It works with any Drizzle Postgres driver.
+  - `index.ts`: `getPipelineStore()` chooses the adapter from `PIPELINE_STORE`. Luka's memory adapter goes here.
+  - Tests: `npm test -w web`. They run the real migrations against in-process Postgres (PGlite), so you need no database to run them.
+- Environment variables are listed in `apps/web/.env.example`. Copy it to `apps/web/.env.local`.
 
 ## Working rules
 
