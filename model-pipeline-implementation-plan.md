@@ -14,7 +14,8 @@ Observed package declarations: Next.js `^16.4.6`, React `19.2.8`, TypeScript `7.
 
 - Luka owns transcription, Luna, response selection, backend context/history, learning evidence, shared contracts, development visibility, and a small evaluation set.
 - The cartoon teammate owns recording, utterance-end detection, turn coordination, scene assets, speech generation, visuals, and episode progression.
-- The dashboard teammate owns persistent storage implementation, read interfaces, and dashboard presentation.
+- The dashboard teammate owns persistent storage implementation, read interfaces, and parent-dashboard presentation/controls. A separate teammate owns the kid TV hub design.
+- Kid and parent views share backend state; WebSocket notifications refresh parent evidence after saved child interactions. Parent-to-kid updates are optional work for the other owner. Realtime service ownership/hosting must be assigned by the team; Luka owns the pipeline integration boundary, not the kid UI or socket infrastructure.
 - One prepared scene and learning objective; live adaptation to short spoken answers; a two-minute demo.
 - Pre/post learning checks are future work for the pitch only. Do not scaffold check schemas, phases, routes, prompts, comparison logic, or UI. The cartoon controller has no pedagogical question-selection or assessment logic.
 - Save completed processing results before returning success. No playback acknowledgment is required or inferred.
@@ -26,7 +27,7 @@ Observed package declarations: Next.js `^16.4.6`, React `19.2.8`, TypeScript `7.
 | Decision | Recommendation | Why |
 | --- | --- | --- |
 | Backend | Node-runtime route handlers inside `apps/web` | Fits the existing application and keeps the browser/API on one origin. |
-| Transport | HTTP JSON for setup; multipart upload for each completed audio turn | Matches the controller's completed-recording handoff. |
+| Transport | HTTP JSON for setup; multipart upload for each completed audio turn; WebSocket change notifications for the two views | Preserve the existing audio pipeline while refreshing parent evidence from committed interactions. |
 | Shared contract | Zod schemas and inferred TypeScript types in `apps/web/lib/contracts` | Runtime validation and teammate fixtures without a new package; promote to `@repo/contracts` only if a second workspace imports them. |
 | Transcription | OpenAI `gpt-transcribe` | Current documented starting model for recorded speech; evaluate on actual recorder clips. |
 | Dialogue | OpenAI `gpt-6-luna`, Responses API, one structured result | Preserves the chosen model and combines dialogue with assessment. |
@@ -261,7 +262,7 @@ Detailed sequence:
 6. Validate the result and compose the response as in section 8. Do not stream unvalidated Luna tokens to the controller or TTS.
 7. Construct the final speech, canonical assessment, parent summary, next active question, and assistance state. Preserve the draft separately for diagnostics.
 8. Commit the complete record and updated session state through the store. Await success. No playback acknowledgment and no unawaited post-response save.
-9. Return the stored canonical response. Release references to uploaded audio; do not add it to logs, records, object storage, or local files.
+9. After successful commit, trigger the shared realtime publisher with session ID, interaction ID, and committed turn number so the parent view refreshes its evidence. Replayed requests do not create new evidence; subscribers tolerate duplicate notifications. Isolate publisher failures from the successful stored turn, log them, and recover view state through resync rather than rerunning the model. Do not wait for any browser acknowledgment. Return the stored canonical response. Release references to uploaded audio; do not add it to logs, records, object storage, or local files.
 
 For nonempty input, total server time is approximately transcription + Luna + storage/overhead. The real user-facing pause also includes upload, TTS, and playback startup, which are outside this pipeline's timing.
 
@@ -425,6 +426,10 @@ For development, supply a memory adapter implementing this exact interface so pi
 The dashboard teammate supplies the managed Postgres/Drizzle adapter selected in the learning progress plan. Use `PIPELINE_STORE=postgres` and a server-only `DATABASE_URL` when it is ready. Keep one authoritative session/interaction store. The provider, deployment host, and adapter implementation still need completion; storage selection alone does not make persistence available.
 
 The milestone “saved record visible after process restart” remains blocked on the durable adapter and deployment choice. This is an explicit team dependency, not hidden extra infrastructure assigned to Luka. Luka can complete provider integrations, rules, contracts, and evaluation first.
+
+### Parent controls and the kid hub
+
+The kid hub and parent dashboard share the service described in [learning-progress-plan.md](./learning-progress-plan.md), section 2. Parent learning-preference controls may be presentation-only; their owner decides whether they become functional. Luka's current pipeline must not depend on parent-control endpoints, scheduling, permissions enforcement, or parent-to-kid settings events. Continue accepting the agreed prepared scene ID and keeping its session snapshot fixed. If the other owner implements objective selection later, agree its integration contract then. No pre/post check logic is introduced.
 
 ## 10. Development inspection and timing
 

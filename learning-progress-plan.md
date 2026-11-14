@@ -4,14 +4,14 @@ Prepared November 14, 2026 by the dashboard and persistence owner. This builds o
 
 ## 1. What this workstream covers
 
-The handoff gives the dashboard teammate persistent storage implementation, read interfaces, and dashboard presentation. The implemented scope is evidence from the episode's adaptive teaching conversation.
+The handoff gives the dashboard teammate persistent storage implementation, read interfaces, and dashboard presentation. The planned product has two connected experiences: a kid-facing TV hub for choosing cartoons, and a parent dashboard for evidence from the episode's adaptive teaching conversation, with proposed learning-preference controls owned by that teammate.
 
 **Agreed scope: pre/post learning checks are future work, mentioned in the pitch only. Do not scaffold them.** No check-item schemas, phase fields, check modes, phase-transition endpoints, comparison functions, placeholder UI, migrations, or check fixtures are required for this demo.
 
 | Area | Owned here | Not owned here |
 | --- | --- | --- |
 | Storage | The durable `PipelineStore` adapter, schema, and read queries | What the pipeline writes into each record (Luka) |
-| Dashboard | Parent-facing UI and the session evidence view | The `/dev/pipeline` developer page (Luka) |
+| Parent dashboard | Session evidence and the design/scope of proposed learning-preference controls | The kid TV hub design (separate teammate) and `/dev/pipeline` developer page (Luka) |
 | Question reasoning | None | Prepared scene content comes from the scene owner; generated dialogue, follow-up questions, and assessment belong to Luka's pipeline |
 
 The cartoon controller handles recording, playback, and episode progression. It does not choose pedagogical questions or assess answers.
@@ -20,14 +20,43 @@ The cartoon controller handles recording, playback, and episode progression. It 
 
 ```mermaid
 flowchart LR
-  E[Prepared episode question] --> A[Spoken answer]
-  A --> P[Pipeline: transcript, response, assessment]
-  P --> S[Save interaction and session state]
-  S --> C[Controller plays response and coordinates continuation]
-  S --> D[Dashboard shows session evidence]
+  B[Shared backend and durable state] --> P[Parent dashboard: learning evidence]
+  B --> K[Kid TV hub: cartoon selection]
+  K --> C[Cartoon playback and recorded answer]
+  C --> L[Model pipeline]
+  L --> B
+  B --> W[WebSocket change notifications]
+  W --> P
 ```
 
-The dashboard displays the actual questions, transcripts, assessments, assistance evidence, and parent summary produced during one teaching conversation. It does not display a separate baseline or post-test result. The existing two-minute demo scope remains unchanged.
+The kid TV hub presents cartoons as channels or show tiles, such as Dora and Bluey. Its detailed layout and interaction design belong to a separate teammate. Only prepared, supported content should launch an interactive session; multiple tiles do not imply multiple implemented learning pipelines. The initial working demo still uses one prepared scene/objective.
+
+The parent dashboard retains the actual questions, transcripts, assessments, assistance evidence, and parent summary. Its owner may present learning preferences such as “I want my child to learn math.” Whether those controls actually affect playback or the pipeline in this demo is that teammate's decision, not a requirement of Luka's current work. The pipeline uses its prepared scene/objective without depending on functional parent controls.
+
+### What updates live
+
+| Saved change | Receiving view | Visible effect |
+| --- | --- | --- |
+| A child's interaction completes and is committed | Parent dashboard | Refresh the transcript, assessment, assistance evidence, and summary, whether the answer is correct, incorrect, or unclear. |
+| Parent changes a learning preference, if its owner implements this | Kid TV hub/pipeline integration, as agreed separately | Not required or assumed functional for this demo; define the contract with that owner only if taken on. |
+
+There is no need to send a reward to the kid view merely because the parent dashboard received a new assessment. Rewards are not an implied feature of the live connection.
+
+### Connection and state rules
+
+- Both views connect to a shared backend/realtime service, not directly to each other's browser. Two views can live in the same Next.js app; two separate deployments are not required.
+- Persist changes first, then publish WebSocket notifications. The database remains authoritative. Notifications identify which state changed; recipients fetch their authorized current state through read endpoints.
+- Keep session creation and recorded-audio uploads on the existing HTTP path. WebSockets provide live update notifications rather than replacing transcription or model calls.
+- After `commitTurn` succeeds, publish a session update carrying its session ID, interaction ID, and turn number to the authorized parent view. Do not broadcast raw model drafts, private answer guides, or audio. Parent-setting events are not part of the required current contract.
+- Load current state on initial connection and reconnect. Ignore duplicate/older notifications and prevent older read responses from overwriting newer state. A notification failure must not roll back a committed interaction or cause the model turn to run again; a refresh/resync reads the saved result. Include a lightweight periodic resync fallback so a missed event is eventually recovered even if the socket remains connected.
+- Scope access separately for parent controls/evidence and kid playback state. A session ID or socket channel name alone is not authorization. A paired demo context can keep setup small; the team must agree how the two views are paired before wiring subscriptions.
+- Choose a socket-capable backend or managed realtime service alongside deployment. Do not assume adding an HTTP route provides a persistent WebSocket server. Realtime transport ownership is a team integration assignment, not additional model reasoning work for Luka.
+
+### Parent-control scope belongs to its owner
+
+Parent-to-kid learning-preference functionality is not assumed real in the demo. The parent-dashboard teammate decides its design and whether to implement it. Do not add parent-control APIs, scheduling, allow/block enforcement, pause rules, or settings subscriptions as prerequisites for Luka's pipeline. If the owner later implements objective selection, agree its interface then. Keep the current session's scene snapshot fixed.
+
+Pre/post checks remain future-work mentions only. The two-minute demo cap is unchanged.
 
 ## 3. What the dashboard is allowed to claim
 
@@ -118,13 +147,15 @@ Fallback: if the team decides to demo from a single machine with no deployment, 
 | Luka | Store the full private `next_question` and preserve the public response for replay | Question context stays consistent without exposing answer guides |
 | Luka | Use assistance wording from section 3 in summaries and dashboard metrics | No unsupported hint counts or mastery claims |
 | Cartoon teammate | Consume pipeline speech/question metadata and coordinate recording, playback, and episode progression | No pedagogical reasoning or check flow in the controller |
+| Kid UI owner | Build the TV hub and connect its prepared show selection to playback | Detailed kid UI design stays with that teammate |
+| Whole team | Assign realtime ownership, select socket hosting, and agree view pairing; parent-control functionality stays with its owner | Notifications follow durable writes; no learning reasoning in the controller |
 | Whole team | Confirm hosting and database provider, then rehearse the existing two-minute interaction | No extra pre/post questions in the demo |
 
 ## 8. Demo additions
 
 These are in scope for the hackathon, in priority order.
 
-1. **Live dashboard during the demo.** The parent view polls `getSessionProgress` about once a second and shows the judge's answer, its assessment and the parent summary as soon as the pipeline commits them. Show it side by side with the cartoon. No websockets.
+1. **Two live views during the demo.** Show the kid TV hub/player and parent dashboard. WebSocket notifications trigger authorized state refreshes after committed interactions, as specified in section 2. This supersedes the earlier once-per-second polling-only plan. Retain resync for missed notifications.
 2. **Demo reset and fallback.** Add a development-only "reset demo" action that starts a clean session for each judge. Also seed one completed session, visibly labeled "Sample data." The dashboard can show it if the microphone, transcription or Luna fails on stage.
 3. **Possible misconception, worded tentatively.** Show `possibleMisconception` from the stored assessment as "This answer *might* mean…", never as a diagnosis. Hide it when it's null.
 4. **Shared sample files on day one.** Commit synthetic `InteractionRecord` and `SessionProgress` JSON in `apps/web/lib/contracts/fixtures/`. Then the dashboard UI and the pipeline can each be built and tested without waiting for the other.
@@ -170,7 +201,7 @@ Only `web` gets Tailwind. `apps/docs` stays as it is.
 apps/web/app/parent/
   layout.tsx                         Access-code gate (server), page shell
   [sessionId]/page.tsx               Server component: first read via ProgressReader
-  [sessionId]/live-progress.tsx      Client component: polls once a second
+  [sessionId]/live-progress.tsx      Client component: subscribes, refetches on change
   _components/
     session-header.tsx               Objective, sample-data badge
     interaction-card.tsx             Question, transcript, response, assessment
@@ -182,13 +213,18 @@ apps/web/app/parent/
 apps/web/app/api/parent/sessions/[sessionId]/progress/route.ts
 apps/web/lib/parent/wording.ts       answerStatus/assistance → section 3 text
 apps/web/lib/parent/next-steps.ts    objectiveId → suggestion
+apps/web/lib/parent/subscribe.ts     subscribeToSession(): wraps the agreed realtime transport
 ```
 
 Dashboard components stay in `apps/web`. `packages/ui` is shared with `docs`, so move something there only if a second app needs it.
 
 ### Data wiring
 
-- The server page calls `getSessionProgress` directly for the first render. The client component polls `GET /api/parent/sessions/{sessionId}/progress` once a second and stops when the tab is hidden.
+- The server page calls `getSessionProgress` directly for the first render.
+- The client component calls `subscribeToSession(sessionId, onChange)`. Each change notification (session ID, interaction ID, turn number) triggers a refetch of `GET /api/parent/sessions/{sessionId}/progress`. Notifications never carry evidence themselves, as section 2 requires.
+- Ignore notifications whose turn number is at or below what's on screen, and drop any refetch response that's older than the one already shown.
+- Refetch on connect and reconnect, plus a slow resync every ~10 seconds so a missed event still shows up.
+- Realtime ownership and hosting aren't assigned yet (section 7). `subscribe.ts` is the only file that knows the transport. Until it exists, its stub just runs the resync on a short timer, so the dashboard works end to end against fixtures and the memory adapter.
 - The route returns `SessionProgress` only. It must never include `answerGuide`, `next_question` guides or diagnostics. Add a test that fails if a guide appears in the response.
 - Show all wording through `wording.ts` so section 3's claim limits live in one place, with unit tests for every `answerStatus` value.
 - Build against the section 8 fixtures first. The fixtures, the memory adapter and the Postgres adapter all go through the same `ProgressReader`.
@@ -201,7 +237,7 @@ Dashboard components stay in `apps/web`. `packages/ui` is shared with `docs`, so
 | No interactions yet | "Waiting for the first answer" |
 | Live | Interactions ordered by turn; the newest one appears without a page reload |
 | Sample data | A persistent "Sample data" badge, driven by the session record and not by the URL |
-| Error / store down | A plain message; polling keeps trying |
+| Error / store down / socket lost | A plain message; it reconnects and resyncs on its own |
 | Wrong or missing access code | Code entry form, no session data |
 
 ### Foundation done when
@@ -230,6 +266,6 @@ Dashboard components stay in `apps/web`. `packages/ui` is shared with `docs`, so
 1. Share the existing turn/evidence contract and synthetic interaction/session-progress fixtures with Luka. No check-related contract changes.
 2. Implement `PipelineStore` against section 4, including full private question context, atomic updates, and session-scoped duplicate handling. Run the store contract tests against the durable adapter.
 3. Implement `getSessionProgress` and test empty sessions, correct/incorrect/unclear answers, assistance counts, and preservation of the latest non-null summary.
-4. Build the parent dashboard foundation from section 9 (Tailwind, routes, polling, UI states, wording module) against fixtures, then apply the design once it's ready. Verify private guides and drafts are excluded from public responses.
-5. Connect the live interaction and verify the dashboard reads the same committed evidence returned by the pipeline.
+4. Build the parent dashboard foundation from section 9 (Tailwind, routes, the `subscribeToSession` wrapper, UI states, the wording module) against fixtures, then apply the design once it's ready. Verify private guides and drafts are excluded from public responses.
+5. Connect both views through the agreed realtime service. Verify that a committed child interaction refreshes parent evidence, reconnect/missed events resync from storage, and duplicate notifications do not duplicate evidence. The dashboard must read the same committed evidence returned by the pipeline.
 6. Prove records survive backend restart and rehearse the two-minute demo. Mention future checks in the pitch only.
