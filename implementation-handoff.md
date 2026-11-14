@@ -19,6 +19,7 @@ An existing cartoon becomes an interactive learning experience. At a prepared st
 ### Agreed constraints
 
 - **Hard two-minute demo cap**, supplied by the user. Do not plan a second-session demonstration.
+- **Pre/post learning checks are future work, mentioned in the pitch only.** Do not implement or scaffold check questions, phase fields, routes, prompts, comparison logic, or UI for them. The implemented evidence comes from the episode teaching conversation.
 - Invite the judge to participate and intentionally answer incorrectly. They can role-play a child with a misconception; the response is generated live.
 - Prefer short, single-part answers: a number, color, object, or brief phrase. Do not require a multi-part explanation in the core demo.
 - A wrong short answer may suggest a misconception, but it does not prove the child's reasoning. Avoid claiming certainty about an explanation they never gave.
@@ -77,7 +78,7 @@ The exact endpoint layout, transport, response schema, and persistence-call orde
 
 - Working model selection: OpenAI **GPT-6 Luna**, API identifier `gpt-6-luna`, for teaching dialogue. This is a starting choice, not a measured latency/quality winner.
 - Return dialogue and assessment together in one call.
-- In that same call, Luna also writes a one-sentence, plain-language **parent summary** of the session so far, for example “Needed one hint about counting, then answered correctly.” It describes what happened and must not claim mastery. It is saved with the interaction for the dashboard; it is not spoken and is not sent to the cartoon controller. There is no extra model call.
+- In that same call, Luna also writes a one-sentence, plain-language **parent summary** of the session so far, for example “Answered correctly after assistance.” It describes what happened and must not claim mastery, infer hint counts from generic assistance flags, or claim help was necessary or verified as heard. It is saved with the interaction for the dashboard; it is not spoken and is not sent to the cartoon controller. There is no extra model call.
 - The backend owns conversation history, keyed by a **session ID**. The cartoon frontend should not have to reconstruct the model conversation every turn.
 - “Context” means information needed to respond coherently: what is happening in the scene, what Dora asked, the learning objective, the child's answer, recent dialogue, and help already supplied.
 - The cartoon teammate authors/supplies scene facts, objectives, and starting questions. The user defines their shared format and assembles the model input.
