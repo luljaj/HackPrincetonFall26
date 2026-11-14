@@ -144,13 +144,12 @@ export default function Lab() {
   function playFiller() {
     const el = filler.current!;
     const started = () => { if (gap.current && gap.current.first === null) gap.current.first = Math.round(performance.now() - gap.current.from); };
-    // No saved hmm.m4a yet (generate it with tools/gen-voice-lines.py --only hmm): use the browser voice.
-    const fallback = () => void speakFallback(LINES.hmm ?? "Hmm!", new AbortController().signal, (on) => { synthSpeaking.current = on; if (on) started(); });
+    // Only Dora's own saved "Hmm" (tools/gen-voice-lines.py --only hmm). A different voice saying it
+    // right before Dora answers sounds like two people, so without the file there's no filler.
     el.onplaying = started;
-    el.onerror = fallback;
-    if (el.error) return fallback();
+    if (el.error) return;
     el.currentTime = 0;
-    void el.play().catch(fallback);
+    void el.play().catch(() => undefined);
   }
 
   // Hands-free end of turn: think out loud, then judge. Clear answers skip Luna entirely.
@@ -391,6 +390,7 @@ export default function Lab() {
       timers.push(setTimeout(() => send(e), THINK_MS));
     }
     if (meta.line) {
+      filler.current!.pause(); // never talk over her own "Hmm!"
       const file = lineFor(stage, sp, ctxRef.current.tries);
       if (file) {
         const customText = liveText.current;
