@@ -13,16 +13,16 @@ const last = sampleInteractions.at(-1);
 
 export const sampleSession: SessionProgress = {
   sessionId: SAMPLE_SESSION_ID,
-  objectiveId: sampleSessionRecord.objectiveId,
+  objectiveId: sampleSessionRecord.sceneSnapshot.objectiveId,
   objective: (sampleSessionRecord.sceneSnapshot as { objective: string }).objective,
   isSample: true,
   interactions: sampleInteractions.map((i) => ({
     interactionId: i.interactionId,
     turnNumber: i.turnNumber,
-    questionText: i.question.text,
+    questionText: i.questionText,
     transcript: i.transcript,
-    responseText: i.response.text,
-    responseType: i.response.type,
+    responseText: i.responseText,
+    responseType: i.responseType,
     assessment: i.assessment,
     assistanceInResponse: i.assistanceInResponse,
   })),

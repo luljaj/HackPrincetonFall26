@@ -1,3 +1,10 @@
+import { randomUUID } from "node:crypto";
+import { createPipelineRuntime } from "../pipeline/runtime-core";
+import { createSession } from "../pipeline/session";
+import { processTurn } from "../pipeline/process-turn";
+import { PipelineError, withStore } from "../pipeline/errors";
+import { SessionSnapshotSchema } from "./contract";
+import { exampleScene } from "../scenes/example.scene";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
@@ -25,9 +32,8 @@ function session(id = "s1"): SessionRecord {
   return {
     sessionId: id,
     createdAt: "2026-11-14T18:00:00.000Z",
-    sceneId: "demo-scene",
-    objectiveId: "counting",
-    sceneSnapshot: { objective: "Count three objects" },
+    sceneSnapshot: { ...exampleScene, sceneId: "demo-scene", objectiveId: "counting", objective: "Count three objects", initialQuestion: q1 },
+    latestParentSummary: null,
     activeQuestion: q1,
     turnNumber: 0,
     assistanceProvided: false,
@@ -35,16 +41,16 @@ function session(id = "s1"): SessionRecord {
 }
 
 function turn(over: Partial<InteractionRecord> = {}): InteractionRecord {
-  return {
+  const record: Omit<InteractionRecord, "turnResponse"> = {
     sessionId: "s1",
     interactionId: "i1",
     turnNumber: 1,
     sceneId: "demo-scene",
     objectiveId: "counting",
     completedAt: "2026-11-14T18:00:05.000Z",
-    question: q1,
+    questionId: q1.questionId, questionText: q1.text, answerGuide: q1.answerGuide,
     transcript: "five",
-    response: { type: "teaching", text: "Let's count together." },
+    responseType: "teaching", responseText: "Let's count together.",
     nextQuestion: q2,
     assessment: {
       answerStatus: "incorrect",
@@ -54,18 +60,20 @@ function turn(over: Partial<InteractionRecord> = {}): InteractionRecord {
     },
     assistanceInResponse: true,
     parentSummary: "Answered incorrectly; assistance was given.",
-    turnResponse: { response: { type: "teaching", text: "Let's count together." } },
     diagnostics: {
-      lunaDraft: { feedbackText: "draft" },
+      lunaDraft: null,
       transcriptionModel: "gpt-transcribe",
       lunaModel: "gpt-6-luna",
       promptRevision: "r1",
-      transcriptionMs: 400,
-      lunaMs: 900,
-      precommitMs: 1350,
+      timings: { transcriptionMs: 400, lunaMs: 900, processingBeforeCommitMs: 1350 },
     },
     ...over,
   };
+  return { ...record, turnResponse: {
+    sessionId: record.sessionId, interactionId: record.interactionId, turnNumber: record.turnNumber,
+    response: { type: record.responseType, text: record.responseText, nextQuestion: record.nextQuestion && { questionId: record.nextQuestion.questionId, text: record.nextQuestion.text } },
+    assessment: record.assessment,
+  } };
 }
 
 let store: ReturnType<typeof createPostgresStore>;
@@ -141,7 +149,7 @@ describe("PipelineStore (Postgres)", () => {
         parentSummary: null,
         assessment: { answerStatus: "not_assessed", evidence: null, possibleMisconception: null, assistanceBeforeAnswer: true },
         assistanceInResponse: false,
-        diagnostics: { ...turn().diagnostics, lunaDraft: null, lunaModel: null, lunaMs: null },
+        diagnostics: { ...turn().diagnostics, lunaDraft: null, lunaModel: null, timings: { ...turn().diagnostics.timings, lunaMs: null } },
       }),
     });
     const snap = await store.loadSession("s1");
@@ -173,7 +181,7 @@ describe("ProgressReader (Postgres)", () => {
       interaction: turn({
         interactionId: "i2",
         turnNumber: 2,
-        question: q2,
+        questionId: q2.questionId, questionText: q2.text, answerGuide: q2.answerGuide,
         transcript: "three",
         nextQuestion: null,
         assessment: { answerStatus: "correct", evidence: "Said three.", possibleMisconception: null, assistanceBeforeAnswer: true },
@@ -256,5 +264,61 @@ describe("Demo admin, sample seed and reset", () => {
     expect(await store.loadSession("a")).toBeNull();
     expect(await admin.latestLiveSessionId()).toBeNull();
     expect(await store.getSessionProgress(SAMPLE_SESSION_ID)).toEqual(sampleSession);
+  });
+});
+
+
+describe("Pipeline and durable dashboard integration", () => {
+  it("commits canonical pipeline turns, reloads through a fresh adapter, and replays without providers", async () => {
+    const db = drizzle(new PGlite(), { schema });
+    await migrate(db, { migrationsFolder: "./drizzle" });
+    const durable = createPostgresStore(db as unknown as StoreDb);
+    let calls = 0;
+    const runtime = createPipelineRuntime({ NODE_ENV: "production", PIPELINE_STORE: "postgres" }, () => ({
+      transcribe: async () => ({ transcript: "four", model: "fake-transcriber" }),
+      luna: async () => {
+        calls++;
+        return { model: "fake-luna", draft: {
+          feedbackText: "Let's count the green apples.",
+          nextQuestion: { text: "How many green apples are on the plate?", answerGuide: "Two." },
+          assistanceProvided: true,
+          assessment: { answerStatus: "incorrect", evidence: "Said four.", possibleMisconception: null },
+          parentSummary: "Answered incorrectly; another question is pending.",
+        } };
+      },
+    }), durable);
+    const created = await createSession({ sceneId: exampleScene.sceneId }, runtime.session);
+    const input = {
+      sessionId: created.sessionId,
+      metadata: { interactionId: randomUUID(), expectedTurnNumber: 0, questionId: created.question.questionId },
+      audio: new File(["synthetic"], "answer.webm", { type: "audio/webm" }),
+    };
+    const response = await processTurn(input, runtime.pipeline);
+    const reloaded = createPostgresStore(db as unknown as StoreDb);
+    const snapshot = SessionSnapshotSchema.parse(await reloaded.loadSession(created.sessionId));
+    expect(snapshot.activeQuestion?.questionId).toBe(response.response.nextQuestion?.questionId);
+    expect(snapshot.interactions[0]?.turnResponse).toEqual(response);
+    const parent = await reloaded.getSessionProgress(created.sessionId);
+    expect(parent?.interactions[0]?.assessment.answerStatus).toBe("incorrect");
+    expect(parent?.episode.parentSummary).toBe(snapshot.latestParentSummary);
+    expect(JSON.stringify(parent)).not.toContain("answerGuide");
+    expect(await processTurn(input, { ...runtime.pipeline, store: reloaded })).toEqual(response);
+    expect(calls).toBe(1);
+  });
+
+  it("maps durable adapter errors to the public pipeline errors", async () => {
+    for (const [error, code] of [
+      [new SessionNotFoundError("missing"), "SESSION_NOT_FOUND"],
+      [new TurnConflictError("stale"), "TURN_CONFLICT"],
+      [new Error("private database detail"), "PERSISTENCE_ERROR"],
+    ] as const) {
+      try {
+        await withStore(async () => { throw error; });
+        expect.fail("expected a public pipeline error");
+      } catch (mapped) {
+        expect(mapped).toBeInstanceOf(PipelineError);
+        expect((mapped as PipelineError).code).toBe(code);
+      }
+    }
   });
 });

@@ -36,3 +36,6 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# Local pipeline evaluation output (includes synthetic transcripts/private guides)
+apps/web/evals/pipeline/results/

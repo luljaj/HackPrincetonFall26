@@ -1,3 +1,4 @@
+import { exampleScene } from "../scenes/example.scene";
 import type { InteractionRecord, PipelineStore, SessionRecord } from "./contract";
 
 // Synthetic "Sample data" session (learning-progress-plan.md §8.2): the on-stage fallback.
@@ -19,27 +20,24 @@ const q2 = {
 
 const noDiagnostics = {
   lunaDraft: null,
-  transcriptionModel: null,
+  transcriptionModel: "sample",
   lunaModel: null,
   promptRevision: "sample",
-  transcriptionMs: null,
-  lunaMs: null,
-  precommitMs: null,
+  timings: { transcriptionMs: null, lunaMs: null, processingBeforeCommitMs: 0 },
 };
 
 export const sampleSessionRecord: SessionRecord = {
   sessionId: SAMPLE_SESSION_ID,
   createdAt: "2026-11-14T12:00:00.000Z",
-  sceneId: "sample-scene",
-  objectiveId: "sample-counting",
-  sceneSnapshot: { objective: "Count a small group of objects (synthetic example)" },
+  sceneSnapshot: { ...exampleScene, sceneId: "sample-scene", objectiveId: "sample-counting", objective: "Count a small group of objects (synthetic example)", initialQuestion: q1 },
+  latestParentSummary: null,
   activeQuestion: q1,
   turnNumber: 0,
   assistanceProvided: false,
   isSample: true,
 };
 
-export const sampleInteractions: InteractionRecord[] = [
+const records: Omit<InteractionRecord, "turnResponse">[] = [
   {
     sessionId: SAMPLE_SESSION_ID,
     interactionId: "sample-interaction-1",
@@ -47,12 +45,10 @@ export const sampleInteractions: InteractionRecord[] = [
     sceneId: "sample-scene",
     objectiveId: "sample-counting",
     completedAt: "2026-11-14T12:00:10.000Z",
-    question: q1,
+    questionId: q1.questionId, questionText: q1.text, answerGuide: q1.answerGuide,
     transcript: "five",
-    response: {
-      type: "teaching",
-      text: "Let's count them together, touching each apple once: one, two, three. How many apples are there?",
-    },
+    responseType: "teaching",
+    responseText: "Let's count them together, touching each apple once: one, two, three. How many apples are there?",
     nextQuestion: q2,
     assessment: {
       answerStatus: "incorrect",
@@ -62,7 +58,6 @@ export const sampleInteractions: InteractionRecord[] = [
     },
     assistanceInResponse: true,
     parentSummary: "Answered incorrectly; assistance was given.",
-    turnResponse: { sample: true },
     diagnostics: noDiagnostics,
   },
   {
@@ -72,9 +67,9 @@ export const sampleInteractions: InteractionRecord[] = [
     sceneId: "sample-scene",
     objectiveId: "sample-counting",
     completedAt: "2026-11-14T12:00:25.000Z",
-    question: q2,
+    questionId: q2.questionId, questionText: q2.text, answerGuide: q2.answerGuide,
     transcript: "three",
-    response: { type: "teaching", text: "Yes! Three apples. ¡Excelente!" },
+    responseType: "teaching", responseText: "Yes! Three apples. ¡Excelente!",
     nextQuestion: null,
     assessment: {
       answerStatus: "correct",
@@ -84,10 +79,17 @@ export const sampleInteractions: InteractionRecord[] = [
     },
     assistanceInResponse: false,
     parentSummary: "Answered correctly after assistance.",
-    turnResponse: { sample: true },
     diagnostics: noDiagnostics,
   },
 ];
+export const sampleInteractions: InteractionRecord[] = records.map((record) => ({
+  ...record,
+  turnResponse: {
+    sessionId: record.sessionId, interactionId: record.interactionId, turnNumber: record.turnNumber,
+    response: { type: record.responseType, text: record.responseText, nextQuestion: record.nextQuestion && { questionId: record.nextQuestion.questionId, text: record.nextQuestion.text } },
+    assessment: record.assessment,
+  },
+}));
 
 /** Writes the sample session through the normal store path. Caller deletes any old copy first. */
 export async function writeSampleSession(store: PipelineStore): Promise<void> {

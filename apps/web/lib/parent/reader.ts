@@ -20,7 +20,7 @@ export function getProgressReader(): ProgressReader {
   return {
     async getSessionProgress(sessionId) {
       return (
-        (await store.getSessionProgress(sessionId)) ??
+        (await store.getSessionProgress!(sessionId)) ??
         (await fixtureReader.getSessionProgress(sessionId))
       );
     },

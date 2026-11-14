@@ -9,11 +9,14 @@
     "start": "next start",
     "lint": "eslint --max-warnings 0",
     "check-types": "next typegen && tsc --noEmit",
-    "test": "vitest run",
+    "test": "npm run test:pipeline && npm run test:storage",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "tsx server/storage/seed.ts"
+    "db:seed": "tsx server/storage/seed.ts",
+    "eval:pipeline": "tsx evals/pipeline/run.ts",
+    "test:pipeline": "tsx --test lib/contracts/contracts.test.ts server/pipeline/pipeline.test.ts server/pipeline/providers.test.ts evals/pipeline/eval.test.ts server/pipeline/http.test.ts",
+    "test:storage": "vitest run server/storage/postgres.test.ts"
   },
   "dependencies": {
     "@repo/ui": "*",
@@ -25,7 +28,9 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "server-only": "^0.0.1",
-    "tailwindcss": "^4.3.5"
+    "tailwindcss": "^4.3.5",
+    "openai": "^7.57.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.16",

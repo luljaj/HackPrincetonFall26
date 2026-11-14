@@ -10,6 +10,7 @@ import {
   type InteractionRecord,
   type PipelineStore,
   type QuestionContext,
+  type SessionRecord,
   type SessionSnapshot,
 } from "./contract";
 import * as schema from "./schema";
@@ -29,8 +30,8 @@ export function createPostgresStore(db: StoreDb): PipelineStore & ProgressReader
         db.insert(sessions).values({
           sessionId: session.sessionId,
           learnerId: session.learnerId ?? null,
-          sceneId: session.sceneId,
-          objectiveId: session.objectiveId,
+          sceneId: session.sceneSnapshot.sceneId,
+          objectiveId: session.sceneSnapshot.objectiveId,
           sceneSnapshot: session.sceneSnapshot,
           turnNumber: session.turnNumber,
           activeQuestion: session.activeQuestion,
@@ -135,7 +136,13 @@ export function createPostgresStore(db: StoreDb): PipelineStore & ProgressReader
           await tx.insert(interactionDiagnostics).values({
             sessionId,
             interactionId: interaction.interactionId,
-            ...interaction.diagnostics,
+            lunaDraft: interaction.diagnostics.lunaDraft,
+            transcriptionModel: interaction.diagnostics.transcriptionModel,
+            lunaModel: interaction.diagnostics.lunaModel,
+            promptRevision: interaction.diagnostics.promptRevision,
+            transcriptionMs: rounded(interaction.diagnostics.timings.transcriptionMs),
+            lunaMs: rounded(interaction.diagnostics.timings.lunaMs),
+            precommitMs: rounded(interaction.diagnostics.timings.processingBeforeCommitMs),
           });
           return { record: interaction, replayed: false };
         }),
@@ -208,9 +215,7 @@ function toSnapshot(row: SessionRow, list: InteractionRecord[]): SessionSnapshot
   return {
     sessionId: row.sessionId,
     createdAt: row.createdAt.toISOString(),
-    sceneId: row.sceneId,
-    objectiveId: row.objectiveId,
-    sceneSnapshot: row.sceneSnapshot,
+    sceneSnapshot: row.sceneSnapshot as SessionRecord["sceneSnapshot"],
     activeQuestion: row.activeQuestion as QuestionContext | null,
     turnNumber: row.turnNumber,
     assistanceProvided: row.assistanceProvided,
@@ -228,12 +233,12 @@ function toInteractionRow(i: InteractionRecord): typeof interactions.$inferInser
     turnNumber: i.turnNumber,
     sceneId: i.sceneId,
     objectiveId: i.objectiveId,
-    questionId: i.question.questionId,
-    questionText: i.question.text,
-    answerGuide: i.question.answerGuide,
+    questionId: i.questionId,
+    questionText: i.questionText,
+    answerGuide: i.answerGuide,
     transcript: i.transcript,
-    responseType: i.response.type,
-    responseText: i.response.text,
+    responseType: i.responseType,
+    responseText: i.responseText,
     nextQuestion: i.nextQuestion,
     answerStatus: i.assessment.answerStatus,
     evidence: i.assessment.evidence,
@@ -254,9 +259,9 @@ function toInteraction(r: InteractionRow, d: DiagnosticsRow | null): Interaction
     sceneId: r.sceneId,
     objectiveId: r.objectiveId,
     completedAt: r.completedAt.toISOString(),
-    question: { questionId: r.questionId, text: r.questionText, answerGuide: r.answerGuide },
+    questionId: r.questionId, questionText: r.questionText, answerGuide: r.answerGuide,
     transcript: r.transcript,
-    response: { type: r.responseType as "teaching" | "clarification", text: r.responseText },
+    responseType: r.responseType as "teaching" | "clarification", responseText: r.responseText,
     nextQuestion: r.nextQuestion as QuestionContext | null,
     assessment: {
       answerStatus: r.answerStatus as AnswerStatus,
@@ -266,15 +271,17 @@ function toInteraction(r: InteractionRow, d: DiagnosticsRow | null): Interaction
     },
     assistanceInResponse: r.assistanceInResponse,
     parentSummary: r.parentSummary,
-    turnResponse: r.turnResponse,
+    turnResponse: r.turnResponse as InteractionRecord["turnResponse"],
     diagnostics: {
-      lunaDraft: d?.lunaDraft ?? null,
-      transcriptionModel: d?.transcriptionModel ?? null,
+      lunaDraft: (d?.lunaDraft ?? null) as InteractionRecord["diagnostics"]["lunaDraft"],
+      transcriptionModel: d?.transcriptionModel ?? "unknown",
       lunaModel: d?.lunaModel ?? null,
-      promptRevision: d?.promptRevision ?? null,
-      transcriptionMs: d?.transcriptionMs ?? null,
-      lunaMs: d?.lunaMs ?? null,
-      precommitMs: d?.precommitMs ?? null,
+      promptRevision: d?.promptRevision ?? "unknown",
+      timings: {
+        transcriptionMs: d?.transcriptionMs ?? null,
+        lunaMs: d?.lunaMs ?? null,
+        processingBeforeCommitMs: d?.precommitMs ?? 0,
+      },
     },
   };
 }
@@ -294,4 +301,9 @@ async function guard<T>(fn: () => Promise<T>): Promise<T> {
     if (pgCode(e) === "23505") throw new TurnConflictError("Duplicate session or turn");
     throw new PersistenceError("Storage operation failed", { cause: e });
   }
+}
+
+// The existing SQL timing columns are integers; pipeline clocks use fractional milliseconds.
+function rounded(value: number | null): number | null {
+  return value === null ? null : Math.round(value);
 }
