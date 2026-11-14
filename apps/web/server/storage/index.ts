@@ -1,6 +1,7 @@
 import "server-only";
 import type { ProgressReader } from "../../lib/parent/reader-contract";
 import type { PipelineStore } from "./contract";
+import { createDemoAdmin, type DemoAdmin } from "./admin";
 import { getDb } from "./db";
 import { createPostgresStore } from "./postgres";
 
@@ -14,4 +15,9 @@ export function getPipelineStore(): PipelineStore & ProgressReader {
   throw new Error(
     `PIPELINE_STORE=${kind} has no adapter yet. Use "postgres", or add the memory adapter in server/storage/index.ts.`,
   );
+}
+
+/** Dashboard-only maintenance (delete, demo reset). Null when no database is configured. */
+export function getDemoAdmin(): DemoAdmin | null {
+  return process.env.PIPELINE_STORE === "postgres" ? createDemoAdmin(getDb()) : null;
 }

@@ -154,6 +154,15 @@ To connect: get the connection string privately from the dashboard owner (never 
 
 Possible extra for the prize: a TimescaleDB hypertable for a separate time-ordered learning-event log. Don't convert `interactions`, because hypertables restrict primary keys and that would break duplicate-safe commits.
 
+### Demo tools status (Nov 14)
+
+Built and tested against PGlite (15 tests) and Tiger Cloud:
+- **Sample session:** `npm run db:seed -w web` writes it, flagged `is_sample`. The no-database fixture is derived from the same records, so the two can't drift.
+- **Live view:** `/parent/live` shows the newest non-sample session and switches automatically when a new one starts. This is the demo's interim answer to view pairing ("the newest session is the live one"). The team can replace it once pairing is agreed.
+- **Reset:** `POST /api/parent/demo/reset` deletes every non-sample session and reseeds the sample. It requires `DEMO_TOOLS=true` and parent access.
+- **Delete:** `DELETE /api/parent/sessions/{id}` deletes one session and its evidence. The sample returns 403.
+- **Dependency:** a new judge's session only appears once the pipeline's `POST /api/learning/sessions` (Luka) creates it.
+
 ## 7. Integration agreement
 
 | With | Agreement | Boundary |

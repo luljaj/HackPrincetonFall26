@@ -11,6 +11,10 @@ import {
 } from "./contract";
 import { createPostgresStore, type StoreDb } from "./postgres";
 import * as schema from "./schema";
+import { createDemoAdmin, type DemoAdmin } from "./admin";
+import { resetDemo, reseedSample } from "./sample";
+import { SAMPLE_SESSION_ID } from "./sample-data";
+import { sampleSession } from "../../lib/parent/fixtures";
 
 // Runs the real migrations against an in-process Postgres (PGlite). No Docker, no network.
 
@@ -209,5 +213,48 @@ describe("ProgressReader (Postgres)", () => {
       finalStatus: null,
       parentSummary: null,
     });
+  });
+});
+
+describe("Demo admin, sample seed and reset", () => {
+  let admin: DemoAdmin;
+  beforeEach(async () => {
+    const db = drizzle(new PGlite(), { schema });
+    await migrate(db, { migrationsFolder: "./drizzle" });
+    store = createPostgresStore(db as unknown as StoreDb);
+    admin = createDemoAdmin(db as unknown as StoreDb);
+  });
+
+  it("seeds the sample session and matches the parent fixture", async () => {
+    await reseedSample(store, admin);
+    await reseedSample(store, admin); // idempotent
+    expect(await store.getSessionProgress(SAMPLE_SESSION_ID)).toEqual(sampleSession);
+  });
+
+  it("finds the newest non-sample session as the live one", async () => {
+    await reseedSample(store, admin);
+    expect(await admin.latestLiveSessionId()).toBeNull();
+    await store.createSession({ ...session("old"), createdAt: "2026-11-14T18:00:00.000Z" });
+    await store.createSession({ ...session("new"), createdAt: "2026-11-14T19:00:00.000Z" });
+    expect(await admin.latestLiveSessionId()).toBe("new");
+  });
+
+  it("deletes one session with its evidence", async () => {
+    await store.createSession(session());
+    await store.commitTurn({ sessionId: "s1", expectedTurnNumber: 0, interaction: turn() });
+    expect(await admin.deleteSession("s1")).toBe(true);
+    expect(await store.loadSession("s1")).toBeNull();
+    expect(await admin.deleteSession("s1")).toBe(false);
+  });
+
+  it("reset removes live sessions and keeps a fresh sample", async () => {
+    await reseedSample(store, admin);
+    await store.createSession(session("a"));
+    await store.createSession(session("b"));
+    await store.commitTurn({ sessionId: "a", expectedTurnNumber: 0, interaction: turn({ sessionId: "a" }) });
+    expect(await resetDemo(store, admin)).toEqual({ removed: 2 });
+    expect(await store.loadSession("a")).toBeNull();
+    expect(await admin.latestLiveSessionId()).toBeNull();
+    expect(await store.getSessionProgress(SAMPLE_SESSION_ID)).toEqual(sampleSession);
   });
 });

@@ -1,51 +1,35 @@
+import {
+  SAMPLE_SESSION_ID,
+  sampleInteractions,
+  sampleSessionRecord,
+} from "../../server/storage/sample-data";
 import type { SessionProgress } from "./types";
 
-// Synthetic sample session. Shown with a visible "Sample data" badge.
-// It illustrates the implemented episode interaction only — no real child, no before/after check.
-export const SAMPLE_SESSION_ID = "sample-session";
+// Parent-safe view of the sample session, used when no database is configured.
+// Derived from server/storage/sample-data.ts so the fixture and the seeded rows never drift.
+export { SAMPLE_SESSION_ID };
+
+const last = sampleInteractions.at(-1);
 
 export const sampleSession: SessionProgress = {
   sessionId: SAMPLE_SESSION_ID,
-  objectiveId: "sample-counting",
-  objective: "Count a small group of objects (synthetic example)",
+  objectiveId: sampleSessionRecord.objectiveId,
+  objective: (sampleSessionRecord.sceneSnapshot as { objective: string }).objective,
   isSample: true,
-  interactions: [
-    {
-      interactionId: "sample-interaction-1",
-      turnNumber: 1,
-      questionText: "How many apples are in Dora's basket?",
-      transcript: "five",
-      responseText:
-        "Let's count them together, touching each apple once: one, two, three. How many apples are there?",
-      responseType: "teaching",
-      assessment: {
-        answerStatus: "incorrect",
-        evidence: "Said five; the basket shows three apples.",
-        possibleMisconception: "may have counted the basket and the bananas too",
-        assistanceBeforeAnswer: false,
-      },
-      assistanceInResponse: true,
-    },
-    {
-      interactionId: "sample-interaction-2",
-      turnNumber: 2,
-      questionText: "How many apples are there?",
-      transcript: "three",
-      responseText: "Yes! Three apples. ¡Excelente!",
-      responseType: "teaching",
-      assessment: {
-        answerStatus: "correct",
-        evidence: "Said three after counting along.",
-        possibleMisconception: null,
-        assistanceBeforeAnswer: true,
-      },
-      assistanceInResponse: false,
-    },
-  ],
+  interactions: sampleInteractions.map((i) => ({
+    interactionId: i.interactionId,
+    turnNumber: i.turnNumber,
+    questionText: i.question.text,
+    transcript: i.transcript,
+    responseText: i.response.text,
+    responseType: i.response.type,
+    assessment: i.assessment,
+    assistanceInResponse: i.assistanceInResponse,
+  })),
   episode: {
-    turns: 2,
-    responsesWithAssistance: 1,
-    finalStatus: "correct",
-    parentSummary: "Answered correctly after assistance.",
+    turns: sampleInteractions.length,
+    responsesWithAssistance: sampleInteractions.filter((i) => i.assistanceInResponse).length,
+    finalStatus: last ? last.assessment.answerStatus : null,
+    parentSummary: last?.parentSummary ?? null,
   },
 };

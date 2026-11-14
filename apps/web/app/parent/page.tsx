@@ -6,9 +6,18 @@ export default function ParentHome() {
     <div className="space-y-3">
       <h1 className="text-2xl font-semibold">Parent dashboard</h1>
       <p className="text-foreground/70">Open a session to see what your child answered.</p>
-      <Link className="underline" href={`/parent/${SAMPLE_SESSION_ID}`}>
-        View sample session
-      </Link>
+      <ul className="space-y-1">
+        <li>
+          <Link className="underline" href="/parent/live">
+            Live session
+          </Link>
+        </li>
+        <li>
+          <Link className="underline" href={`/parent/${SAMPLE_SESSION_ID}`}>
+            View sample session
+          </Link>
+        </li>
+      </ul>
     </div>
   );
 }

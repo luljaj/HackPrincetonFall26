@@ -12,7 +12,8 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx server/storage/seed.ts"
   },
   "dependencies": {
     "@repo/ui": "*",
@@ -35,6 +36,7 @@
     "@types/react-dom": "19.2.5",
     "drizzle-kit": "^0.31.11",
     "eslint": "^10.15.0",
+    "tsx": "^4.23.15",
     "typescript": "7.0.2",
     "vitest": "^5.1.0"
   }

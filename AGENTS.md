@@ -40,6 +40,12 @@ Don't build anything those docs mark as future work or as owned by another teamm
   - `index.ts`: `getPipelineStore()` chooses the adapter from `PIPELINE_STORE`. Luka's memory adapter goes here.
   - Tests: `npm test -w web`. They run the real migrations against in-process Postgres (PGlite), so you need no database to run them.
 - Environment variables are listed in `apps/web/.env.example`. Copy it to `apps/web/.env.local`.
+- **Demo tools:**
+  - `/parent/live` always shows the newest non-sample session. Keep it open beside the cartoon.
+  - `npm run db:seed -w web` writes the "Sample data" session.
+  - With `DEMO_TOOLS=true`, `/parent/live` has a "Reset demo" button that deletes all non-sample sessions and reseeds the sample.
+  - Parents can delete a single session. The sample can't be deleted.
+  - The code is in `server/storage/admin.ts`, `sample.ts` and `sample-data.ts`. The pipeline never calls it.
 - **The database is Tiger Cloud (managed Postgres).** Get `DATABASE_URL` privately from the dashboard owner. It never goes in git, docs or chat. `npm run db:migrate -w web` reads `.env.local`.
 
 ## Working rules

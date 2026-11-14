@@ -3,11 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { subscribeToSession } from "../../../lib/parent/subscribe";
 import type { SessionProgress } from "../../../lib/parent/types";
-import { InteractionCard } from "../_components/interaction-card";
-import { NextStep } from "../_components/next-step";
-import { ParentSummary } from "../_components/parent-summary";
-import { SessionHeader } from "../_components/session-header";
-import { EmptyState, ErrorState } from "../_components/states";
+import { SessionView } from "../_components/session-view";
+import { ErrorState } from "../_components/states";
 
 export function LiveProgress({ initial }: { initial: SessionProgress }) {
   const [progress, setProgress] = useState(initial);
@@ -42,23 +39,8 @@ export function LiveProgress({ initial }: { initial: SessionProgress }) {
 
   return (
     <div className="space-y-6">
-      <SessionHeader objective={progress.objective} isSample={progress.isSample} />
       {error && <ErrorState message={error} />}
-      {progress.interactions.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <>
-          <ParentSummary episode={progress.episode} />
-          <ol className="space-y-3">
-            {progress.interactions.map((i) => (
-              <li key={i.interactionId}>
-                <InteractionCard interaction={i} />
-              </li>
-            ))}
-          </ol>
-          <NextStep objectiveId={progress.objectiveId} />
-        </>
-      )}
+      <SessionView progress={progress} />
     </div>
   );
 }
