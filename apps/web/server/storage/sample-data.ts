@@ -5,7 +5,9 @@ import type { InteractionRecord, PipelineStore, SessionRecord } from "./contract
 // It illustrates the implemented episode interaction only. No real child, no before/after check.
 // The parent fixture (lib/parent/fixtures.ts) is derived from these same records.
 
-export const SAMPLE_SESSION_ID = "sample-session";
+import { SAMPLE_INTERACTION_IDS, SAMPLE_SESSION_ID } from "../../lib/parent/sample-id";
+
+export { SAMPLE_SESSION_ID };
 
 const q1 = {
   questionId: "sample-q1",
@@ -40,7 +42,7 @@ export const sampleSessionRecord: SessionRecord = {
 const records: Omit<InteractionRecord, "turnResponse">[] = [
   {
     sessionId: SAMPLE_SESSION_ID,
-    interactionId: "sample-interaction-1",
+    interactionId: SAMPLE_INTERACTION_IDS[0],
     turnNumber: 1,
     sceneId: "sample-scene",
     objectiveId: "sample-counting",
@@ -62,7 +64,7 @@ const records: Omit<InteractionRecord, "turnResponse">[] = [
   },
   {
     sessionId: SAMPLE_SESSION_ID,
-    interactionId: "sample-interaction-2",
+    interactionId: SAMPLE_INTERACTION_IDS[1],
     turnNumber: 2,
     sceneId: "sample-scene",
     objectiveId: "sample-counting",

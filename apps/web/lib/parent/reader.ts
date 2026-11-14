@@ -1,28 +1,43 @@
 import "server-only";
-import { getPipelineStore } from "../../server/storage";
-import { sampleSession } from "./fixtures";
-import type { ProgressReader } from "./reader-contract";
+import { SessionProgressSchema } from "../contracts";
+import { getDb } from "../../server/storage/db";
+import { createPostgresStore } from "../../server/storage/postgres";
+import { sampleView } from "./fixtures";
+import type { ParentViewReader } from "./reader-contract";
+import type { ParentView } from "./types";
 
-export type { ProgressReader };
+export type { ParentViewReader };
 
 // Fixture-backed reader for building the UI before a database exists.
-const fixtureReader: ProgressReader = {
-  async getSessionProgress(sessionId) {
-    return sessionId === sampleSession.sessionId ? sampleSession : null;
+const fixtureReader: ParentViewReader = {
+  async getParentView(sessionId) {
+    return sessionId === sampleView.progress.sessionId ? sampleView : null;
   },
 };
 
 // PIPELINE_STORE=postgres reads the database; anything else uses the fixture.
 // The sample session stays available as the on-stage fallback either way.
-export function getProgressReader(): ProgressReader {
+function baseReader(): ParentViewReader {
   if (process.env.PIPELINE_STORE !== "postgres") return fixtureReader;
-  const store = getPipelineStore();
+  const store = createPostgresStore(getDb());
   return {
-    async getSessionProgress(sessionId) {
-      return (
-        (await store.getSessionProgress!(sessionId)) ??
-        (await fixtureReader.getSessionProgress(sessionId))
-      );
+    async getParentView(sessionId) {
+      return (await store.getParentView(sessionId)) ?? (await fixtureReader.getParentView(sessionId));
+    },
+  };
+}
+
+/**
+ * Every parent read goes through Luka's strict SessionProgressSchema before it leaves the
+ * server, so an extra field (an answer guide, a draft) fails loudly instead of leaking.
+ */
+export function getParentViewReader(): ParentViewReader {
+  const reader = baseReader();
+  return {
+    async getParentView(sessionId): Promise<ParentView | null> {
+      const view = await reader.getParentView(sessionId);
+      if (!view) return null;
+      return { ...view, progress: SessionProgressSchema.parse(view.progress) };
     },
   };
 }

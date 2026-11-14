@@ -1,9 +1,11 @@
 import type { DemoAdmin } from "./admin";
 import type { PipelineStore } from "./contract";
+import { LEGACY_SAMPLE_SESSION_ID } from "../../lib/parent/sample-id";
 import { SAMPLE_SESSION_ID, writeSampleSession } from "./sample-data";
 
 /** Replaces the sample session with a fresh copy. Safe to run repeatedly. */
 export async function reseedSample(store: PipelineStore, admin: DemoAdmin): Promise<void> {
+  await admin.deleteSession(LEGACY_SAMPLE_SESSION_ID);
   await admin.deleteSession(SAMPLE_SESSION_ID);
   await writeSampleSession(store);
 }

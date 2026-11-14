@@ -1,5 +1,5 @@
 import "server-only";
-import type { ProgressReader } from "../../lib/parent/reader-contract";
+import type { ProgressReader } from "../../lib/contracts";
 import type { PipelineStore } from "./contract";
 import { createDemoAdmin, type DemoAdmin } from "./admin";
 import { getDb } from "./db";

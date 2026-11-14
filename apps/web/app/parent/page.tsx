@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SAMPLE_SESSION_ID } from "../../lib/parent/fixtures";
+import { SAMPLE_SESSION_ID } from "../../lib/parent/sample-id";
 
 export default function ParentHome() {
   return (

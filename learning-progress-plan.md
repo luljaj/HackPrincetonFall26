@@ -167,6 +167,12 @@ Built and tested against PGlite (15 tests) and Tiger Cloud:
 - **Delete:** `DELETE /api/parent/sessions/{id}` deletes one session and its evidence. The sample returns 403.
 - **Dependency:** a new judge's session only appears once the pipeline's `POST /api/learning/sessions` (Luka) creates it.
 
+### Alignment with the shared contracts (Nov 14)
+
+- The parent API now returns `ParentView = { progress, objectiveId, isSample }`. `progress` is exactly the shared `SessionProgress` from `lib/contracts/progress.ts`, and every read is checked against `SessionProgressSchema` before it leaves the server. The dashboard adds its two display fields around the schema instead of changing it.
+- `activeQuestion` is shown as soon as it exists: "Dora is asking a follow-up" appears right after the original wrong answer, and it's cleared once the variant is answered. Each interaction carries `questionId`. This was tested live on Tiger Cloud.
+- The sample session's ID is now a fixed UUID (`lib/parent/sample-id.ts`), because the shared schema requires UUID session and interaction IDs. Reseeding removes the old `sample-session` row.
+
 ## 7. Integration agreement
 
 | With | Agreement | Boundary |

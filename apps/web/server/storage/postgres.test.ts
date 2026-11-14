@@ -21,7 +21,8 @@ import * as schema from "./schema";
 import { createDemoAdmin, type DemoAdmin } from "./admin";
 import { resetDemo, reseedSample } from "./sample";
 import { SAMPLE_SESSION_ID } from "./sample-data";
-import { sampleSession } from "../../lib/parent/fixtures";
+import { sampleView } from "../../lib/parent/fixtures";
+import { SessionProgressSchema } from "../../lib/contracts";
 
 // Runs the real migrations against an in-process Postgres (PGlite). No Docker, no network.
 
@@ -196,12 +197,22 @@ describe("ProgressReader (Postgres)", () => {
     const p = await store.getSessionProgress("s1");
     expect(p?.objective).toBe("Count three objects");
     expect(p?.interactions.map((i) => i.transcript)).toEqual(["five", "three"]);
+    expect(p?.interactions.map((i) => i.questionId)).toEqual(["q1", "q2"]);
+    expect(p?.activeQuestion).toBeNull(); // the variant was answered, so the moment is over
     expect(p?.episode).toEqual({
       turns: 2,
       responsesWithAssistance: 1,
       finalStatus: "correct",
       parentSummary: "Answered correctly after assistance.",
     });
+  });
+
+  it("shows the pending variant right after a wrong answer, without its guide", async () => {
+    await store.createSession(session());
+    await store.commitTurn({ sessionId: "s1", expectedTurnNumber: 0, interaction: turn() });
+    const p = await store.getSessionProgress("s1");
+    expect(p?.interactions[0]?.assessment.answerStatus).toBe("incorrect");
+    expect(p?.activeQuestion).toEqual({ questionId: q2.questionId, text: q2.text });
   });
 
   it("never exposes answer guides, drafts or diagnostics", async () => {
@@ -215,6 +226,10 @@ describe("ProgressReader (Postgres)", () => {
   it("returns null for an unknown session and empty progress for a new one", async () => {
     expect(await store.getSessionProgress("missing")).toBeNull();
     await store.createSession(session());
+    expect((await store.getSessionProgress("s1"))?.activeQuestion).toEqual({
+      questionId: q1.questionId,
+      text: q1.text,
+    });
     expect((await store.getSessionProgress("s1"))?.episode).toEqual({
       turns: 0,
       responsesWithAssistance: 0,
@@ -236,7 +251,9 @@ describe("Demo admin, sample seed and reset", () => {
   it("seeds the sample session and matches the parent fixture", async () => {
     await reseedSample(store, admin);
     await reseedSample(store, admin); // idempotent
-    expect(await store.getSessionProgress(SAMPLE_SESSION_ID)).toEqual(sampleSession);
+    expect(await store.getParentView(SAMPLE_SESSION_ID)).toEqual(sampleView);
+    // The sample must satisfy Luka's strict shared schema (UUID IDs, ordered turns, no extras).
+    expect(SessionProgressSchema.parse(sampleView.progress)).toEqual(sampleView.progress);
   });
 
   it("finds the newest non-sample session as the live one", async () => {
@@ -263,7 +280,7 @@ describe("Demo admin, sample seed and reset", () => {
     expect(await resetDemo(store, admin)).toEqual({ removed: 2 });
     expect(await store.loadSession("a")).toBeNull();
     expect(await admin.latestLiveSessionId()).toBeNull();
-    expect(await store.getSessionProgress(SAMPLE_SESSION_ID)).toEqual(sampleSession);
+    expect(await store.getParentView(SAMPLE_SESSION_ID)).toEqual(sampleView);
   });
 });
 
@@ -302,6 +319,9 @@ describe("Pipeline and durable dashboard integration", () => {
     expect(parent?.interactions[0]?.assessment.answerStatus).toBe("incorrect");
     expect(parent?.episode.parentSummary).toBe(snapshot.latestParentSummary);
     expect(JSON.stringify(parent)).not.toContain("answerGuide");
+    // Real pipeline output must pass the shared parent schema and show the pending variant.
+    expect(SessionProgressSchema.parse(parent)).toEqual(parent);
+    expect(parent?.activeQuestion).toEqual(response.response.nextQuestion);
     expect(await processTurn(input, { ...runtime.pipeline, store: reloaded })).toEqual(response);
     expect(calls).toBe(1);
   });

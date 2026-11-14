@@ -1,31 +1,15 @@
-// Parent-facing view types. Assessment types come from the storage contract
-// (server/storage/contract.ts), which is type-only and safe to import in client code.
+// Parent-facing types. The progress payload is Luka's shared contract (lib/contracts/progress.ts);
+// the dashboard only adds two display fields around it instead of changing that schema.
+import type { LearningAssessment, PublicQuestion, SessionProgress } from "../contracts";
 
-import type { AnswerStatus, LearningAssessment } from "../../server/storage/contract";
+export type { LearningAssessment, PublicQuestion, SessionProgress };
+export type AnswerStatus = LearningAssessment["answerStatus"];
 
-export type { AnswerStatus, LearningAssessment };
+export type ProgressInteraction = SessionProgress["interactions"][number];
 
-// Public, parent-safe shape (learning-progress-plan.md §5).
-// Never add answer guides, next-question guides or diagnostics here.
-export type SessionProgress = {
-  sessionId: string;
-  objectiveId: string;
-  objective: string;
-  isSample: boolean; // drives the "Sample data" badge; needs an is_sample column on sessions
-  interactions: Array<{
-    interactionId: string;
-    turnNumber: number;
-    questionText: string;
-    transcript: string;
-    responseText: string;
-    responseType: "teaching" | "clarification";
-    assessment: LearningAssessment;
-    assistanceInResponse: boolean;
-  }>;
-  episode: {
-    turns: number;
-    responsesWithAssistance: number;
-    finalStatus: AnswerStatus | null;
-    parentSummary: string | null;
-  };
+/** What the parent API returns: the shared progress payload plus dashboard-only display data. */
+export type ParentView = {
+  progress: SessionProgress;
+  objectiveId: string; // keys the pre-written "Try at home" tip
+  isSample: boolean; // drives the "Sample data" badge
 };

@@ -1,7 +1,8 @@
 import { and, asc, eq } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
-import type { ProgressReader } from "../../lib/parent/reader-contract";
-import type { SessionProgress } from "../../lib/parent/types";
+import type { ProgressReader, SessionProgress } from "../../lib/contracts";
+import type { ParentViewReader } from "../../lib/parent/reader-contract";
+import type { ParentView } from "../../lib/parent/types";
 import {
   PersistenceError,
   SessionNotFoundError,
@@ -23,7 +24,9 @@ type InteractionRow = typeof interactions.$inferSelect;
 type DiagnosticsRow = typeof interactionDiagnostics.$inferSelect;
 type SessionRow = typeof sessions.$inferSelect;
 
-export function createPostgresStore(db: StoreDb): PipelineStore & ProgressReader {
+export function createPostgresStore(
+  db: StoreDb,
+): PipelineStore & ProgressReader & ParentViewReader {
   return {
     async createSession(session) {
       await guard(() =>
@@ -149,66 +152,91 @@ export function createPostgresStore(db: StoreDb): PipelineStore & ProgressReader
       );
     },
 
-    // Parent-safe read (learning-progress-plan.md §5). Never touches diagnostics or guides.
+    // Shared progress payload (Luka's SessionProgressSchema).
     async getSessionProgress(sessionId): Promise<SessionProgress | null> {
-      return guard(async () => {
-        const [row] = await db.select().from(sessions).where(eq(sessions.sessionId, sessionId));
-        if (!row) return null;
-        const rows = await db
-          .select({
-            interactionId: interactions.interactionId,
-            turnNumber: interactions.turnNumber,
-            questionText: interactions.questionText,
-            transcript: interactions.transcript,
-            responseText: interactions.responseText,
-            responseType: interactions.responseType,
-            answerStatus: interactions.answerStatus,
-            evidence: interactions.evidence,
-            possibleMisconception: interactions.possibleMisconception,
-            assistanceBefore: interactions.assistanceBefore,
-            assistanceInResponse: interactions.assistanceInResponse,
-          })
-          .from(interactions)
-          .where(eq(interactions.sessionId, sessionId))
-          .orderBy(asc(interactions.turnNumber));
-
-        const items = rows.map((r) => ({
-          interactionId: r.interactionId,
-          turnNumber: r.turnNumber,
-          questionText: r.questionText,
-          transcript: r.transcript,
-          responseText: r.responseText,
-          responseType: r.responseType as "teaching" | "clarification",
-          assessment: {
-            answerStatus: r.answerStatus as AnswerStatus,
-            evidence: r.evidence,
-            possibleMisconception: r.possibleMisconception,
-            assistanceBeforeAnswer: r.assistanceBefore,
-          },
-          assistanceInResponse: r.assistanceInResponse,
-        }));
-        const last = items.at(-1);
-        return {
-          sessionId: row.sessionId,
-          objectiveId: row.objectiveId,
-          objective: objectiveText(row),
-          isSample: row.isSample,
-          interactions: items,
-          episode: {
-            turns: items.length,
-            responsesWithAssistance: items.filter((i) => i.assistanceInResponse).length,
-            finalStatus: last ? last.assessment.answerStatus : null,
-            parentSummary: row.latestParentSummary,
-          },
-        };
-      });
+      return (await readParentView(db, sessionId))?.progress ?? null;
     },
+
+    getParentView: (sessionId) => readParentView(db, sessionId),
   };
 }
 
-function objectiveText(row: SessionRow): string {
-  const snap = row.sceneSnapshot as { objective?: unknown } | null;
-  return typeof snap?.objective === "string" ? snap.objective : row.objectiveId;
+// Parent-safe read (learning-progress-plan.md §5). Selects only public columns, so answer
+// guides and diagnostics never enter the result.
+async function readParentView(db: StoreDb, sessionId: string): Promise<ParentView | null> {
+  return guard(async () => {
+    const [row] = await db
+      .select({
+        sessionId: sessions.sessionId,
+        objectiveId: sessions.objectiveId,
+        sceneSnapshot: sessions.sceneSnapshot,
+        activeQuestion: sessions.activeQuestion,
+        latestParentSummary: sessions.latestParentSummary,
+        isSample: sessions.isSample,
+      })
+      .from(sessions)
+      .where(eq(sessions.sessionId, sessionId));
+    if (!row) return null;
+    const rows = await db
+      .select({
+        interactionId: interactions.interactionId,
+        turnNumber: interactions.turnNumber,
+        questionId: interactions.questionId,
+        questionText: interactions.questionText,
+        transcript: interactions.transcript,
+        responseText: interactions.responseText,
+        responseType: interactions.responseType,
+        answerStatus: interactions.answerStatus,
+        evidence: interactions.evidence,
+        possibleMisconception: interactions.possibleMisconception,
+        assistanceBefore: interactions.assistanceBefore,
+        assistanceInResponse: interactions.assistanceInResponse,
+      })
+      .from(interactions)
+      .where(eq(interactions.sessionId, sessionId))
+      .orderBy(asc(interactions.turnNumber));
+
+    const items = rows.map((r) => ({
+      interactionId: r.interactionId,
+      turnNumber: r.turnNumber,
+      questionId: r.questionId,
+      questionText: r.questionText,
+      transcript: r.transcript,
+      responseText: r.responseText,
+      responseType: r.responseType as "teaching" | "clarification",
+      assessment: {
+        answerStatus: r.answerStatus as AnswerStatus,
+        evidence: r.evidence,
+        possibleMisconception: r.possibleMisconception,
+        assistanceBeforeAnswer: r.assistanceBefore,
+      },
+      assistanceInResponse: r.assistanceInResponse,
+    }));
+    const last = items.at(-1);
+    const active = row.activeQuestion as QuestionContext | null;
+    return {
+      objectiveId: row.objectiveId,
+      isSample: row.isSample,
+      progress: {
+        sessionId: row.sessionId,
+        objective: objectiveText(row.sceneSnapshot, row.objectiveId),
+        // Project to the public shape: never include the private answer guide.
+        activeQuestion: active && { questionId: active.questionId, text: active.text },
+        interactions: items,
+        episode: {
+          turns: items.length,
+          responsesWithAssistance: items.filter((i) => i.assistanceInResponse).length,
+          finalStatus: last ? last.assessment.answerStatus : null,
+          parentSummary: row.latestParentSummary,
+        },
+      },
+    };
+  });
+}
+
+function objectiveText(sceneSnapshot: unknown, fallback: string): string {
+  const snap = sceneSnapshot as { objective?: unknown } | null;
+  return typeof snap?.objective === "string" ? snap.objective : fallback;
 }
 
 function toSnapshot(row: SessionRow, list: InteractionRecord[]): SessionSnapshot {

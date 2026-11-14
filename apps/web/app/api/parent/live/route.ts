@@ -1,5 +1,5 @@
 import { hasParentAccess } from "../../../../lib/parent/access";
-import { getProgressReader } from "../../../../lib/parent/reader";
+import { getParentViewReader } from "../../../../lib/parent/reader";
 import { getDemoAdmin } from "../../../../server/storage";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +11,6 @@ export async function GET() {
   }
   const admin = getDemoAdmin();
   const sessionId = admin ? await admin.latestLiveSessionId() : null;
-  const progress = sessionId ? await getProgressReader().getSessionProgress(sessionId) : null;
-  return Response.json({ progress }, { headers: { "Cache-Control": "no-store" } });
+  const view = sessionId ? await getParentViewReader().getParentView(sessionId) : null;
+  return Response.json({ view }, { headers: { "Cache-Control": "no-store" } });
 }

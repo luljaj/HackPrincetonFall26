@@ -1,6 +1,8 @@
-import type { SessionProgress } from "./types";
+import type { ParentView } from "./types";
 
-// learning-progress-plan.md §5. Implemented by the fixture reader and the Postgres adapter.
-export interface ProgressReader {
-  getSessionProgress(sessionId: string): Promise<SessionProgress | null>;
+// Implemented by the fixture reader and the Postgres adapter.
+// Luka's ProgressReader (lib/contracts/progress.ts) is the shared interface; this wraps it with
+// the dashboard's display fields.
+export interface ParentViewReader {
+  getParentView(sessionId: string): Promise<ParentView | null>;
 }

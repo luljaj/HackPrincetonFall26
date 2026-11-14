@@ -1,6 +1,6 @@
 import { hasParentAccess } from "../../../../../lib/parent/access";
 import { getDemoAdmin } from "../../../../../server/storage";
-import { SAMPLE_SESSION_ID } from "../../../../../server/storage/sample-data";
+import { SAMPLE_SESSION_ID } from "../../../../../lib/parent/sample-id";
 
 export const dynamic = "force-dynamic";
 

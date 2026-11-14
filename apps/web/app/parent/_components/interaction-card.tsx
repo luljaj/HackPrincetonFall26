@@ -1,10 +1,9 @@
-import type { SessionProgress } from "../../../lib/parent/types";
+import type { ProgressInteraction } from "../../../lib/parent/types";
 import { AssessmentLabel } from "./assessment-label";
 import { MisconceptionNote } from "./misconception-note";
 
-type Interaction = SessionProgress["interactions"][number];
 
-export function InteractionCard({ interaction }: { interaction: Interaction }) {
+export function InteractionCard({ interaction }: { interaction: ProgressInteraction }) {
   return (
     <article className="space-y-2 rounded border border-foreground/15 p-4">
       <p className="text-xs text-foreground/60">Turn {interaction.turnNumber}</p>
