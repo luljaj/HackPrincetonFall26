@@ -1,0 +1,20 @@
+{
+  "base_model": "ResembleAI/chatterbox-turbo",
+  "rank": 8,
+  "layers": 8,
+  "step": 100,
+  "baseline_valid_loss": 4.750633301942245,
+  "valid_loss": 4.54058113305465,
+  "training_clips": 51,
+  "validation_clips": 23,
+  "training_episodes": [
+    1,
+    2,
+    3
+  ],
+  "validation_episodes": [
+    4
+  ],
+  "reference": "/Users/columbus/Documents/ChatGPT/dora/voices/dora/profile.json",
+  "type": "MLX LoRA fine-tune; fused replacement weights for adapted T3 layers"
+}

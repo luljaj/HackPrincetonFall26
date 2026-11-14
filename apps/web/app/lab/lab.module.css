@@ -1,0 +1,256 @@
+.lab {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr minmax(420px, 46%);
+  gap: 20px;
+  padding: 20px;
+  background: #16120f;
+  color: #f3e9dc;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+.lab button {
+  font: inherit;
+  font-size: 14px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid #4a3d33;
+  background: #2a221c;
+  color: inherit;
+  cursor: pointer;
+}
+
+.lab button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.stageWrap {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.screen {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  max-height: calc(100vh - 130px);
+  margin: 0 auto;
+  width: 100%;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #000;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* assistant layer crossfades over the frozen episode frame */
+.assistant {
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.assistant.show {
+  opacity: 1;
+}
+
+/* mouth switching between loops: fast but not a hard cut */
+.loop {
+  transition: opacity 70ms linear;
+  opacity: 0;
+}
+
+.listenRing {
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 0 6px #7dff8a;
+  animation: ring 1.4s ease-in-out infinite;
+}
+
+@keyframes ring {
+  50% {
+    box-shadow: inset 0 0 0 14px #7dff8a55;
+  }
+}
+
+.away {
+  display: grid;
+  place-items: center;
+  background: #222;
+  font-size: 28px;
+}
+
+.caption {
+  position: absolute;
+  left: 50%;
+  bottom: 5%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 88%;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: #000b;
+  font-size: clamp(16px, 2.2vw, 24px);
+  text-align: center;
+}
+
+.start {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: fit-content;
+  height: fit-content;
+  font-size: 22px !important;
+  padding: 16px 28px !important;
+  background: #ffd84d !important;
+  color: #2a1a10 !important;
+  border: 0 !important;
+}
+
+.kid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.kid span {
+  opacity: 0.6;
+  margin-right: 4px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: calc(100vh - 40px);
+}
+
+.panel h2 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.6;
+  margin-top: 6px;
+}
+
+.meta {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.log {
+  list-style: none;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 12px;
+  overflow: auto;
+  flex: 1;
+  opacity: 0.85;
+  display: grid;
+  gap: 2px;
+  align-content: start;
+}
+
+@media (max-width: 900px) {
+  .lab {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- spot timeline ---------- */
+.timeline {
+  position: relative;
+  height: 26px;
+  border-radius: 8px;
+  background: #2a221c;
+}
+
+.mark {
+  position: absolute;
+  top: 5px;
+  width: 6px !important;
+  height: 16px;
+  padding: 0 !important;
+  margin-left: -3px;
+  border-radius: 3px !important;
+  border: 0 !important;
+  background: #6d5d50 !important;
+}
+
+.mark.likely {
+  background: #7dff8a !important;
+}
+
+.mark.here {
+  background: #ffd84d !important;
+  transform: scaleY(1.5);
+}
+
+.spotBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.spots {
+  list-style: none;
+  max-height: 220px;
+  overflow: auto;
+  display: grid;
+  gap: 4px;
+}
+
+.spots button {
+  width: 100%;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  text-align: left;
+  font-size: 13px !important;
+  padding: 6px 10px !important;
+}
+
+.spots button.here {
+  border-color: #ffd84d;
+}
+
+.spots b {
+  font-family: var(--font-geist-mono), monospace;
+}
+
+.spots i {
+  font-style: normal;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
+.spots .likelyText {
+  color: #7dff8a;
+  opacity: 1;
+}
+
+.spots em {
+  font-style: normal;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: #ffd84d;
+  color: #2a1a10;
+  white-space: nowrap;
+}
+
+.spots span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.85;
+}

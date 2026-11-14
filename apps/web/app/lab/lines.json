@@ -1,0 +1,16 @@
+{
+  "ask": "Before the fire truck goes, what do we put on to stay safe?",
+  "nudge": "Take your time! What do we put on in the fire truck?",
+  "celebrate": "Yes! A seatbelt keeps us safe! Great job!",
+  "teach": "Hmm, not quite. It goes click, across your tummy, and keeps you safe in your seat. What is it?",
+  "clarify": "Oops, I didn't catch that. What do we put on in the fire truck?",
+  "give": "It's a seatbelt! Click! Now we're safe. Let's go!",
+  "graceful": "Let's keep going!",
+  "welcome": "Ayyy, you're back! We were just about to ride the fire truck. What do we put on to stay safe?",
+  "g_nudge": "Take your time! You can do it!",
+  "g_celebrate": "Yes, yes, yes! You got it! Great job, amigo!",
+  "g_teach": "Hmm, good try! Let's look again. What do you think?",
+  "g_clarify": "Oops, I didn't hear you. Can you say it again?",
+  "g_give": "That was a tricky one! Let's see what happens!",
+  "g_welcome": "Ayyy, you're back! I missed you! Let's try again!"
+}

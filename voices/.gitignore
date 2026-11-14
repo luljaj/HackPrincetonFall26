@@ -1,0 +1,10 @@
+*.wav
+*.mp3
+*.m4a
+dataset/
+dora/checkpoints/*
+evaluation/
+!dora/reference.wav
+!dora/checkpoints/adapter.safetensors
+!dora/checkpoints/adapter.json
+!dora/checkpoints/training-history.json
