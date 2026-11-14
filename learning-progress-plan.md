@@ -180,6 +180,30 @@ Built and tested against PGlite (15 tests) and Tiger Cloud:
 - Screen readers hear "New answer: …" with the same claim wording as the card. Scrolling is instant for viewers who prefer reduced motion.
 - The detection logic is in `lib/parent/highlight.ts`, with tests in `highlight.test.ts`. It was tested live on Tiger Cloud.
 
+### Tiger Data: learning-event hypertable (Nov 14)
+
+This is the "Best Use of Tiger Data" piece.
+
+- **`learning_events`** is a TimescaleDB hypertable on Tiger Cloud, partitioned by `event_time` in 1-day chunks.
+  - One row is written per session start (`session_started`) and per committed answer (`answer_committed`).
+  - Each row holds the status, the assistance flag, the turn and `is_sample`.
+  - No transcripts, guides, drafts or audio are stored in it.
+- **Written atomically.** Events go in inside the same transaction as `createSession` and `commitTurn`, so the log never disagrees with the evidence tables. A replayed retry or a rejected turn writes nothing.
+- **Deleted with the session.** Rows cascade when a session is deleted, so Reset and parent delete clear them too.
+- **Migrations:** `0001` creates the table and `0002` converts it to a hypertable, guarded so non-Timescale Postgres (PGlite in tests) keeps a plain table. `0002` also backfilled existing rows.
+- **`/parent/insights`** is the team view (`DEMO_TOOLS=true`). It shows aggregate counts per time bucket using `time_bucket()` on Tiger, falling back to `date_bin()` elsewhere, and refreshes every 5 seconds. Query options: `?bucket=` (minutes), `?since=` (minutes), `?sample=1`. It makes counts only, no claim about any child.
+- **Choice to revisit:** because Reset deletes events with the sessions, the insights page starts empty after each reset. To keep judge activity across resets for the pitch, keep events for deleted demo sessions instead (for example, drop the cascade and mark rows deleted). That's a privacy versus history trade-off for the team to decide.
+
+### Running the demo for judges
+
+Keep it hands-off: nobody touches the parent side between judges.
+
+1. **Before judging, once:** set `PARENT_ACCESS_CODE` to empty and `DEMO_TOOLS=true` in `apps/web/.env.local` on the demo laptop. Press "Reset demo" once to clear test runs. Open the kid view and `/parent/live` side by side. Keep `/parent/insights` in a tab for the Tiger pitch.
+2. **Each judge:** plays the cartoon and answers Dora. Kid mode creates a new session, and `/parent/live` switches to it automatically, showing the answer, the follow-up question and the wrong-answer highlight.
+3. **Next judge:** just starts the cartoon again. **Don't press Reset between judges.** The dashboard always follows the newest session, and skipping resets lets `/parent/insights` add up every judge's activity.
+
+Dependency: steps 2 and 3 need kid mode to call `POST /api/learning/sessions` at the start and send each recorded answer to `POST /api/learning/sessions/{id}/turns` (the cartoon/playback teammate's integration).
+
 ## 7. Integration agreement
 
 | With | Agreement | Boundary |

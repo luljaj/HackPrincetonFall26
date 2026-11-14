@@ -24,3 +24,8 @@ export function getPipelineStore(): PipelineStore & Partial<ProgressReader> {
 export function getDemoAdmin(): DemoAdmin | null {
   return process.env.PIPELINE_STORE === "postgres" ? createDemoAdmin(getDb()) : null;
 }
+
+/** Aggregate activity from the learning_events hypertable. Null when no database is configured. */
+export function getInsightsDb() {
+  return process.env.PIPELINE_STORE === "postgres" ? getDb() : null;
+}

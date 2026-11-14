@@ -19,6 +19,7 @@ import {
 import { createPostgresStore, type StoreDb } from "./postgres";
 import * as schema from "./schema";
 import { createDemoAdmin, type DemoAdmin } from "./admin";
+import { activityReport } from "./insights";
 import { resetDemo, reseedSample } from "./sample";
 import { SAMPLE_SESSION_ID } from "./sample-data";
 import { sampleView } from "../../lib/parent/fixtures";
@@ -340,5 +341,75 @@ describe("Pipeline and durable dashboard integration", () => {
         expect((mapped as PipelineError).code).toBe(code);
       }
     }
+  });
+});
+
+describe("learning_events log and activity report", () => {
+  let db: StoreDb;
+  let admin: DemoAdmin;
+  beforeEach(async () => {
+    const pg = drizzle(new PGlite(), { schema });
+    await migrate(pg, { migrationsFolder: "./drizzle" });
+    db = pg as unknown as StoreDb;
+    store = createPostgresStore(db);
+    admin = createDemoAdmin(db);
+  });
+
+  const events = () =>
+    db.select().from(schema.learningEvents).orderBy(schema.learningEvents.eventTime);
+
+  it("logs a session start and each committed answer, but not a replayed retry", async () => {
+    await store.createSession(session());
+    await store.commitTurn({ sessionId: "s1", expectedTurnNumber: 0, interaction: turn() });
+    await store.commitTurn({ sessionId: "s1", expectedTurnNumber: 0, interaction: turn() }); // replay
+    const rows = await events();
+    expect(rows.map((r) => r.eventType)).toEqual(["session_started", "answer_committed"]);
+    expect(rows[1]).toMatchObject({ answerStatus: "incorrect", turnNumber: 1, isSample: false });
+  });
+
+  it("writes no event when the turn is rejected", async () => {
+    await store.createSession(session());
+    await store.commitTurn({ sessionId: "s1", expectedTurnNumber: 0, interaction: turn() });
+    await expect(
+      store.commitTurn({ sessionId: "s1", expectedTurnNumber: 0, interaction: turn({ interactionId: "i2" }) }),
+    ).rejects.toBeInstanceOf(TurnConflictError);
+    expect((await events()).length).toBe(2);
+  });
+
+  it("deletes a session's events with the session", async () => {
+    await store.createSession(session());
+    await store.commitTurn({ sessionId: "s1", expectedTurnNumber: 0, interaction: turn() });
+    await admin.deleteSession("s1");
+    expect(await events()).toEqual([]);
+  });
+
+  it("buckets activity and leaves out sample data by default", async () => {
+    await reseedSample(store, admin); // sample events are dated 2026-11-14T12:00Z
+    await store.createSession({ ...session(), createdAt: "2026-11-14T18:01:00.000Z" });
+    await store.commitTurn({
+      sessionId: "s1",
+      expectedTurnNumber: 0,
+      interaction: turn({ completedAt: "2026-11-14T18:02:00.000Z" }),
+    });
+    await store.commitTurn({
+      sessionId: "s1",
+      expectedTurnNumber: 1,
+      interaction: turn({
+        interactionId: "i2",
+        turnNumber: 2,
+        completedAt: "2026-11-14T18:07:00.000Z",
+        assessment: { answerStatus: "correct", evidence: null, possibleMisconception: null, assistanceBeforeAnswer: true },
+        assistanceInResponse: false,
+      }),
+    });
+    const now = new Date("2026-11-14T18:10:00.000Z");
+    const report = await activityReport(db, { bucketMinutes: 5, sinceMinutes: 60, now });
+    expect(report.engine).toBe("postgres"); // PGlite has no TimescaleDB; Tiger reports "timescaledb"
+    expect(report.buckets).toEqual([
+      { bucketStart: "2026-11-14T18:00:00.000Z", sessionsStarted: 1, answers: 1, incorrect: 1, correct: 0, other: 0, withAssistance: 1 },
+      { bucketStart: "2026-11-14T18:05:00.000Z", sessionsStarted: 0, answers: 1, incorrect: 0, correct: 1, other: 0, withAssistance: 0 },
+    ]);
+    const withSample = await activityReport(db, { bucketMinutes: 60, sinceMinutes: 24 * 60, now, includeSample: true });
+    expect(withSample.totals.answers).toBe(4);
   });
 });

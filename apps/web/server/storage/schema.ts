@@ -1,6 +1,7 @@
 import {
   boolean,
   foreignKey,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -86,4 +87,26 @@ export const interactionDiagnostics = pgTable(
       foreignColumns: [interactions.sessionId, interactions.interactionId],
     }).onDelete("cascade"),
   ],
+);
+
+// Time-ordered log of learning events: a TimescaleDB hypertable on Tiger Cloud
+// (drizzle/0002_learning_events_hypertable.sql). Hypertables can't have unique keys without the
+// time column, so this table has no primary key; it's append-only and never read for replay.
+// Parent-safe by construction: no transcripts, guides, drafts or audio.
+export const learningEvents = pgTable(
+  "learning_events",
+  {
+    eventTime: timestamp("event_time", { withTimezone: true }).notNull(),
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => sessions.sessionId, { onDelete: "cascade" }),
+    eventType: text("event_type").notNull(), // "session_started" | "answer_committed"
+    interactionId: text("interaction_id"),
+    turnNumber: integer("turn_number"),
+    objectiveId: text("objective_id").notNull(),
+    answerStatus: text("answer_status"),
+    assistanceInResponse: boolean("assistance_in_response"),
+    isSample: boolean("is_sample").notNull().default(false),
+  },
+  (t) => [index("learning_events_session_time_idx").on(t.sessionId, t.eventTime)],
 );

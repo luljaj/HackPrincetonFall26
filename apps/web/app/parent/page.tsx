@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { demoToolsEnabled } from "../../lib/parent/demo";
 import { SAMPLE_SESSION_ID } from "../../lib/parent/sample-id";
 
 export default function ParentHome() {
@@ -17,6 +18,13 @@ export default function ParentHome() {
             View sample session
           </Link>
         </li>
+        {demoToolsEnabled() && (
+          <li>
+            <Link className="underline" href="/parent/insights">
+              Demo insights (team view)
+            </Link>
+          </li>
+        )}
       </ul>
     </div>
   );

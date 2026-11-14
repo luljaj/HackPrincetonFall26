@@ -15,7 +15,7 @@ import {
   type SessionSnapshot,
 } from "./contract";
 import * as schema from "./schema";
-import { interactionDiagnostics, interactions, sessions } from "./schema";
+import { interactionDiagnostics, interactions, learningEvents, sessions } from "./schema";
 
 // Works with any Drizzle Postgres driver: postgres-js in the app, PGlite in tests.
 export type StoreDb = PgDatabase<PgQueryResultHKT, typeof schema>;
@@ -30,18 +30,28 @@ export function createPostgresStore(
   return {
     async createSession(session) {
       await guard(() =>
-        db.insert(sessions).values({
-          sessionId: session.sessionId,
-          learnerId: session.learnerId ?? null,
-          sceneId: session.sceneSnapshot.sceneId,
-          objectiveId: session.sceneSnapshot.objectiveId,
-          sceneSnapshot: session.sceneSnapshot,
-          turnNumber: session.turnNumber,
-          activeQuestion: session.activeQuestion,
-          assistanceProvided: session.assistanceProvided,
-          latestParentSummary: null,
-          isSample: session.isSample ?? false,
-          createdAt: new Date(session.createdAt),
+        db.transaction(async (tx) => {
+          await tx.insert(sessions).values({
+            sessionId: session.sessionId,
+            learnerId: session.learnerId ?? null,
+            sceneId: session.sceneSnapshot.sceneId,
+            objectiveId: session.sceneSnapshot.objectiveId,
+            sceneSnapshot: session.sceneSnapshot,
+            turnNumber: session.turnNumber,
+            activeQuestion: session.activeQuestion,
+            assistanceProvided: session.assistanceProvided,
+            latestParentSummary: null,
+            isSample: session.isSample ?? false,
+            createdAt: new Date(session.createdAt),
+          });
+          // Same transaction: the event log never disagrees with the sessions table.
+          await tx.insert(learningEvents).values({
+            eventTime: new Date(session.createdAt),
+            sessionId: session.sessionId,
+            eventType: "session_started",
+            objectiveId: session.sceneSnapshot.objectiveId,
+            isSample: session.isSample ?? false,
+          });
         }),
       );
     },
@@ -107,7 +117,11 @@ export function createPostgresStore(
 
           // 2. Expected-version update. Locks the session row until commit.
           const [current] = await tx
-            .select({ summary: sessions.latestParentSummary, assisted: sessions.assistanceProvided })
+            .select({
+              summary: sessions.latestParentSummary,
+              assisted: sessions.assistanceProvided,
+              isSample: sessions.isSample,
+            })
             .from(sessions)
             .where(eq(sessions.sessionId, sessionId));
           if (!current) throw new SessionNotFoundError(sessionId);
@@ -136,6 +150,17 @@ export function createPostgresStore(
 
           // 3. Append evidence and diagnostics.
           await tx.insert(interactions).values(toInteractionRow(interaction));
+          await tx.insert(learningEvents).values({
+            eventTime: new Date(interaction.completedAt),
+            sessionId,
+            eventType: "answer_committed",
+            interactionId: interaction.interactionId,
+            turnNumber: interaction.turnNumber,
+            objectiveId: interaction.objectiveId,
+            answerStatus: interaction.assessment.answerStatus,
+            assistanceInResponse: interaction.assistanceInResponse,
+            isSample: current.isSample,
+          });
           await tx.insert(interactionDiagnostics).values({
             sessionId,
             interactionId: interaction.interactionId,

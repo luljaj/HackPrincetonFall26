@@ -46,6 +46,7 @@ Don't build anything those docs mark as future work or as owned by another teamm
   - With `DEMO_TOOLS=true`, `/parent/live` has a "Reset demo" button that deletes all non-sample sessions and reseeds the sample.
   - Parents can delete a single session. The sample can't be deleted.
   - The code is in `server/storage/admin.ts`, `sample.ts` and `sample-data.ts`. The pipeline never calls it.
+- **`learning_events` is a TimescaleDB hypertable** (migrations `0001` and `0002`), written inside the same transactions as sessions and answers. `/parent/insights` (demo tools) aggregates it with `time_bucket()`. The queries are in `server/storage/insights.ts`. Tests run on PGlite, where it's a plain table and the query falls back to `date_bin()`.
 - **The database is Tiger Cloud (managed Postgres).** Get `DATABASE_URL` privately from the dashboard owner. It never goes in git, docs or chat. `npm run db:migrate -w web` reads `.env.local`.
 
 ## Working rules
