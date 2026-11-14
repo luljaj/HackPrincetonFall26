@@ -101,12 +101,12 @@ def main():
         wav = decode(req['audio'])
         peak = float(np.abs(wav).max()) if len(wav) else 0.0
         if peak < SILENT_PEAK:
-            return {**score(req['ipa'], '', -99.0, peak), 'ms': round((time.perf_counter() - started) * 1000)}
+            return {**score(req['ipa'], '', -99.0, peak, req['language']), 'ms': round((time.perf_counter() - started) * 1000)}
         # wav2vec2 (torch, CPU) on a worker thread while Whisper (MLX) runs here: MLX must stay on this thread.
         heard_future = cpu.submit(phonemes, wav)
         lp = target_logprob(encode(wav), req['word'], req['language'])
         heard = heard_future.result()
-        result = score(req['ipa'], heard, lp if not is_silent(peak, heard) else -99.0, peak)
+        result = score(req['ipa'], heard, lp if not is_silent(peak, heard) else -99.0, peak, req['language'])
         return {**result, 'ms': round((time.perf_counter() - started) * 1000)}
 
     def transcribe(req: dict) -> dict:

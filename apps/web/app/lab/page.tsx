@@ -6,6 +6,7 @@ import { Graph } from "./graph";
 import lines from "./lines.json";
 import spotsData from "./spots.json";
 import lessonsData from "./lessons.json";
+import translationsData from "./translations.json";
 import trialEpisode from "./episode.json";
 import s from "./lab.module.css";
 import { speakFallback, streamVoice } from "./voice";
@@ -77,9 +78,27 @@ function lineFor(stage: Stage, spot: Spot, tries: number): string | null {
   return `g_${base}`;
 }
 
+// Language practice: the spot's answer in the language the kid is learning (tools/build-translations.py).
+const LEARN_LANGUAGES: Record<string, string> = { es: "Spanish", fr: "French", de: "German", zh: "Chinese", hi: "Hindi", ja: "Japanese" };
+type Word = { word: string; romanized: string; ipa: string };
+type Practice = Word & { english: string; language: string; name: string };
+const TRANSLATIONS = translationsData as unknown as Record<string, { english: string } & Record<string, Word>>;
+function practiceFor(sp: Spot, language: string): Practice | null {
+  const t = TRANSLATIONS[sp.id];
+  const w = language && t ? (t[language] as Word | undefined) : undefined;
+  return w && t ? { ...w, english: t.english, language, name: LEARN_LANGUAGES[language] ?? language } : null;
+}
+// Non-Latin words also get their romanization, e.g. 梯子 (tīzi).
+const spoken = (p: Practice) => (p.romanized && p.romanized !== p.word ? `${p.word} (${p.romanized})` : p.word);
+
 // Dora's lines built from the spot's lesson, for spots without hand-written lines. No saved audio exists
 // for these, so they're spoken live (voice server, or the browser voice when it's off).
-function lessonText(stage: Stage, sp: Spot): string | null {
+function lessonText(stage: Stage, sp: Spot, practiced = false, practice: Practice | null = null): string | null {
+  if (practice) {
+    if (stage === "practicing") return `In ${practice.name}, ${practice.english} is ${spoken(practice)}! Can you say ${practice.word}?`;
+    if (practiced && stage === "celebrating") return `Yes! ${practice.word}! You said it in ${practice.name}!`;
+    if (practiced && stage === "giving") return `${spoken(practice)}! That's ${practice.english} in ${practice.name}. Great try!`;
+  }
   if (sp.custom || !sp.question) return null;
   const q = sp.question;
   const target = sp.say?.word ?? sp.answer;
@@ -147,6 +166,9 @@ export default function Lab() {
   const [recording, setRecording] = useState(false);
   const recorder = useRef<MediaRecorder | null>(null);
   const [handsFree, setHandsFree] = useState(false);
+  const [learn, setLearn] = useState(""); // language the kid is learning ("" = off)
+  const learnRef = useRef(learn);
+  learnRef.current = learn;
   const [hearing, setHearing] = useState(false);
   const [mic, setMic] = useState<MediaStream | null>(null); // one stream for the whole hands-free session
   const [listenKey, setListenKey] = useState(0); // bump to re-arm the mic after a failed turn
@@ -203,8 +225,14 @@ export default function Lab() {
     pending.current = null;
     send("SPEECH_END");
     playFiller();
-    if (spotRef.current.say) void scoreClip(clip);
+    if (sayTarget()) void scoreClip(clip);
     else void transcribeAndJudge(clip);
+  }
+
+  // What the kid should say right now, if it's a "say" turn: the practice word, or the spot's say word.
+  function sayTarget(): { word: string; language: string; ipa: string } | undefined {
+    const p = ctxRef.current.practiced ? practiceFor(spotRef.current, learnRef.current) : null;
+    return p ? { word: p.word, language: p.language, ipa: p.ipa } : spotRef.current.say;
   }
 
   // A listening step failed: go back to listening (the mic re-arms).
@@ -228,7 +256,7 @@ export default function Lab() {
     form.append("audio", clip);
     // The question only, never the answer: priming Whisper with "seatbelt" would make it hear seatbelt.
     form.append("hint", askedText(sp).slice(-200));
-    for (const l of new Set(["en", "es", sp.say?.language ?? "en"])) form.append("languages", l);
+    for (const l of new Set(["en", "es", sp.say?.language ?? "en", learnRef.current || "en"])) form.append("languages", l);
     const mine = ++turn.current;
     try {
       const res = await fetch("/api/transcribe", { method: "POST", body: form });
@@ -263,7 +291,7 @@ export default function Lab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: askedText(sp).slice(-300),
-          answerGuide: sp.say ? `The child should say "${sp.say.word}" (${sp.say.language}).`
+          answerGuide: sayTarget() ? `The child should say "${sayTarget()!.word}" (${sayTarget()!.language}).`
             : sp.open ? "Open question: any sensible answer is right."
             : sp.answer ?? "Not given: judge from the question; the show reveals the answer next.",
           said,
@@ -289,10 +317,11 @@ export default function Lab() {
   // "Say X" spots: score the clip locally, then let Luna write the line for that verdict.
   async function scoreClip(clip: Blob) {
     const sp = spotRef.current;
-    if (!sp.say || !answering()) return setJudgeInfo("Clip ignored: Dora wasn't listening anymore.");
+    const target = sayTarget();
+    if (!target || !answering()) return setJudgeInfo("Clip ignored: Dora wasn't listening anymore.");
     const form = new FormData();
     form.append("audio", clip);
-    for (const [k, v] of Object.entries(sp.say)) form.append(k, v);
+    for (const [k, v] of Object.entries(target)) form.append(k, v);
     setPron(null);
     const mine = ++turn.current;
     try {
@@ -344,7 +373,7 @@ export default function Lab() {
   function pickSpot(sp: Spot) {
     spotRef.current = sp;
     setSpot(sp);
-    ctxRef.current = { ...ctxRef.current, known: isKnown(sp) };
+    ctxRef.current = { ...ctxRef.current, known: isKnown(sp), practice: !!practiceFor(sp, learnRef.current) };
   }
 
   function jump(sp: Spot) {
@@ -357,7 +386,7 @@ export default function Lab() {
     pickSpot(sp);
     lastResumed.current = null;
     episode.current!.currentTime = Math.max(0, sp.t - 2);
-    commit({ ...INITIAL, known: isKnown(sp) }, `jump ${sp.id}`);
+    commit({ ...INITIAL, known: isKnown(sp), practice: !!practiceFor(sp, learnRef.current) }, `jump ${sp.id}`);
     episode.current!.play();
   }
 
@@ -439,7 +468,7 @@ export default function Lab() {
     if (meta.line) {
       filler.current!.pause(); // never talk over her own "Hmm!"
       const file = lineFor(stage, sp, ctxRef.current.tries);
-      const fromLesson = lessonText(stage, sp);
+      const fromLesson = lessonText(stage, sp, ctxRef.current.practiced, practiceFor(sp, learnRef.current));
       if (file || fromLesson) {
         const customText = liveText.current;
         liveText.current = null;
@@ -564,7 +593,8 @@ export default function Lab() {
   }, [started]);
 
   const file = lineFor(stage, spot, ctx.tries);
-  const lineText = lessonText(stage, spot) ?? (file ? LINES[file] : null);
+  const sayNow = ctx.practiced ? practiceFor(spot, learn) : spot.say; // what the record button scores
+  const lineText = lessonText(stage, spot, ctx.practiced, practiceFor(spot, learn)) ?? (file ? LINES[file] : null);
   const caption = lineText ? (speechCaption ?? lineText)
     : stage === "listening" ? (hearing ? "🗣️ I'm listening…" : `🎤 ${askedText(spot)}`)
     : stage === "thinking" ? "…" : "";
@@ -621,13 +651,24 @@ export default function Lab() {
           <label className={s.say}>
             <input type="checkbox" checked={handsFree} onChange={(e) => setHandsFree(e.target.checked)} /> 🎙 Hands-free
           </label>
+          <label className={s.say}>
+            🌍 Learn
+            <select value={learn} onChange={(e) => {
+              setLearn(e.target.value);
+              learnRef.current = e.target.value;
+              ctxRef.current = { ...ctxRef.current, practice: !!practiceFor(spotRef.current, e.target.value) };
+            }}>
+              <option value="">off</option>
+              {Object.entries(LEARN_LANGUAGES).map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+            </select>
+          </label>
           <form onSubmit={(e) => { e.preventDefault(); void askLuna(kidText.trim()); setKidText(""); }}>
             <input value={kidText} maxLength={300} placeholder="Kid says… (Luna judges)" disabled={stage !== "listening"} onChange={(e) => setKidText(e.target.value)} />
             <button disabled={stage !== "listening"} type="submit">Say</button>
           </form>
-          {spot.say && (
+          {sayNow && (
             <span className={s.say}>
-              Say “{spot.say.word}”:
+              Say “{sayNow.word}”:
               <button disabled={stage !== "listening" && !recording} onClick={() => void toggleRecording()}>{recording ? "■ Stop" : "🎤 Record"}</button>
               <input type="file" accept="audio/*" aria-label="Score an audio clip" disabled={stage !== "listening"}
                 onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void scoreClip(f); }} />

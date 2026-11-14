@@ -31,6 +31,12 @@ class PronounceTest(unittest.TestCase):
         self.assertEqual(verdict(-1, 0.001, 'a'), 'silent')
         self.assertEqual(verdict(-14, 0.5, ''), 'silent')  # loud noise but no speech sounds: re-prompt, not "try again"
 
+    def test_each_language_has_its_own_cutoff(self):
+        self.assertEqual(verdict(-14, 0.5, 'a', 'es'), 'retry')
+        self.assertEqual(verdict(-14, 0.5, 'a', 'zh'), 'close')  # Chinese scores lower for the same correct word
+        self.assertEqual(verdict(-10, 0.5, 'a', 'zh'), 'good')
+        self.assertEqual(verdict(-16, 0.5, 'a', 'xx'), 'retry')  # unmeasured language: default -15
+
     def test_vowel_slips_are_coached(self):
         self.assertEqual(score('p e s o', 'p i s u', -7.0, 0.5)['coach'], {'expected': 'e', 'heard': 'i'})
 

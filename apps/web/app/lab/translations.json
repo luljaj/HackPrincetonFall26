@@ -1,0 +1,1635 @@
+{
+ "ep3-01": {
+  "english": "baseball player",
+  "es": {
+   "word": "jugador de béisbol",
+   "romanized": "jugador de béisbol",
+   "ipa": "xu ɣa ˈðoɾ ðe ˈβeis βol"
+  },
+  "fr": {
+   "word": "joueur de baseball",
+   "romanized": "joueur de baseball",
+   "ipa": "ʒu œʁ də bɛz bɔl"
+  },
+  "de": {
+   "word": "Baseballspieler",
+   "romanized": "Baseballspieler",
+   "ipa": "ˈbeɪsˌbɛlˌʃpiːlɐ"
+  },
+  "zh": {
+   "word": "棒球运动员",
+   "romanized": "bàngqiú yùndòngyuán",
+   "ipa": "pɑŋ tɕʰjoʊ y˥˩ tuŋ˥˩ tuŋ˥˩ yɛn˧˥"
+  }
+ },
+ "ep3-03": {
+  "english": "treasure",
+  "es": {
+   "word": "tesoro",
+   "romanized": "tesoro",
+   "ipa": "t e ˈ s o ɾ o"
+  },
+  "fr": {
+   "word": "trésor",
+   "romanized": "trésor",
+   "ipa": "t ʁ e z ɔ ʁ"
+  },
+  "de": {
+   "word": "Schatz",
+   "romanized": "Schatz",
+   "ipa": "ʃ a t s"
+  },
+  "zh": {
+   "word": "宝藏",
+   "romanized": "bǎozàng",
+   "ipa": "p aʊ̯ ˨˩˦ t s a ŋ ˥˩"
+  },
+  "hi": {
+   "word": "ख़ज़ाना",
+   "romanized": "khazāna",
+   "ipa": "x ə ˈ z aː n aː"
+  },
+  "ja": {
+   "word": "宝物",
+   "romanized": "takaramono",
+   "ipa": "t a k a ɾ a m o n o"
+  }
+ },
+ "ep3-04": {
+  "english": "jewel",
+  "es": {
+   "word": "joya",
+   "romanized": "joya",
+   "ipa": "ˈxo ʝa"
+  },
+  "fr": {
+   "word": "bijou",
+   "romanized": "bijou",
+   "ipa": "bi ʒu"
+  },
+  "de": {
+   "word": "Juwel",
+   "romanized": "Juwel",
+   "ipa": "ju ˈveːl"
+  },
+  "zh": {
+   "word": "宝石",
+   "romanized": "bǎoshí",
+   "ipa": "pɑʊ̯ ʂɻ̩˧˥"
+  },
+  "hi": {
+   "word": "रत्न",
+   "romanized": "ratna",
+   "ipa": "rət̪ nə"
+  },
+  "ja": {
+   "word": "宝石",
+   "romanized": "hōseki",
+   "ipa": "hoː seki"
+  }
+ },
+ "ep3-05": {
+  "english": "jewel",
+  "es": {
+   "word": "joya",
+   "romanized": "joya",
+   "ipa": "ˈxo ʝa"
+  },
+  "fr": {
+   "word": "bijou",
+   "romanized": "bijou",
+   "ipa": "bi ʒu"
+  },
+  "de": {
+   "word": "Juwel",
+   "romanized": "Juwel",
+   "ipa": "juˈveːl"
+  },
+  "zh": {
+   "word": "宝石",
+   "romanized": "bǎoshí",
+   "ipa": "pɑʊ̯˨˩˦ ʂɻ̩˧˥"
+  },
+  "hi": {
+   "word": "गहना",
+   "romanized": "gahnā",
+   "ipa": "ɡə ɦə naː"
+  },
+  "ja": {
+   "word": "宝石",
+   "romanized": "hōseki",
+   "ipa": "hoː se ki"
+  }
+ },
+ "ep3-06": {
+  "english": "Mommy",
+  "es": {
+   "word": "mamá",
+   "romanized": "mamá",
+   "ipa": "ma ˈma"
+  },
+  "fr": {
+   "word": "maman",
+   "romanized": "maman",
+   "ipa": "ma mɑ̃"
+  },
+  "de": {
+   "word": "Mama",
+   "romanized": "Mama",
+   "ipa": "ˈmaː ma"
+  },
+  "zh": {
+   "word": "妈妈",
+   "romanized": "māma",
+   "ipa": "ma˥ ma˥"
+  },
+  "hi": {
+   "word": "मम्मी",
+   "romanized": "mammī",
+   "ipa": "ˈməm miː"
+  },
+  "ja": {
+   "word": "ママ",
+   "romanized": "mama",
+   "ipa": "ma ma"
+  }
+ },
+ "ep3-07": {
+  "english": "map",
+  "es": {
+   "word": "mapa",
+   "romanized": "mapa",
+   "ipa": "ˈma pa"
+  },
+  "fr": {
+   "word": "carte",
+   "romanized": "carte",
+   "ipa": "kaʁt"
+  },
+  "de": {
+   "word": "Karte",
+   "romanized": "Karte",
+   "ipa": "ˈkaʁ tə"
+  },
+  "zh": {
+   "word": "地图",
+   "romanized": "dìtú",
+   "ipa": "ti˥˩ tʰu˧˥"
+  },
+  "hi": {
+   "word": "नक्शा",
+   "romanized": "naqshā",
+   "ipa": "nək ʃɑː"
+  },
+  "ja": {
+   "word": "地図",
+   "romanized": "chizu",
+   "ipa": "tɕi zɯ"
+  }
+ },
+ "ep3-08": {
+  "english": "map",
+  "es": {
+   "word": "mapa",
+   "romanized": "mapa",
+   "ipa": "ˈma pa"
+  },
+  "fr": {
+   "word": "carte",
+   "romanized": "carte",
+   "ipa": "kaʁt"
+  },
+  "de": {
+   "word": "Karte",
+   "romanized": "Karte",
+   "ipa": "ˈkaʁ tə"
+  },
+  "zh": {
+   "word": "地图",
+   "romanized": "dìtú",
+   "ipa": "ti˥˩ tʰu˧˥"
+  },
+  "hi": {
+   "word": "नक्शा",
+   "romanized": "nakshā",
+   "ipa": "nək ʃaː"
+  },
+  "ja": {
+   "word": "地図",
+   "romanized": "chizu",
+   "ipa": "tɕi d͡zu"
+  }
+ },
+ "ep3-09": {
+  "english": "Dora’s mom",
+  "de": {
+   "word": "Doras Mama",
+   "romanized": "Doras Mama",
+   "ipa": "ˈdoːʁas ˈmaːma"
+  },
+  "zh": {
+   "word": "多拉的妈妈",
+   "romanized": "Duōlā de māma",
+   "ipa": "twɔ˥ la˥ tə ma˥ ma"
+  },
+  "hi": {
+   "word": "डोरा की माँ",
+   "romanized": "Ḍorā kī mā̃",
+   "ipa": "ɖoːɾaː kiː mɑ̃ː"
+  },
+  "ja": {
+   "word": "ドーラのお母さん",
+   "romanized": "Dōra no okāsan",
+   "ipa": "doːɾa no okaːsaɴ"
+  }
+ },
+ "ep3-10": {
+  "english": "firehouse, bridge, pyramid",
+  "de": {
+   "word": "Feuerwache, Brücke, Pyramide",
+   "romanized": "Feuerwache, Brücke, Pyramide",
+   "ipa": "ˈfɔɪ̯ɐˌvaxə, ˈbʁʏkə, pyʁaˈmiːdə"
+  },
+  "zh": {
+   "word": "消防站，桥，金字塔",
+   "romanized": "xiāofángzhàn, qiáo, jīnzìtǎ",
+   "ipa": "ɕjɑʊ̯˥ fɑŋ˧˥ ʈʂan˥˩, tɕʰjɑʊ̯˧˥, tɕin˥˥ tsɹ˥˩ tʰa˨˩˦"
+  },
+  "ja": {
+   "word": "消防署、橋、ピラミッド",
+   "romanized": "shōbōsho, hashi, piramiddo",
+   "ipa": "ɕoː boː ɕo, ha ɕi, pi ɾa mi dːo"
+  }
+ },
+ "ep3-11": {
+  "english": "firehouse",
+  "es": {
+   "word": "estación de bomberos",
+   "romanized": "estación de bomberos",
+   "ipa": "es ta ˈsjon de bom ˈbe ɾos"
+  },
+  "fr": {
+   "word": "caserne de pompiers",
+   "romanized": "caserne de pompiers",
+   "ipa": "ka sɛʁn də pɔ̃ pje"
+  },
+  "de": {
+   "word": "Feuerwache",
+   "romanized": "Feuerwache",
+   "ipa": "ˈfɔʏ̯ɐ ˌvaxə"
+  },
+  "zh": {
+   "word": "消防站",
+   "romanized": "xiāofángzhàn",
+   "ipa": "ɕjɑʊ̯ faŋ ʈʂan"
+  },
+  "hi": {
+   "word": "दमकल केंद्र",
+   "romanized": "damkal kendra",
+   "ipa": "d̪əm kəl kɛn d̪rə"
+  },
+  "ja": {
+   "word": "消防署",
+   "romanized": "shōbōsho",
+   "ipa": "ɕoː boː ɕo"
+  }
+ },
+ "ep3-12": {
+  "english": "firehouse",
+  "es": {
+   "word": "estación de bomberos",
+   "romanized": "estación de bomberos",
+   "ipa": "es ta ˈsjon de bom ˈbe ɾos"
+  },
+  "fr": {
+   "word": "caserne de pompiers",
+   "romanized": "caserne de pompiers",
+   "ipa": "ka zɛʁn də pɔ̃ pje"
+  },
+  "de": {
+   "word": "Feuerwache",
+   "romanized": "Feuerwache",
+   "ipa": "ˈfɔɪ̯ɐ ˌva xə"
+  },
+  "zh": {
+   "word": "消防局",
+   "romanized": "xiāofáng jú",
+   "ipa": "ɕjɑʊ̯ fɑŋ tɕy"
+  },
+  "hi": {
+   "word": "दमकल केंद्र",
+   "romanized": "damkal kendra",
+   "ipa": "d̪əm kəl ken d̪rə"
+  },
+  "ja": {
+   "word": "消防署",
+   "romanized": "shōbōsho",
+   "ipa": "ɕoː boː ɕo"
+  }
+ },
+ "ep3-13": {
+  "english": "Firehouse, bridge, pyramid",
+  "de": {
+   "word": "Feuerwache, Brücke, Pyramide",
+   "romanized": "Feuerwache, Brücke, Pyramide",
+   "ipa": "ˈfɔʏ̯ɐˌvaxə ˈbʁʏkə pyʁaˈmiːdə"
+  },
+  "zh": {
+   "word": "消防站，桥，金字塔",
+   "romanized": "xiāofángzhàn, qiáo, jīnzìtǎ",
+   "ipa": "ɕjɑʊ̯˥ fɑŋ˧˥ ʈʂan˥˩ tɕʰjɑʊ̯˧˥ tɕin˥˥ tsɨ˥˩ tʰa˨˩˦"
+  },
+  "ja": {
+   "word": "消防署、橋、ピラミッド",
+   "romanized": "shōbōsho, hashi, piramiddo",
+   "ipa": "ɕoː.boː.ɕo ha.ɕi pi.ɾa.mid.do"
+  }
+ },
+ "ep3-15": {
+  "english": "choo-choo",
+  "es": {
+   "word": "chucu-chú",
+   "romanized": "chucu-chú",
+   "ipa": "tʃ u k u tʃ u"
+  },
+  "fr": {
+   "word": "tchou-tchou",
+   "romanized": "tchou-tchou",
+   "ipa": "tʃ u tʃ u"
+  },
+  "de": {
+   "word": "tuff-tuff",
+   "romanized": "tuff-tuff",
+   "ipa": "t ʊ f t ʊ f"
+  },
+  "zh": {
+   "word": "呜呜",
+   "romanized": "wū wū",
+   "ipa": "u˥˥ u˥˥"
+  },
+  "hi": {
+   "word": "छुक-छुक",
+   "romanized": "chhuk-chhuk",
+   "ipa": "tʃʰ ʊ k tʃʰ ʊ k"
+  },
+  "ja": {
+   "word": "シュッポッポ",
+   "romanized": "shuppoppo",
+   "ipa": "ɕ ɯ pː o pː o"
+  }
+ },
+ "ep3-16": {
+  "english": "boo-boo",
+  "es": {
+   "word": "pupa",
+   "romanized": "pupa",
+   "ipa": "ˈpu pa"
+  },
+  "fr": {
+   "word": "bobo",
+   "romanized": "bobo",
+   "ipa": "bo bo"
+  },
+  "de": {
+   "word": "Aua",
+   "romanized": "Aua",
+   "ipa": "ˈaʊ̯ a"
+  },
+  "zh": {
+   "word": "痛痛",
+   "romanized": "tòngtong",
+   "ipa": "tʰʊŋ tʰʊŋ"
+  },
+  "hi": {
+   "word": "चोट",
+   "romanized": "choṭ",
+   "ipa": "tʃoːʈ"
+  },
+  "ja": {
+   "word": "いたい",
+   "romanized": "itai",
+   "ipa": "i ta i"
+  }
+ },
+ "ep3-18": {
+  "english": "firehouse",
+  "es": {
+   "word": "estación de bomberos",
+   "romanized": "estación de bomberos",
+   "ipa": "es ta ˈsjon de bom ˈbe ɾos"
+  },
+  "fr": {
+   "word": "caserne de pompiers",
+   "romanized": "caserne de pompiers",
+   "ipa": "ka sɛʁn də pɔ̃ pje"
+  },
+  "de": {
+   "word": "Feuerwache",
+   "romanized": "Feuerwache",
+   "ipa": "ˈfɔɪ̯ɐ ˌvaxə"
+  },
+  "zh": {
+   "word": "消防站",
+   "romanized": "xiāofángzhàn",
+   "ipa": "ɕjɑʊ̯ fɑŋ ʈʂan"
+  },
+  "hi": {
+   "word": "दमकल केंद्र",
+   "romanized": "damkal kendra",
+   "ipa": "d̪əm kəl ken d̪ɾə"
+  },
+  "ja": {
+   "word": "消防署",
+   "romanized": "shōbōsho",
+   "ipa": "ɕoː boː ɕo"
+  }
+ },
+ "ep3-19": {
+  "english": "help",
+  "es": {
+   "word": "ayuda",
+   "romanized": "ayuda",
+   "ipa": "a ˈʝu ða"
+  },
+  "fr": {
+   "word": "aide",
+   "romanized": "aide",
+   "ipa": "ɛd"
+  },
+  "de": {
+   "word": "Hilfe",
+   "romanized": "Hilfe",
+   "ipa": "ˈhɪl fə"
+  },
+  "zh": {
+   "word": "帮助",
+   "romanized": "bāngzhù",
+   "ipa": "pɑŋ ʈʂu"
+  },
+  "hi": {
+   "word": "मदद",
+   "romanized": "madad",
+   "ipa": "mə d̪əd̪"
+  },
+  "ja": {
+   "word": "助け",
+   "romanized": "tasuke",
+   "ipa": "ta suke"
+  }
+ },
+ "ep3-20": {
+  "english": "seatbelt",
+  "es": {
+   "word": "cinturón de seguridad",
+   "romanized": "cinturón de seguridad",
+   "ipa": "sin tu ˈɾon de se ɣu ɾi ˈðað"
+  },
+  "fr": {
+   "word": "ceinture de sécurité",
+   "romanized": "ceinture de sécurité",
+   "ipa": "sɛ̃ tyʁ də se ky ʁi te"
+  },
+  "de": {
+   "word": "Sicherheitsgurt",
+   "romanized": "Sicherheitsgurt",
+   "ipa": "ˈzɪçɐhaɪ̯ts ɡʊʁt"
+  },
+  "zh": {
+   "word": "安全带",
+   "romanized": "ānquándài",
+   "ipa": "an˥˥ tɕʰɥɛn˧˥ taɪ̯˥˩"
+  },
+  "hi": {
+   "word": "सीट बेल्ट",
+   "romanized": "sīṭ belṭ",
+   "ipa": "siːʈ bɛlʈ"
+  },
+  "ja": {
+   "word": "シートベルト",
+   "romanized": "shīto beruto",
+   "ipa": "ɕiː to be ɾɯ to"
+  }
+ },
+ "ep3-21": {
+  "english": "ladder",
+  "es": {
+   "word": "escalera",
+   "romanized": "escalera",
+   "ipa": "es ka le ɾa"
+  },
+  "fr": {
+   "word": "échelle",
+   "romanized": "échelle",
+   "ipa": "e ʃ ɛ l"
+  },
+  "de": {
+   "word": "Leiter",
+   "romanized": "Leiter",
+   "ipa": "ˈlaɪ̯ tɐ"
+  },
+  "zh": {
+   "word": "梯子",
+   "romanized": "tīzi",
+   "ipa": "tʰi˥ tsɨ"
+  },
+  "hi": {
+   "word": "सीढ़ी",
+   "romanized": "sīṛhī",
+   "ipa": "siː ɽʱiː"
+  },
+  "ja": {
+   "word": "はしご",
+   "romanized": "hashigo",
+   "ipa": "ha ɕi ɡo"
+  }
+ },
+ "ep3-23": {
+  "english": "down",
+  "es": {
+   "word": "abajo",
+   "romanized": "abajo",
+   "ipa": "a ˈβa xo"
+  },
+  "fr": {
+   "word": "en bas",
+   "romanized": "en bas",
+   "ipa": "ɑ̃ ba"
+  },
+  "de": {
+   "word": "runter",
+   "romanized": "runter",
+   "ipa": "ˈʁʊn tɐ"
+  },
+  "zh": {
+   "word": "下",
+   "romanized": "xià",
+   "ipa": "ɕ jɑ˥˩"
+  },
+  "hi": {
+   "word": "नीचे",
+   "romanized": "nīche",
+   "ipa": "n iː tʃ eː"
+  },
+  "ja": {
+   "word": "下",
+   "romanized": "shita",
+   "ipa": "ɕ i t a"
+  }
+ },
+ "ep3-24": {
+  "english": "down",
+  "es": {
+   "word": "abajo",
+   "romanized": "abajo",
+   "ipa": "a ˈβ a x o"
+  },
+  "fr": {
+   "word": "en bas",
+   "romanized": "en bas",
+   "ipa": "ɑ̃ b a"
+  },
+  "de": {
+   "word": "unten",
+   "romanized": "unten",
+   "ipa": "ˈʊ n t ə n"
+  },
+  "zh": {
+   "word": "下面",
+   "romanized": "xiàmiàn",
+   "ipa": "ɕ j a ˥˩ m j ɛ n ˥˩"
+  },
+  "hi": {
+   "word": "नीचे",
+   "romanized": "nīche",
+   "ipa": "n iː tʃ eː"
+  },
+  "ja": {
+   "word": "下",
+   "romanized": "shita",
+   "ipa": "ɕ i t a"
+  }
+ },
+ "ep3-25": {
+  "english": "bridge",
+  "es": {
+   "word": "puente",
+   "romanized": "puente",
+   "ipa": "ˈpwen te"
+  },
+  "fr": {
+   "word": "pont",
+   "romanized": "pont",
+   "ipa": "pɔ̃"
+  },
+  "de": {
+   "word": "Brücke",
+   "romanized": "Brücke",
+   "ipa": "ˈbʁʏ kə"
+  },
+  "zh": {
+   "word": "桥",
+   "romanized": "qiáo",
+   "ipa": "tɕʰjɑʊ̯˧˥"
+  },
+  "hi": {
+   "word": "पुल",
+   "romanized": "pul",
+   "ipa": "pʊl"
+  },
+  "ja": {
+   "word": "橋",
+   "romanized": "hashi",
+   "ipa": "ha ɕi"
+  }
+ },
+ "ep3-26": {
+  "english": "bridge",
+  "es": {
+   "word": "puente",
+   "romanized": "puente",
+   "ipa": "ˈpwen te"
+  },
+  "fr": {
+   "word": "pont",
+   "romanized": "pont",
+   "ipa": "pɔ̃"
+  },
+  "de": {
+   "word": "Brücke",
+   "romanized": "Brücke",
+   "ipa": "ˈbʁʏ kə"
+  },
+  "zh": {
+   "word": "桥",
+   "romanized": "qiáo",
+   "ipa": "tɕʰjɑʊ̯˧˥"
+  },
+  "hi": {
+   "word": "पुल",
+   "romanized": "pul",
+   "ipa": "pʊl"
+  },
+  "ja": {
+   "word": "橋",
+   "romanized": "hashi",
+   "ipa": "ha ɕi"
+  }
+ },
+ "ep3-27": {
+  "english": "bridge",
+  "es": {
+   "word": "puente",
+   "romanized": "puente",
+   "ipa": "ˈpwen te"
+  },
+  "fr": {
+   "word": "pont",
+   "romanized": "pont",
+   "ipa": "pɔ̃"
+  },
+  "de": {
+   "word": "Brücke",
+   "romanized": "Brücke",
+   "ipa": "ˈbʁʏ kə"
+  },
+  "zh": {
+   "word": "桥",
+   "romanized": "qiáo",
+   "ipa": "tɕʰjɑʊ̯˧˥"
+  },
+  "hi": {
+   "word": "पुल",
+   "romanized": "pul",
+   "ipa": "pʊl"
+  },
+  "ja": {
+   "word": "橋",
+   "romanized": "hashi",
+   "ipa": "ha ɕi"
+  }
+ },
+ "ep3-28": {
+  "english": "pyramid",
+  "es": {
+   "word": "pirámide",
+   "romanized": "pirámide",
+   "ipa": "p i ˈɾ a m i ð e"
+  },
+  "fr": {
+   "word": "pyramide",
+   "romanized": "pyramide",
+   "ipa": "p i ʁ a m i d"
+  },
+  "de": {
+   "word": "Pyramide",
+   "romanized": "Pyramide",
+   "ipa": "p y ʁ a ˈm iː d ə"
+  },
+  "zh": {
+   "word": "金字塔",
+   "romanized": "jīn zì tǎ",
+   "ipa": "tɕ i n⁵⁵ ts ɹ̩⁵¹ tʰ a²¹⁴"
+  },
+  "hi": {
+   "word": "पिरामिड",
+   "romanized": "pirāmiḍ",
+   "ipa": "p i ɾ aː m i ɖ"
+  },
+  "ja": {
+   "word": "ピラミッド",
+   "romanized": "piramiddo",
+   "ipa": "p i ɾ a m i Q d o"
+  }
+ },
+ "ep3-31": {
+  "english": "baby jaguar",
+  "es": {
+   "word": "jaguar bebé",
+   "romanized": "jaguar bebé",
+   "ipa": "xa ˈɣwaɾ beˈβe"
+  },
+  "fr": {
+   "word": "bébé jaguar",
+   "romanized": "bébé jaguar",
+   "ipa": "be be ʒaɡwaʁ"
+  },
+  "de": {
+   "word": "Jaguarbaby",
+   "romanized": "Jaguarbaby",
+   "ipa": "ˈjaːɡu̯aːɐ̯ ˌbeːbi"
+  },
+  "zh": {
+   "word": "小美洲豹",
+   "romanized": "xiǎo měizhōubào",
+   "ipa": "ɕjɑʊ̯ mɛɪ̯ ʈʂoʊ̯ pɑʊ̯"
+  },
+  "hi": {
+   "word": "जगुआर का बच्चा",
+   "romanized": "jaguār kā bacchā",
+   "ipa": "dʒəɡʊaːɾ kaː bəttʃaː"
+  },
+  "ja": {
+   "word": "赤ちゃんジャガー",
+   "romanized": "akachan jagā",
+   "ipa": "a ka tɕa ɴ dʑa ɡaː"
+  }
+ },
+ "ep3-32": {
+  "english": "scratch",
+  "es": {
+   "word": "rasguño",
+   "romanized": "rasguño",
+   "ipa": "ras ˈɡu ɲo"
+  },
+  "fr": {
+   "word": "égratignure",
+   "romanized": "égratignure",
+   "ipa": "e ɡʁa ti ɲyʁ"
+  },
+  "de": {
+   "word": "Kratzer",
+   "romanized": "Kratzer",
+   "ipa": "ˈkʁat tsɐ"
+  },
+  "zh": {
+   "word": "划伤",
+   "romanized": "huá shāng",
+   "ipa": "xwa ʂɑŋ"
+  },
+  "hi": {
+   "word": "खरोंच",
+   "romanized": "kharōñch",
+   "ipa": "kʰə ɾõːtʃ"
+  },
+  "ja": {
+   "word": "ひっかき傷",
+   "romanized": "hikkaki kizu",
+   "ipa": "çi kːa ki ki zu"
+  }
+ },
+ "ep3-33": {
+  "english": "backpack",
+  "es": {
+   "word": "mochila",
+   "romanized": "mochila",
+   "ipa": "mo ˈtʃi la"
+  },
+  "fr": {
+   "word": "sac à dos",
+   "romanized": "sac à dos",
+   "ipa": "sak a do"
+  },
+  "de": {
+   "word": "Rucksack",
+   "romanized": "Rucksack",
+   "ipa": "ˈʁʊk zak"
+  },
+  "zh": {
+   "word": "背包",
+   "romanized": "bēibāo",
+   "ipa": "pei̯˥˥ pau̯˥˥"
+  },
+  "hi": {
+   "word": "बस्ता",
+   "romanized": "bastā",
+   "ipa": "bəs taː"
+  },
+  "ja": {
+   "word": "リュック",
+   "romanized": "ryukku",
+   "ipa": "ɾʲɯ kːɯ"
+  }
+ },
+ "ep3-34": {
+  "english": "doctor bag",
+  "es": {
+   "word": "maletín médico",
+   "romanized": "maletín médico",
+   "ipa": "ma le ˈtin ˈme ði ko"
+  },
+  "fr": {
+   "word": "sac de docteur",
+   "romanized": "sac de docteur",
+   "ipa": "sak də dɔk tœʁ"
+  },
+  "de": {
+   "word": "Arztkoffer",
+   "romanized": "Arztkoffer",
+   "ipa": "aːɐ̯t͡s ˌkɔ fɐ"
+  },
+  "zh": {
+   "word": "医生包",
+   "romanized": "yīshēng bāo",
+   "ipa": "i ʂəŋ pau"
+  },
+  "hi": {
+   "word": "डॉक्टर का बैग",
+   "romanized": "ḍŏkṭar kā baig",
+   "ipa": "ɖɔk ʈəɾ kaː bɛːɡ"
+  },
+  "ja": {
+   "word": "お医者さんバッグ",
+   "romanized": "oishasan baggu",
+   "ipa": "o i ɕa saɴ baɡ ɡɯ"
+  }
+ },
+ "ep3-35": {
+  "english": "stars",
+  "es": {
+   "word": "estrellas",
+   "romanized": "estrellas",
+   "ipa": "es ˈtɾe ʝas"
+  },
+  "fr": {
+   "word": "étoiles",
+   "romanized": "étoiles",
+   "ipa": "e twal"
+  },
+  "de": {
+   "word": "Sterne",
+   "romanized": "Sterne",
+   "ipa": "ˈʃtɛɐ̯ nə"
+  },
+  "zh": {
+   "word": "星星",
+   "romanized": "xīngxing",
+   "ipa": "ɕiŋ ɕiŋ"
+  },
+  "hi": {
+   "word": "तारे",
+   "romanized": "tāre",
+   "ipa": "t̪aː ɾeː"
+  },
+  "ja": {
+   "word": "星",
+   "romanized": "hoshi",
+   "ipa": "ho ɕi"
+  }
+ },
+ "ep3-37": {
+  "english": "pieces",
+  "es": {
+   "word": "piezas",
+   "romanized": "piezas",
+   "ipa": "ˈpje θas"
+  },
+  "fr": {
+   "word": "morceaux",
+   "romanized": "morceaux",
+   "ipa": "mɔʁ so"
+  },
+  "de": {
+   "word": "Teile",
+   "romanized": "Teile",
+   "ipa": "ˈtaɪ̯ lə"
+  },
+  "zh": {
+   "word": "碎片",
+   "romanized": "suìpiàn",
+   "ipa": "swei⁵¹ pʰjɛn⁵¹"
+  },
+  "hi": {
+   "word": "टुकड़े",
+   "romanized": "ṭukṛe",
+   "ipa": "ʈʊk ɽeː"
+  },
+  "ja": {
+   "word": "部品",
+   "romanized": "buhin",
+   "ipa": "bɯ çiɴ"
+  }
+ },
+ "ep3-39": {
+  "english": "triangle",
+  "es": {
+   "word": "triángulo",
+   "romanized": "triángulo",
+   "ipa": "t ɾ i ˈ a ŋ ɡ u l o"
+  },
+  "fr": {
+   "word": "triangle",
+   "romanized": "triangle",
+   "ipa": "t ʁ i j ɑ̃ ɡ l"
+  },
+  "de": {
+   "word": "Dreieck",
+   "romanized": "Dreieck",
+   "ipa": "d ʁ aɪ̯ ɛ k"
+  },
+  "zh": {
+   "word": "三角形",
+   "romanized": "sān jiǎo xíng",
+   "ipa": "s a n tɕ jɑʊ̯ ɕ i ŋ"
+  },
+  "hi": {
+   "word": "त्रिभुज",
+   "romanized": "tribhuj",
+   "ipa": "t̪ ɾ ɪ bʱ ʊ d͡ʒ"
+  },
+  "ja": {
+   "word": "三角形",
+   "romanized": "sankakukei",
+   "ipa": "s a N k a k ɯ k eː"
+  }
+ },
+ "ep3-40": {
+  "english": "rectangle",
+  "es": {
+   "word": "rectángulo",
+   "romanized": "rectángulo",
+   "ipa": "rek ˈtaŋ gu lo"
+  },
+  "fr": {
+   "word": "rectangle",
+   "romanized": "rectangle",
+   "ipa": "ʁɛk tɑ̃ɡl"
+  },
+  "de": {
+   "word": "Rechteck",
+   "romanized": "Rechteck",
+   "ipa": "ˈʁɛç tɛk"
+  },
+  "zh": {
+   "word": "长方形",
+   "romanized": "chángfāngxíng",
+   "ipa": "ʈʂʰɑŋ fɑŋ ɕiŋ"
+  },
+  "hi": {
+   "word": "आयत",
+   "romanized": "āyat",
+   "ipa": "ɑː jət̪"
+  },
+  "ja": {
+   "word": "四角形",
+   "romanized": "shikakkei",
+   "ipa": "ɕi ka kːeː"
+  }
+ },
+ "ep3-41": {
+  "english": "squares",
+  "es": {
+   "word": "cuadrados",
+   "romanized": "cuadrados",
+   "ipa": "kwa ˈðɾa ðos"
+  },
+  "fr": {
+   "word": "carrés",
+   "romanized": "carrés",
+   "ipa": "ka ʁe"
+  },
+  "de": {
+   "word": "Quadrate",
+   "romanized": "Quadrate",
+   "ipa": "kva ˈdʁaː tə"
+  },
+  "zh": {
+   "word": "正方形",
+   "romanized": "zhèngfāngxíng",
+   "ipa": "ʈʂəŋ˥˩ fɑŋ˥˥ ɕiŋ˧˥"
+  },
+  "hi": {
+   "word": "चौकोर",
+   "romanized": "caukōr",
+   "ipa": "tʃɔː koːr"
+  },
+  "ja": {
+   "word": "四角",
+   "romanized": "shikaku",
+   "ipa": "ɕi ka ku"
+  }
+ },
+ "ep3-42": {
+  "english": "treasures",
+  "es": {
+   "word": "tesoros",
+   "romanized": "tesoros",
+   "ipa": "te ˈso ɾos"
+  },
+  "fr": {
+   "word": "trésors",
+   "romanized": "trésors",
+   "ipa": "tʁe zɔʁ"
+  },
+  "de": {
+   "word": "Schätze",
+   "romanized": "Schätze",
+   "ipa": "ˈʃɛ tsə"
+  },
+  "zh": {
+   "word": "宝藏",
+   "romanized": "bǎo zàng",
+   "ipa": "pɑʊ̯˨˩ tsɑŋ˥˩"
+  },
+  "hi": {
+   "word": "खज़ाने",
+   "romanized": "khazāne",
+   "ipa": "kʰə ˈzaː neː"
+  },
+  "ja": {
+   "word": "宝物",
+   "romanized": "takarāmono",
+   "ipa": "ta ka ɾa mo no"
+  }
+ },
+ "ep3-43": {
+  "english": "Pyramid",
+  "es": {
+   "word": "pirámide",
+   "romanized": "pirámide",
+   "ipa": "p i ˈɾ a m i ð e"
+  },
+  "fr": {
+   "word": "pyramide",
+   "romanized": "pyramide",
+   "ipa": "p i ʁ a m i d"
+  },
+  "de": {
+   "word": "Pyramide",
+   "romanized": "Pyramide",
+   "ipa": "p yː ʁ a ˈm iː d ə"
+  },
+  "zh": {
+   "word": "金字塔",
+   "romanized": "jīn zì tǎ",
+   "ipa": "tɕ i n⁵⁵ ts ɹ̩⁵¹ tʰ a²¹⁴"
+  },
+  "hi": {
+   "word": "पिरामिड",
+   "romanized": "pirāmiḍ",
+   "ipa": "p ɪ ɾ aː m ɪ ɖ"
+  },
+  "ja": {
+   "word": "ピラミッド",
+   "romanized": "piramiddo",
+   "ipa": "p i ɾ a m i d d o"
+  }
+ },
+ "ep3-44": {
+  "english": "pyramid",
+  "es": {
+   "word": "pirámide",
+   "romanized": "pirámide",
+   "ipa": "pi ˈɾa mi ðe"
+  },
+  "fr": {
+   "word": "pyramide",
+   "romanized": "pyramide",
+   "ipa": "pi ʁa mid"
+  },
+  "de": {
+   "word": "Pyramide",
+   "romanized": "Pyramide",
+   "ipa": "py ʁa ˈmiː də"
+  },
+  "zh": {
+   "word": "金字塔",
+   "romanized": "jīn zì tǎ",
+   "ipa": "tɕin⁵⁵ tsɹ̩⁵¹ tʰa²¹⁴"
+  },
+  "hi": {
+   "word": "पिरामिड",
+   "romanized": "pirāmiḍ",
+   "ipa": "pɪ ɾaː mɪɖ"
+  },
+  "ja": {
+   "word": "ピラミッド",
+   "romanized": "piramiddo",
+   "ipa": "pi ɾa mid do"
+  }
+ },
+ "ep3-45": {
+  "english": "pyramid",
+  "es": {
+   "word": "pirámide",
+   "romanized": "pirámide",
+   "ipa": "pi ˈɾa mi ðe"
+  },
+  "fr": {
+   "word": "pyramide",
+   "romanized": "pyramide",
+   "ipa": "pi ʁa mid"
+  },
+  "de": {
+   "word": "Pyramide",
+   "romanized": "Pyramide",
+   "ipa": "py ʁa ˈmiː də"
+  },
+  "zh": {
+   "word": "金字塔",
+   "romanized": "jīn zì tǎ",
+   "ipa": "tɕin tsɨ tʰa"
+  },
+  "hi": {
+   "word": "पिरामिड",
+   "romanized": "pirāmiḍ",
+   "ipa": "pi ɾaː ɱɪɖ"
+  },
+  "ja": {
+   "word": "ピラミッド",
+   "romanized": "piramiʾdo",
+   "ipa": "pi ɾa mʲid do"
+  }
+ },
+ "ep3-46": {
+  "english": "pyramid",
+  "es": {
+   "word": "pirámide",
+   "romanized": "pirámide",
+   "ipa": "pi ˈɾa mi ðe"
+  },
+  "fr": {
+   "word": "pyramide",
+   "romanized": "pyramide",
+   "ipa": "pi ʁa mid"
+  },
+  "de": {
+   "word": "Pyramide",
+   "romanized": "Pyramide",
+   "ipa": "py ʁa ˈmiː də"
+  },
+  "zh": {
+   "word": "金字塔",
+   "romanized": "jīnzìtǎ",
+   "ipa": "tɕin˥ tsɨ˥˩ tʰa˨˩˦"
+  },
+  "hi": {
+   "word": "पिरामिड",
+   "romanized": "pirāmiḍ",
+   "ipa": "pɪ ɾaː mɪ ɖ"
+  },
+  "ja": {
+   "word": "ピラミッド",
+   "romanized": "piramiddo",
+   "ipa": "pʲi ɾa mʲi dːo"
+  }
+ },
+ "ep3-47": {
+  "english": "police officer",
+  "es": {
+   "word": "policía",
+   "romanized": "policía",
+   "ipa": "po li ˈθi a"
+  },
+  "fr": {
+   "word": "policier",
+   "romanized": "policier",
+   "ipa": "po li sje"
+  },
+  "de": {
+   "word": "Polizist",
+   "romanized": "Polizist",
+   "ipa": "po li ˈt͡sɪst"
+  },
+  "zh": {
+   "word": "警察",
+   "romanized": "jǐngchá",
+   "ipa": "tɕiŋ tʂʰa"
+  },
+  "hi": {
+   "word": "पुलिसवाला",
+   "romanized": "pulisvālā",
+   "ipa": "pʊ lɪs ʋaː laː"
+  },
+  "ja": {
+   "word": "警察官",
+   "romanized": "keisatsukan",
+   "ipa": "keː sa tsɯ kaɴ"
+  }
+ },
+ "ep3-48": {
+  "english": "police officer",
+  "es": {
+   "word": "policía",
+   "romanized": "policía",
+   "ipa": "po li ˈsja"
+  },
+  "fr": {
+   "word": "policier",
+   "romanized": "policier",
+   "ipa": "pɔ li sje"
+  },
+  "de": {
+   "word": "Polizist",
+   "romanized": "Polizist",
+   "ipa": "po li tsɪst"
+  },
+  "zh": {
+   "word": "警察",
+   "romanized": "jǐngchá",
+   "ipa": "tɕiŋ tʂʰa"
+  },
+  "hi": {
+   "word": "पुलिसवाला",
+   "romanized": "pulisvālā",
+   "ipa": "pʊ lis ʋaː laː"
+  },
+  "ja": {
+   "word": "警察官",
+   "romanized": "keisatsukan",
+   "ipa": "keː sa tsɯ kaɴ"
+  }
+ },
+ "ep3-49": {
+  "english": "pyramid",
+  "es": {
+   "word": "pirámide",
+   "romanized": "pirámide",
+   "ipa": "pi ˈɾa mi ðe"
+  },
+  "fr": {
+   "word": "pyramide",
+   "romanized": "pyramide",
+   "ipa": "pi ʁa mid"
+  },
+  "de": {
+   "word": "Pyramide",
+   "romanized": "Pyramide",
+   "ipa": "py ʁa ˈmiː də"
+  },
+  "zh": {
+   "word": "金字塔",
+   "romanized": "jīn zì tǎ",
+   "ipa": "tɕin⁵⁵ tsɹ̩⁵¹ tʰa²¹⁴"
+  },
+  "hi": {
+   "word": "पिरामिड",
+   "romanized": "pirāmiḍ",
+   "ipa": "pi ɾaː mɪɖ"
+  },
+  "ja": {
+   "word": "ピラミッド",
+   "romanized": "piramiddo",
+   "ipa": "p i ɾa m i dː o"
+  }
+ },
+ "ep3-50": {
+  "english": "six keys",
+  "es": {
+   "word": "seis llaves",
+   "romanized": "seis llaves",
+   "ipa": "seis ˈʎaβes"
+  },
+  "fr": {
+   "word": "six clés",
+   "romanized": "six clés",
+   "ipa": "sis kle"
+  },
+  "de": {
+   "word": "sechs Schlüssel",
+   "romanized": "sechs Schlüssel",
+   "ipa": "zɛks ˈʃlʏsl̩"
+  },
+  "zh": {
+   "word": "六把钥匙",
+   "romanized": "liù bǎ yàoshi",
+   "ipa": "ljou˥˩ pa˨˩˦ jɑʊ̯˥˩ ʂɻ̩˨˩"
+  },
+  "hi": {
+   "word": "छह चाबियाँ",
+   "romanized": "chhah chaabiyān",
+   "ipa": "tʃʰəɦ tʃaːbɪjaː̃ː"
+  },
+  "ja": {
+   "word": "六本の鍵",
+   "romanized": "roppon no kagi",
+   "ipa": "ɾopːoɴ no kaɡʲi"
+  }
+ },
+ "ep3-54": {
+  "english": "two keys",
+  "es": {
+   "word": "dos llaves",
+   "romanized": "dos llaves",
+   "ipa": "dos ˈʝa.βes"
+  },
+  "fr": {
+   "word": "deux clés",
+   "romanized": "deux clés",
+   "ipa": "dø kle"
+  },
+  "de": {
+   "word": "zwei Schlüssel",
+   "romanized": "zwei Schlüssel",
+   "ipa": "t͡svaɪ̯ ˈʃlʏsl̩"
+  },
+  "zh": {
+   "word": "两把钥匙",
+   "romanized": "liǎng bǎ yàoshi",
+   "ipa": "ljɑŋ˨˩˦ pa˨˩˦ jɑʊ̯˥˩ ʂɻ̩˨˩˦"
+  },
+  "hi": {
+   "word": "दो चाबियाँ",
+   "romanized": "do cābiyā̃",
+   "ipa": "doː tʃaː.biː.jɑ̃ː"
+  },
+  "ja": {
+   "word": "鍵が二つ",
+   "romanized": "kagi ga futatsu",
+   "ipa": "ka.ɡi ɡa ɸɯ.ta.tsɯ"
+  }
+ },
+ "ep3-55": {
+  "english": "six",
+  "es": {
+   "word": "seis",
+   "romanized": "seis",
+   "ipa": "seis"
+  },
+  "fr": {
+   "word": "six",
+   "romanized": "six",
+   "ipa": "sis"
+  },
+  "de": {
+   "word": "sechs",
+   "romanized": "sechs",
+   "ipa": "zɛks"
+  },
+  "zh": {
+   "word": "六",
+   "romanized": "liù",
+   "ipa": "ljou̯˥˩"
+  },
+  "hi": {
+   "word": "छह",
+   "romanized": "chhah",
+   "ipa": "tʃʰəh"
+  },
+  "ja": {
+   "word": "六",
+   "romanized": "roku",
+   "ipa": "ɾo ku"
+  }
+ },
+ "ep3-56": {
+  "english": "red",
+  "es": {
+   "word": "rojo",
+   "romanized": "rojo",
+   "ipa": "ˈro xo"
+  },
+  "fr": {
+   "word": "rouge",
+   "romanized": "rouge",
+   "ipa": "ʁ u ʒ"
+  },
+  "de": {
+   "word": "rot",
+   "romanized": "rot",
+   "ipa": "ʁ oː t"
+  },
+  "zh": {
+   "word": "红色",
+   "romanized": "hóng sè",
+   "ipa": "x ʊ ŋ s ɤ"
+  },
+  "hi": {
+   "word": "लाल",
+   "romanized": "laal",
+   "ipa": "l aː l"
+  },
+  "ja": {
+   "word": "赤",
+   "romanized": "aka",
+   "ipa": "a k a"
+  }
+ },
+ "ep3-57": {
+  "english": "jewel",
+  "es": {
+   "word": "joya",
+   "romanized": "joya",
+   "ipa": "ˈxo ʝa"
+  },
+  "fr": {
+   "word": "bijou",
+   "romanized": "bijou",
+   "ipa": "bi ʒu"
+  },
+  "de": {
+   "word": "Juwel",
+   "romanized": "Juwel",
+   "ipa": "ju ˈveːl"
+  },
+  "zh": {
+   "word": "宝石",
+   "romanized": "bǎoshí",
+   "ipa": "pɑʊ̯˨˩˦ ʂɻ̩˧˥"
+  },
+  "hi": {
+   "word": "गहना",
+   "romanized": "gahnā",
+   "ipa": "ɡə ɦə naː"
+  },
+  "ja": {
+   "word": "宝石",
+   "romanized": "hōseki",
+   "ipa": "hoː se ki"
+  }
+ },
+ "ep3-59": {
+  "english": "There",
+  "es": {
+   "word": "Ahí",
+   "romanized": "Ahí",
+   "ipa": "a ˈi"
+  },
+  "fr": {
+   "word": "Là",
+   "romanized": "Là",
+   "ipa": "la"
+  },
+  "de": {
+   "word": "Da",
+   "romanized": "Da",
+   "ipa": "da"
+  },
+  "zh": {
+   "word": "在那儿",
+   "romanized": "zài nàr",
+   "ipa": "tsai̯⁵¹ naɻ⁵¹"
+  },
+  "hi": {
+   "word": "वहाँ",
+   "romanized": "vahā̃",
+   "ipa": "ʋə ɦɑ̃ː"
+  },
+  "ja": {
+   "word": "あそこ",
+   "romanized": "asoko",
+   "ipa": "a so ko"
+  }
+ },
+ "ep3-63": {
+  "english": "six",
+  "es": {
+   "word": "seis",
+   "romanized": "seis",
+   "ipa": "s e i s"
+  },
+  "fr": {
+   "word": "six",
+   "romanized": "six",
+   "ipa": "s i s"
+  },
+  "de": {
+   "word": "sechs",
+   "romanized": "sechs",
+   "ipa": "z ɛ ç s"
+  },
+  "zh": {
+   "word": "六",
+   "romanized": "liù",
+   "ipa": "l i oʊ̯⁵¹"
+  },
+  "hi": {
+   "word": "छह",
+   "romanized": "chhah",
+   "ipa": "tʃʰ ə h"
+  },
+  "ja": {
+   "word": "六",
+   "romanized": "roku",
+   "ipa": "ɾ o k ɯ"
+  }
+ },
+ "ep3-65": {
+  "english": "Police officer",
+  "es": {
+   "word": "policía",
+   "romanized": "policía",
+   "ipa": "p o l i ˈθ j a"
+  },
+  "fr": {
+   "word": "policier",
+   "romanized": "policier",
+   "ipa": "p ɔ l i s j e"
+  },
+  "de": {
+   "word": "Polizist",
+   "romanized": "Polizist",
+   "ipa": "p o l i t͡s ɪ s t"
+  },
+  "zh": {
+   "word": "警察",
+   "romanized": "jǐngchá",
+   "ipa": "tɕ i ŋ tʂʰ a"
+  },
+  "hi": {
+   "word": "पुलिसवाला",
+   "romanized": "pulisvālā",
+   "ipa": "p ʊ l ɪ s ʋ aː l aː"
+  },
+  "ja": {
+   "word": "おまわりさん",
+   "romanized": "omawarisan",
+   "ipa": "o m a ɰ a ɾ i s a ɴ"
+  }
+ },
+ "ep3-66": {
+  "english": "Baseball player",
+  "es": {
+   "word": "jugador de béisbol",
+   "romanized": "jugador de béisbol",
+   "ipa": "xu ɣa ˈðoɾ ðe βeisˈβol"
+  },
+  "fr": {
+   "word": "joueur de baseball",
+   "romanized": "joueur de baseball",
+   "ipa": "ʒwœʁ də bɛzbol"
+  },
+  "de": {
+   "word": "Baseballspieler",
+   "romanized": "Baseballspieler",
+   "ipa": "ˈbeɪsbɔlˌʃpiːlɐ"
+  },
+  "zh": {
+   "word": "棒球运动员",
+   "romanized": "bàngqiú yùndòngyuán",
+   "ipa": "pɑŋ tɕʰjoʊ̯ yʊn tʊŋ ɥɛn"
+  },
+  "hi": {
+   "word": "बेसबॉल खिलाड़ी",
+   "romanized": "besbol khiladi",
+   "ipa": "beːsboːl kʰɪlaːɽiː"
+  },
+  "ja": {
+   "word": "野球選手",
+   "romanized": "yakyū senshu",
+   "ipa": "ja kʲɯː ɕeN ɕɯ"
+  }
+ },
+ "ep3-67": {
+  "english": "bank",
+  "es": {
+   "word": "banco",
+   "romanized": "banco",
+   "ipa": "ˈbaŋ ko"
+  },
+  "fr": {
+   "word": "banque",
+   "romanized": "banque",
+   "ipa": "bɑ̃k"
+  },
+  "de": {
+   "word": "Bank",
+   "romanized": "Bank",
+   "ipa": "baŋk"
+  },
+  "zh": {
+   "word": "银行",
+   "romanized": "yínháng",
+   "ipa": "ǐn xǎŋ"
+  },
+  "hi": {
+   "word": "बैंक",
+   "romanized": "baiṅk",
+   "ipa": "bɛːŋk"
+  },
+  "ja": {
+   "word": "銀行",
+   "romanized": "ginkō",
+   "ipa": "ɡʲiŋ koː"
+  }
+ }
+}

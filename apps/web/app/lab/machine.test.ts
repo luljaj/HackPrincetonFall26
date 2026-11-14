@@ -42,6 +42,24 @@ test("mumbling can't loop forever; errors exit gracefully", () => {
   assert.equal(run([...ask, "SPEECH_END", "ERROR", "LINE_DONE"]).stage, "exiting");
 });
 
+test("language practice: after the answer, learn the word in the new language, one try", () => {
+  const learning: Ctx = { ...INITIAL, known: true, practice: true };
+  const celebrated = run([...ask, "SPEECH_END", "CORRECT"], learning);
+  assert.equal(run(["LINE_DONE"], celebrated).stage, "practicing");
+  const listening = run(["LINE_DONE", "LINE_DONE"], celebrated);
+  assert.deepEqual([listening.stage, listening.practiced], ["listening", true]);
+  assert.equal(run(["SPEECH_END", "CORRECT", "LINE_DONE"], listening).stage, "exiting"); // said it: praise, then the show
+  assert.equal(run(["SPEECH_END", "WRONG", "LINE_DONE"], listening).stage, "exiting"); // missed: Dora says it, then the show
+  assert.equal(run(["SILENCE", "LINE_DONE"], listening).stage, "exiting"); // shy: no nagging
+});
+
+test("the word is taught even when Dora had to give the answer, and only when learning", () => {
+  const gave = run([...ask, "SILENCE", "LINE_DONE", "SILENCE", "LINE_DONE", "SILENCE"], { ...INITIAL, known: true, practice: true });
+  assert.equal(gave.stage, "giving");
+  assert.equal(run(["LINE_DONE"], gave).stage, "practicing");
+  assert.equal(run([...ask, "SPEECH_END", "CORRECT", "LINE_DONE"]).stage, "exiting");
+});
+
 test("leaving mid-question gets a welcome back; leaving while watching doesn't", () => {
   assert.equal(run([...ask, "AWAY", "BACK"]).stage, "welcome");
   assert.equal(run(["AWAY", "BACK"]).stage, "watching");

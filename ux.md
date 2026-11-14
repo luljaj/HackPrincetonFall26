@@ -65,6 +65,15 @@ For every spot, Dora asks the lesson question out loud. Her nudges, re-asks, mod
 - **Visual spots** ("What shape goes here?", "Can you find the bridge?"): the frozen scene stays on screen and Dora asks over it.
 - **The firehouse:** keeps its own close-up.
 
+## Learning another language
+
+Pick a language under **🌍 Learn** in `/lab`: Spanish, French, German, Chinese, Hindi or Japanese.
+
+After each spot's answer (the kid got it, or Dora gave it), the stage machine adds a **practicing** step. Dora says "In French, seatbelt is *ceinture de sécurité*! Can you say ceinture de sécurité?" and listens once. The pronunciation scorer judges in that language: "Yes! … You said it in French!", or Dora models it once. Then the show resumes, with no nagging.
+
+- `python3 tools/build-translations.py [--langs …]` asks Luna for each answer's child-level word, a romanization (pinyin, romaji…) and IPA. It writes `apps/web/app/lab/translations.json` (51 spots; names, "yes" and sentences are skipped). Bad romanizations are dropped.
+- **The cutoffs differ per language,** because the same correct word scores lower in some scripts. These were measured on native macOS voices, right word vs a different word: de 14/14 right praised and 14/14 wrong caught, fr 14/14 and 12/14, ja 12/14 and 14/14, zh 13/14 and 13/14, hi 5/7 and 7/7. Small samples, so retune with real kids.
+
 ## Turn judging and pronunciation
 
 - **Luna judge** (`/api/judge`, `server/judge/judge.ts`): one tool call picks the stage-machine event (`correct` / `wrong` / `unclear`) and writes Dora's next line, told in advance what the machine will do for each event. 26/26 on the test answers, about 1.2 s.

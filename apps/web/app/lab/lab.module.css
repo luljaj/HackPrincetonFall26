@@ -281,3 +281,13 @@
   width: 190px;
   font-size: 12px;
 }
+
+.kid select {
+  font: inherit;
+  font-size: 14px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid #4a3d33;
+  background: #16120f;
+  color: inherit;
+}
