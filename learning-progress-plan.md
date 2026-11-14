@@ -204,6 +204,24 @@ Keep it hands-off: nobody touches the parent side between judges.
 
 Dependency: steps 2 and 3 need kid mode to call `POST /api/learning/sessions` at the start and send each recorded answer to `POST /api/learning/sessions/{id}/turns` (the cartoon/playback teammate's integration).
 
+### Parent mock folded into `/parent` (Nov 14)
+
+- The `/parent` home now uses the `apps/parent` mock's layout with real sessions from Tiger:
+  - "{child}'s learning moments" header and an "Open Play mode" link.
+  - Three counts: episodes watched, questions answered, answered after help.
+  - A colour-coded card per session (newest open), with "Dora asked / {child} said / Dora replied" rows and status chips.
+  - The pending follow-up question on each card, and a link to the live session view.
+  - Real sessions refresh every 5 seconds. Sample sessions show a badge, and they're left out of the counts once real sessions exist.
+- **Palette:** the mock's warm light colours apply to everything under `/parent` (`.parent-theme` in `globals.css`), including `/parent/live`.
+- **Wording kept to section 3:**
+  - Chips: Correct / Not yet / Unclear / Off topic / Didn't hear.
+  - The mock's "after a hint" became "after help", because assistance can be a hint, an explanation or the answer.
+  - The counts are plain counts, with no scores or percentages, and the page keeps the mock's "snapshot, not mastery" note.
+- **Config:**
+  - The child's display name comes from `PARENT_CHILD_NAME` (default "Sam").
+  - Show name, episode and colour come from `lib/parent/shows.ts`, keyed by `sceneId`.
+- **CSS fix:** the starter's global reset (`* { padding: 0; margin: 0 }`, `a { … }`) now sits in Tailwind's base layer, so padding, margin and link utilities work. It was silently stripping padding from Tailwind classes everywhere. Play mode looks unchanged.
+
 ## 7. Integration agreement
 
 | With | Agreement | Boundary |

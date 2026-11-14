@@ -12,7 +12,7 @@ import { EmptyState } from "./states";
 import { useFreshAnswers } from "./use-fresh-answers";
 
 // Presentational view of one session. Used by the session page and the live demo page.
-export function SessionView({ view }: { view: ParentView }) {
+export function SessionView({ view, childName }: { view: ParentView; childName?: string }) {
   const { progress } = view;
   const hasAnswers = progress.interactions.length > 0;
   const fresh = useFreshAnswers(progress.interactions);
@@ -32,6 +32,7 @@ export function SessionView({ view }: { view: ParentView }) {
             <li key={i.interactionId}>
               <InteractionCard
                 interaction={i}
+                childName={childName}
                 highlight={
                   fresh.has(i.interactionId) ? highlightTone(i.assessment.answerStatus) : null
                 }

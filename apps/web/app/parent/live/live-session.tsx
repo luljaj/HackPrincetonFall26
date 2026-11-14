@@ -11,7 +11,7 @@ import { ErrorState, LoadingState } from "../_components/states";
 
 type Live = { view: ParentView | null };
 
-export function LiveSession({ demoTools }: { demoTools: boolean }) {
+export function LiveSession({ demoTools, childName }: { demoTools: boolean; childName: string }) {
   const [live, setLive] = useState<Live | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const requestSeq = useRef(0);
@@ -44,7 +44,7 @@ export function LiveSession({ demoTools }: { demoTools: boolean }) {
       {live === undefined ? (
         <LoadingState />
       ) : live.view ? (
-        <SessionView key={live.view.progress.sessionId} view={live.view} />
+        <SessionView key={live.view.progress.sessionId} view={live.view} childName={childName} />
       ) : (
         <div className="space-y-2">
           <p className="text-foreground/70">Waiting for a session to start…</p>

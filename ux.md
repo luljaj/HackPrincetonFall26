@@ -64,7 +64,7 @@ Nothing is generated during a session if we can help it:
 | Play mode | `apps/web` → `/` (port 3010 locally) | TV with channels: Dora, Bluey, Peppa, Daniel Tiger |
 | Lab | `/lab` | Stage-machine playground: a spot timeline, simulated kid buttons, and a live graph |
 | Parent view | `/parent` | Real dashboard (Postgres) |
-| Parent mock | `apps/parent` (port 3011) | Early mock with sample sessions. Fold it into `/parent`. |
+| Parent mock | `apps/parent` (port 3011) | Early mock. **Folded into `/parent` (Nov 14):** same layout and chips, real data. Can be removed once nobody needs it for reference. |
 
 ## Open
 

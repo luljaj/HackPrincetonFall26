@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { childName } from "../../../lib/parent/child";
 import { getParentViewReader } from "../../../lib/parent/reader";
 import { SAMPLE_SESSION_ID } from "../../../lib/parent/sample-id";
 import { DeleteSessionButton } from "../_components/delete-session-button";
@@ -16,7 +17,7 @@ export default async function SessionPage({
   if (!initial) notFound();
   return (
     <div className="space-y-8">
-      <LiveProgress initial={initial} />
+      <LiveProgress initial={initial} childName={childName()} />
       {sessionId !== SAMPLE_SESSION_ID && <DeleteSessionButton sessionId={sessionId} />}
     </div>
   );

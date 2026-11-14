@@ -13,6 +13,9 @@ const fixtureReader: ParentViewReader = {
   async getParentView(sessionId) {
     return sessionId === sampleView.progress.sessionId ? sampleView : null;
   },
+  async listParentViews() {
+    return [sampleView];
+  },
 };
 
 // PIPELINE_STORE=postgres reads the database; anything else uses the fixture.
@@ -24,6 +27,10 @@ function baseReader(): ParentViewReader {
     async getParentView(sessionId) {
       return (await store.getParentView(sessionId)) ?? (await fixtureReader.getParentView(sessionId));
     },
+    async listParentViews(limit) {
+      const views = await store.listParentViews(limit);
+      return views.length > 0 ? views : fixtureReader.listParentViews(limit);
+    },
   };
 }
 
@@ -31,13 +38,19 @@ function baseReader(): ParentViewReader {
  * Every parent read goes through Luka's strict SessionProgressSchema before it leaves the
  * server, so an extra field (an answer guide, a draft) fails loudly instead of leaking.
  */
+function checked(view: ParentView): ParentView {
+  return { ...view, progress: SessionProgressSchema.parse(view.progress) };
+}
+
 export function getParentViewReader(): ParentViewReader {
   const reader = baseReader();
   return {
     async getParentView(sessionId): Promise<ParentView | null> {
       const view = await reader.getParentView(sessionId);
-      if (!view) return null;
-      return { ...view, progress: SessionProgressSchema.parse(view.progress) };
+      return view && checked(view);
+    },
+    async listParentViews(limit) {
+      return (await reader.listParentViews(limit)).map(checked);
     },
   };
 }

@@ -5,4 +5,6 @@ import type { ParentView } from "./types";
 // the dashboard's display fields.
 export interface ParentViewReader {
   getParentView(sessionId: string): Promise<ParentView | null>;
+  /** Most recent sessions first, sample sessions included (they carry isSample). */
+  listParentViews(limit: number): Promise<ParentView[]>;
 }

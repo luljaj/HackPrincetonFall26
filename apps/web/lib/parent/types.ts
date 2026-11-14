@@ -10,6 +10,8 @@ export type ProgressInteraction = SessionProgress["interactions"][number];
 /** What the parent API returns: the shared progress payload plus dashboard-only display data. */
 export type ParentView = {
   progress: SessionProgress;
+  sceneId: string; // picks the show name/colour (lib/parent/shows.ts)
+  startedAt: string; // ISO, session creation time
   objectiveId: string; // keys the pre-written "Try at home" tip
   isSample: boolean; // drives the "Sample data" badge
 };

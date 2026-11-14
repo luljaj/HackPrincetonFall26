@@ -8,6 +8,11 @@
   --font-mono: var(--font-geist-mono);
   /* Highlight for a just-arrived wrong answer. Placeholder until the design lands. */
   --color-attention: var(--attention);
+  /* Parent view palette (from the apps/parent mock). Only defined inside .parent-theme. */
+  --color-card: var(--card);
+  --color-line: var(--line);
+  --color-good: var(--good);
+  --color-warn: var(--warn);
 }
 
 :root {
@@ -35,15 +40,18 @@ body {
   background: var(--background);
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
+/* Starter resets, in Tailwind's base layer so utility classes (p-4, underline, text-*) win. */
+@layer base {
+  * {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+  }
 
-a {
-  color: inherit;
-  text-decoration: none;
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }
 
 .imgDark {
@@ -375,4 +383,25 @@ a {
     flex: 0 0 84px;
     min-height: 44px;
   }
+}
+
+/* Parent dashboard: warm light palette folded in from the apps/parent mock.
+   Re-points the shared tokens for everything under /parent, so every component follows it. */
+.parent-theme {
+  --background: #faf7f2;
+  --foreground: #23201c;
+  --card: #ffffff;
+  --line: #ebe4d9;
+  --good: #2f9e5b;
+  --warn: #d98a1c;
+  --attention: #b45309;
+  /* Tailwind resolves its --color-* tokens at :root, so re-point them here too. */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-line: var(--line);
+  --color-good: var(--good);
+  --color-warn: var(--warn);
+  --color-attention: var(--attention);
+  color-scheme: light;
 }

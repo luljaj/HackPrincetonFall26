@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import type { ProgressReader, SessionProgress } from "../../lib/contracts";
 import type { ParentViewReader } from "../../lib/parent/reader-contract";
@@ -183,6 +183,16 @@ export function createPostgresStore(
     },
 
     getParentView: (sessionId) => readParentView(db, sessionId),
+    listParentViews: (limit) =>
+      guard(async () => {
+        const ids = await db
+          .select({ id: sessions.sessionId })
+          .from(sessions)
+          .orderBy(desc(sessions.createdAt))
+          .limit(Math.max(1, Math.min(limit, 100)));
+        const views = await Promise.all(ids.map((r) => readParentView(db, r.id)));
+        return views.filter((v): v is ParentView => v !== null);
+      }),
   };
 }
 
@@ -193,6 +203,8 @@ async function readParentView(db: StoreDb, sessionId: string): Promise<ParentVie
     const [row] = await db
       .select({
         sessionId: sessions.sessionId,
+        sceneId: sessions.sceneId,
+        createdAt: sessions.createdAt,
         objectiveId: sessions.objectiveId,
         sceneSnapshot: sessions.sceneSnapshot,
         activeQuestion: sessions.activeQuestion,
@@ -240,6 +252,8 @@ async function readParentView(db: StoreDb, sessionId: string): Promise<ParentVie
     const last = items.at(-1);
     const active = row.activeQuestion as QuestionContext | null;
     return {
+      sceneId: row.sceneId,
+      startedAt: row.createdAt.toISOString(),
       objectiveId: row.objectiveId,
       isSample: row.isSample,
       progress: {

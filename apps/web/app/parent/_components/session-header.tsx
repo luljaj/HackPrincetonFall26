@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function SessionHeader({
   objective,
   isSample,
@@ -7,6 +9,9 @@ export function SessionHeader({
 }) {
   return (
     <header className="space-y-1">
+      <Link className="text-sm text-foreground/60 underline" href="/parent">
+        ← All sessions
+      </Link>
       {isSample && (
         <span className="inline-block rounded border border-foreground/30 px-2 py-0.5 text-xs uppercase tracking-wide">
           Sample data

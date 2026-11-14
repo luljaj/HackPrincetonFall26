@@ -14,6 +14,8 @@ const active = sampleSessionRecord.activeQuestion;
 const finalActive = last ? last.nextQuestion : active;
 
 export const sampleView: ParentView = {
+  sceneId: sampleSessionRecord.sceneSnapshot.sceneId,
+  startedAt: sampleSessionRecord.createdAt,
   objectiveId: sampleSessionRecord.sceneSnapshot.objectiveId,
   isSample: true,
   progress: {

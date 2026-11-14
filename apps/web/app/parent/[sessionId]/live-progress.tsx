@@ -6,7 +6,7 @@ import type { ParentView } from "../../../lib/parent/types";
 import { SessionView } from "../_components/session-view";
 import { ErrorState } from "../_components/states";
 
-export function LiveProgress({ initial }: { initial: ParentView }) {
+export function LiveProgress({ initial, childName }: { initial: ParentView; childName: string }) {
   const [view, setView] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const latestTurns = useRef(initial.progress.episode.turns);
@@ -39,7 +39,7 @@ export function LiveProgress({ initial }: { initial: ParentView }) {
   return (
     <div className="space-y-6">
       {error && <ErrorState message={error} />}
-      <SessionView view={view} />
+      <SessionView view={view} childName={childName} />
     </div>
   );
 }

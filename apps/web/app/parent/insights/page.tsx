@@ -3,7 +3,7 @@ import { demoToolsEnabled } from "../../../lib/parent/demo";
 import { getInsightsDb } from "../../../server/storage";
 import { activityReport } from "../../../server/storage/insights";
 import type { StoreDb } from "../../../server/storage/postgres";
-import { AutoRefresh } from "./auto-refresh";
+import { AutoRefresh } from "../_components/auto-refresh";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +50,7 @@ export default async function InsightsPage({
           ["Incorrect", t.incorrect],
           ["With assistance", t.withAssistance],
         ].map(([label, value]) => (
-          <div key={label} className="rounded border border-foreground/15 p-3">
+          <div key={label} className="rounded-2xl border border-line bg-card p-3">
             <dt className="text-xs text-foreground/60">{label}</dt>
             <dd className="text-2xl font-semibold tabular-nums">{value}</dd>
           </div>
