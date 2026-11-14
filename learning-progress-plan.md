@@ -148,7 +148,11 @@ Built on the `parent-dashboard` branch in `apps/web/server/storage/`. All 11 tes
 - `interactions` also stores `scene_id` and `objective_id` per record, as the identity group in pipeline plan §9 requires.
 - `interaction_diagnostics` is keyed and cascades on (`session_id`, `interaction_id`).
 
-To connect a real database: create the managed Postgres database, set `DATABASE_URL` and `PIPELINE_STORE=postgres` in `apps/web/.env.local`, then run `npm run db:migrate -w web`.
+**Host: Tiger Cloud (Tiger Data's managed Postgres)**, chosen for HackPrinceton's MLH "Best Use of Tiger Data" prize. The migration was applied on Nov 14, and a live round trip through the adapter passed: commit, replay and parent read.
+
+To connect: get the connection string privately from the dashboard owner (never commit it). Put `DATABASE_URL="..."` and `PIPELINE_STORE=postgres` in `apps/web/.env.local`, then run `npm run db:migrate -w web`. `drizzle.config.ts` loads `.env.local` automatically.
+
+Possible extra for the prize: a TimescaleDB hypertable for a separate time-ordered learning-event log. Don't convert `interactions`, because hypertables restrict primary keys and that would break duplicate-safe commits.
 
 ## 7. Integration agreement
 

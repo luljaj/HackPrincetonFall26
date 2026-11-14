@@ -40,6 +40,7 @@ Don't build anything those docs mark as future work or as owned by another teamm
   - `index.ts`: `getPipelineStore()` chooses the adapter from `PIPELINE_STORE`. Luka's memory adapter goes here.
   - Tests: `npm test -w web`. They run the real migrations against in-process Postgres (PGlite), so you need no database to run them.
 - Environment variables are listed in `apps/web/.env.example`. Copy it to `apps/web/.env.local`.
+- **The database is Tiger Cloud (managed Postgres).** Get `DATABASE_URL` privately from the dashboard owner. It never goes in git, docs or chat. `npm run db:migrate -w web` reads `.env.local`.
 
 ## Working rules
 
