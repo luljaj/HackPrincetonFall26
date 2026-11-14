@@ -5,6 +5,7 @@ import { INITIAL, MAX_NUDGES, MAX_TRIES, STAGES, next, type Ctx, type Event, typ
 import { Graph } from "./graph";
 import lines from "./lines.json";
 import spotsData from "./spots.json";
+import trialEpisode from "./episode.json";
 import s from "./lab.module.css";
 import { streamVoice } from "./voice";
 
@@ -22,8 +23,8 @@ type Spot = {
   custom?: boolean;
 };
 const SPOTS = spotsData as Spot[];
-const EPISODE = "/media/dora-ep3.mp4";
-const DURATION = 1445.7;
+const EPISODE = trialEpisode.src;
+const DURATION = trialEpisode.durationSeconds;
 const FADE_MS = 300;
 const THINK_MS = 900; // stand-in for the pipeline round trip
 const TALK_RMS = 0.03; // mouth-open threshold, about -30 dB (calibration knob: retune per voice)
@@ -255,7 +256,7 @@ export default function Lab() {
     <main className={s.lab}>
       <section className={s.stageWrap}>
         <div className={s.screen}>
-          <video ref={episode} src={EPISODE} playsInline preload="auto" className={s.layer} />
+          <video ref={episode} crossOrigin="anonymous" src={EPISODE} playsInline preload="auto" className={s.layer} />
           <div className={`${s.layer} ${s.assistant} ${meta.assistant ? s.show : ""}`}>
             {(["wait", "talk"] as Loop[]).map((n) => (
               <video
@@ -263,6 +264,7 @@ export default function Lab() {
                 ref={(el) => {
                   loops.current[n] = el;
                 }}
+                crossOrigin="anonymous"
                 src={EPISODE}
                 muted
                 playsInline
