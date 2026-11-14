@@ -62,8 +62,7 @@
 
 /* mouth switching between loops: fast but not a hard cut */
 .loop {
-  transition: opacity 70ms linear;
-  opacity: 0;
+  transition: opacity 120ms linear;
 }
 
 .listenRing {

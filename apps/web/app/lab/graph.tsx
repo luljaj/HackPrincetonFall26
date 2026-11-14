@@ -16,6 +16,7 @@ const POS: Record<Stage, [number, number]> = {
   teaching: [440, 90],
   giving: [440, 420],
   clarifying: [610, 130],
+  modeling: [610, 215],
   celebrating: [610, 300],
   graceful: [610, 420],
 };
@@ -30,6 +31,8 @@ const EDGES: Edge[] = (() => {
     INITIAL,
     { ...INITIAL, tries: MAX_TRIES - 1, nudges: MAX_NUDGES },
     { ...INITIAL, awayFrom: "listening" },
+    { ...INITIAL, known: true, tries: MAX_TRIES - 1, nudges: MAX_NUDGES },
+    { ...INITIAL, known: true, modeled: true },
   ];
   const seen = new Map<string, Edge>();
   for (const from of Object.keys(STAGES) as Stage[])
