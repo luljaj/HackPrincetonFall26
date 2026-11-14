@@ -28,6 +28,7 @@ const DURATION = trialEpisode.durationSeconds;
 const FADE_MS = 300;
 const THINK_MS = 900; // stand-in for the pipeline round trip
 const TALK_RMS = 0.03; // mouth-open threshold, about -30 dB (calibration knob: retune per voice)
+const MOUTH_HOLD_MS = 350; // keep talking through gaps between words; swap loops per phrase, not per syllable
 const LIKELY_GAP = 1.5; // the show waits at least this long at a real audience pause
 const LINES: Record<string, string> = lines; // same file the voice generator reads
 const FIREHOUSE = SPOTS.find((sp) => sp.custom) ?? SPOTS[0]!;
@@ -35,9 +36,10 @@ const FIREHOUSE = SPOTS.find((sp) => sp.custom) ?? SPOTS[0]!;
 const fmt = (t: number) => `${String(Math.floor(t / 60)).padStart(2, "0")}:${(t % 60).toFixed(1).padStart(4, "0")}`;
 
 // Which audio file a stage plays at this spot. null = no line (generic spots: the show already asked).
-function lineFor(stage: Stage, spot: Spot): string | null {
-  const base = STAGES[stage].line;
+function lineFor(stage: Stage, spot: Spot, tries: number): string | null {
+  let base = STAGES[stage].line;
   if (!base) return null;
+  if (base === "teach") base = `teach${Math.min(Math.max(tries, 1), 2)}`;
   if (spot.custom || base === "graceful") return base;
   if (base === "ask") return null;
   return `g_${base}`;
@@ -102,10 +104,7 @@ export default function Lab() {
   function pickSpot(sp: Spot) {
     spotRef.current = sp;
     setSpot(sp);
-    for (const n of ["talk", "wait"] as Loop[]) {
-      const el = loops.current[n];
-      if (el) el.currentTime = sp[n][0];
-    }
+    ctxRef.current = { ...ctxRef.current, known: !!sp.custom };
   }
 
   function jump(sp: Spot) {
@@ -113,7 +112,7 @@ export default function Lab() {
     pickSpot(sp);
     lastResumed.current = null;
     episode.current!.currentTime = Math.max(0, sp.t - 2);
-    commit({ ...INITIAL }, `jump ${sp.id}`);
+    commit({ ...INITIAL, known: !!sp.custom }, `jump ${sp.id}`);
     episode.current!.play();
   }
 
@@ -173,15 +172,23 @@ export default function Lab() {
       fadeEpisode(0);
     }
 
-    if (stage === "entering") timers.push(setTimeout(() => send("TRANSITION_DONE"), FADE_MS));
-    if (stage === "exiting") {
-      ep.currentTime = sp.resumeAt;
-      lastResumed.current = sp.id;
+    if (stage === "entering") {
+      // Freeze exactly on the pause frame: the wait loop starts on that same frame, so the crossfade is invisible.
+      ep.currentTime = sp.pauseAt;
+      for (const el of Object.values(loops.current)) if (el) el.currentTime = 0;
       timers.push(setTimeout(() => send("TRANSITION_DONE"), FADE_MS));
+    }
+    if (stage === "exiting") {
+      // Don't fade back until the episode has actually landed on the resume frame (remote seeks take a moment).
+      lastResumed.current = sp.id;
+      const done = () => timers.push(setTimeout(() => send("TRANSITION_DONE"), FADE_MS));
+      ep.addEventListener("seeked", done, { once: true });
+      ep.currentTime = sp.resumeAt;
+      timers.push(setTimeout(() => ep.removeEventListener("seeked", done), 5000));
     }
     if (stage === "thinking") timers.push(setTimeout(() => send(pending.current), THINK_MS));
     if (meta.line) {
-      const file = lineFor(stage, sp);
+      const file = lineFor(stage, sp, ctxRef.current.tries);
       if (file) {
         const customText = liveText.current;
         liveText.current = null;
@@ -224,31 +231,35 @@ export default function Lab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once per stage entry
   }, [stage, started, speechVersion]);
 
-  // Mouth follows the voice (talk range while loud, wait range otherwise); both ranges loop.
+  // Mouth follows the voice: talk loop while she speaks (held through short gaps), wait loop otherwise.
+  // Loops are pre-cut boomerang clips (tools/cut-loops.py), so <video loop> never seeks.
   useEffect(() => {
     if (!started) return;
     const a = audio.current!;
     const buf = new Float32Array(a.analyser.fftSize);
     let raf = 0;
-    const tick = () => {
+    let openUntil = 0;
+    let shown: Loop = "wait";
+    const tick = (now: number) => {
       a.analyser.getFloatTimeDomainData(buf);
       const rms = Math.sqrt(buf.reduce((sum, x) => sum + x * x, 0) / buf.length);
-      const show: Loop = (!line.current!.paused || liveSpeaking.current) && rms > TALK_RMS ? "talk" : "wait";
-      const sp = spotRef.current;
-      for (const n of ["talk", "wait"] as Loop[]) {
-        const el = loops.current[n];
-        if (!el) continue;
-        el.style.opacity = n === show ? "1" : "0";
-        const [from, to] = sp[n];
-        if (el.currentTime >= to || el.currentTime < from - 0.25) el.currentTime = from;
+      const speaking = !line.current!.paused || liveSpeaking.current;
+      if (speaking && rms > TALK_RMS) openUntil = now + MOUTH_HOLD_MS;
+      const show: Loop = speaking && now < openUntil ? "talk" : "wait";
+      if (show !== shown) {
+        shown = show;
+        for (const n of ["talk", "wait"] as Loop[]) {
+          const el = loops.current[n];
+          if (el) el.style.opacity = n === show ? "1" : "0";
+        }
       }
       raf = requestAnimationFrame(tick);
     };
-    tick();
+    raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [started]);
 
-  const file = lineFor(stage, spot);
+  const file = lineFor(stage, spot, ctx.tries);
   const caption = file ? (speechCaption ?? LINES[file]) : stage === "listening" ? `🎤 listening… “${spot.text.slice(-70)}”` : stage === "thinking" ? "…" : "";
   const shown = likelyOnly ? SPOTS.filter((x) => x.gap >= LIKELY_GAP) : SPOTS;
 
@@ -264,12 +275,14 @@ export default function Lab() {
                 ref={(el) => {
                   loops.current[n] = el;
                 }}
-                crossOrigin="anonymous"
-                src={EPISODE}
+                src={`/media/loops/${spot.id}-${n}.mp4`}
                 muted
+                loop
+                autoPlay
                 playsInline
                 preload="auto"
                 className={`${s.layer} ${s.loop}`}
+                style={{ opacity: n === "wait" ? 1 : 0 }}
               />
             ))}
             {stage === "listening" && <div className={s.listenRing} />}
