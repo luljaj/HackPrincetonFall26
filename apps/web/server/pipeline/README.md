@@ -1,7 +1,7 @@
 # Deterministic turn service
 
-Pure modules are importable by `tsx`; the future runtime/route entry points must carry
-`server-only` guards. There are no real provider calls in this implementation.
+Pure modules are importable by `tsx`; runtime and route composition entry points carry
+`server-only` guards. The runtime uses the real OpenAI adapters lazily on the first turn.
 
 - `processTurn(input: ProcessTurnInput, dependencies: PipelineDependencies): Promise<TurnResponse>`
   accepts `{ sessionId, metadata: { interactionId, questionId, expectedTurnNumber }, audio: File }`.
@@ -101,4 +101,82 @@ are explicitly a text bypass and cannot establish decoding or microphone quality
 No recorded fixtures or recorder evidence are bundled. Actual recorder samples, noisy-room
 checks, provider credentials/budget and live quality/latency remain external validation.
 Application non-persistence does not establish provider retention; review account settings
-before deployment. These adapters do not implement a runtime selector, HTTP or dev UI.
+before deployment. The runtime and HTTP integration below compose these adapters.
+
+
+## HTTP integration and local inspector
+
+Node App Router handlers expose `POST /api/learning/sessions` with strict JSON
+`{ "sceneId": "demo-scene" }` (201), then
+`POST /api/learning/sessions/{sessionId}/turns` (200). The only bundled scene is
+`server/scenes/example.scene.ts`, an explicitly synthetic counting fixture; replace
+it with the agreed authored scene in the server scene loader before the demo.
+Setup and the inspector work without an API key; the first transcription/Luna call
+initializes the configured real adapters. Missing credentials return safe 502 errors.
+
+Send a multipart `File` in `audio`, UUID `interactionId`, exact `questionId`, and
+nonnegative integer text `expectedTurnNumber` (initially `"0"`). All four fields are
+required exactly once; extra fields, including `transcript`, are rejected. Do not
+set the browser's multipart Content-Type; let fetch supply its boundary. Files must
+be nonempty and at most 3 MiB, with a matching filename suffix, MIME and basic
+container signature: WebM (`audio/webm` or `video/webm`), MP4 (`audio/mp4` or
+`video/mp4`), M4A (`audio/mp4`, `audio/m4a`, `audio/x-m4a`), or WAV (`audio/wav`,
+`audio/wave`, `audio/x-wav`). Codec parameters are permitted. Signature checks do
+not prove valid audio; the transcription provider must still successfully decode
+it. This endpoint does not transcode or persist uploads. Confirm deployment body
+limits externally; Next multipart parsing buffers the request before file validation.
+
+The controller must send only one in-flight turn per session. Retain the completed
+File, interaction ID and original metadata through failures or lost responses, and
+retry that exact submission. A completed interaction is looked up before stale
+question/turn checks and returns its original stored result without another model
+call/write/publication. Newly recorded answers need fresh IDs. The server does not
+hash/compare retry audio. After a successful result use its committed turnNumber and
+nextQuestion; null ends this teaching moment. Technical errors have the shared
+safe `{ error: { code, message, requestId } }` envelope: 400 malformed/empty, 413
+oversize, 415 unsupported/undecodable, 404 missing session, 409 stale/closed turn,
+502 provider/model, 503 store. No playback acknowledgment is required.
+
+`runtime.ts` uses a global symbol so independently compiled Next route bundles share
+one process-local store and development trace map, rather than allocating per
+request. `PIPELINE_STORE=memory` (the default) is permitted only for development or
+test; production memory, `postgres`, and unknown adapters fail with 503. No durable
+adapter is implemented. The storage teammate should replace the selector with their
+`PipelineStore` implementation from `server/storage/contract.ts`, preserving atomic
+duplicate-before-version commit checks. That contract and committed records are
+the integration boundary for their authorized parent progress reader/dashboard.
+Memory and traces disappear on restart, are unbounded for this short-lived local
+harness, and are not shared across processes/instances or suitable for deployment.
+Restart development after changing runtime/provider configuration.
+
+A realtime owner can install their server-side publisher once during server setup
+by assigning `getPipelineRuntime().pipeline.publish = async (event) => { ... }`.
+The hook receives only sessionId, interactionId and committed turnNumber, after
+successful storage. It is currently unset: no socket server or delivery transport
+exists here. Failed publication logs only a fixed category and does not undo the
+turn; the subscriber must refetch/resync saved state. Do not configure this hook
+inside each request or expose provider credentials/private records to clients.
+
+For local inspection, set `PIPELINE_DEBUG=true` and run `npm run dev --workspace=web`
+with NODE_ENV=development. Both `/dev/pipeline` and
+`GET /api/dev/pipeline/{sessionId}?interactionId={interactionId}` return 404 without
+both conditions, including production with the opt-in set. Never deploy a
+NODE_ENV=development server with real learner data. The debug endpoint returns the
+private session, selected record read back from the store, original commit trace,
+and latest HTTP duration. The page provides a new-session selector, file upload,
+submit and exact-retry controls; it displays the public response separately from
+private scene/question guides, transcript, draft, assessment, parent summary and
+all timings. It does not record, play speech or implement a child/dashboard UI.
+
+Record diagnostics contain transcription/Luna and precommit durations. The trace
+adds persistence and pipeline-total timing; HTTP total includes multipart parsing
+through service return, excluding response serialization/transfer. Client round-trip
+includes upload and the turn response, excluding the subsequent debug read. Replays
+retain the original commit trace but update HTTP and client durations. A null Luna
+duration/draft means it was skipped (empty transcript). No second timing write is
+made. Detailed traces are collected only with local debug enabled and never hold audio.
+
+`http.test.ts` exercises injectable handlers with fake adapters, strict upload/error
+boundaries, setup/replay/readback and debug/storage gates. Tests and the default
+evaluator use no network/provider calls. Real recorder/container decoding and live
+model quality/latency require separate authorized live evaluation with credentials.
