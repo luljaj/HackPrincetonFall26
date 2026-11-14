@@ -168,24 +168,109 @@ These are in scope for the hackathon, in priority order.
 
 Not added: accounts and logins, charts across sessions, scores or percentages, and generated summaries beyond Luna's existing parent summary.
 
-## 9. Future work — mention only
+## 9. Parent dashboard foundation
+
+The dashboard owner builds the technical foundation for the parent view: styling setup, routes, data wiring and UI states. **Visual design (layout, colors, type, illustration) is not part of this work.** The foundation exposes design tokens and unstyled-but-structured components so the design can be applied in one place later.
+
+### Tailwind setup (Tailwind CSS v4)
+
+The `web` app currently has no Tailwind. It uses the starter's `globals.css` and `page.module.css`.
+
+1. Run this from the repo root: `npm install -w web tailwindcss @tailwindcss/postcss postcss`
+2. Add `apps/web/postcss.config.mjs`:
+   ```js
+   export default { plugins: { "@tailwindcss/postcss": {} } };
+   ```
+3. Replace the top of `apps/web/app/globals.css`:
+   ```css
+   @import "tailwindcss";
+   @source "../../../packages/ui/src";   /* scan shared components too */
+
+   @theme {
+     --color-background: var(--background);
+     --color-foreground: var(--foreground);
+     --font-sans: var(--font-geist-sans);
+     --font-mono: var(--font-geist-mono);
+     /* design tokens go here; placeholders until the design lands */
+   }
+   ```
+   Keep the existing `:root` variables and the dark-mode block. Delete the starter-only rules after the starter page is removed.
+4. Check the Tailwind and Next.js versions actually installed, and follow their docs if they differ from this. `AGENTS.md` also requires reading the installed Turbo docs before changing Turbo config. This setup doesn't need any Turbo changes.
+
+Only `web` gets Tailwind. `apps/docs` stays as it is.
+
+### Routes and files
+
+```text
+apps/web/app/parent/
+  layout.tsx                         Access-code gate (server), page shell
+  [sessionId]/page.tsx               Server component: first read via ProgressReader
+  [sessionId]/live-progress.tsx      Client component: subscribes, refetches on change
+  _components/
+    session-header.tsx               Objective, sample-data badge
+    interaction-card.tsx             Question, transcript, response, assessment
+    assessment-label.tsx             Section 3 wording only
+    misconception-note.tsx           "This answer might mean…", hidden when null
+    parent-summary.tsx               Latest non-null summary
+    next-step.tsx                    Pre-written suggestion by objective ID
+    states.tsx                       Loading, empty, error
+apps/web/app/api/parent/sessions/[sessionId]/progress/route.ts
+apps/web/lib/parent/wording.ts       answerStatus/assistance → section 3 text
+apps/web/lib/parent/next-steps.ts    objectiveId → suggestion
+apps/web/lib/parent/subscribe.ts     subscribeToSession(): wraps the agreed realtime transport
+```
+
+Dashboard components stay in `apps/web`. `packages/ui` is shared with `docs`, so move something there only if a second app needs it.
+
+### Data wiring
+
+- The server page calls `getSessionProgress` directly for the first render.
+- The client component calls `subscribeToSession(sessionId, onChange)`. Each change notification (session ID, interaction ID, turn number) triggers a refetch of `GET /api/parent/sessions/{sessionId}/progress`. Notifications never carry evidence themselves, as section 2 requires.
+- Ignore notifications whose turn number is at or below what's on screen, and drop any refetch response that's older than the one already shown.
+- Refetch on connect and reconnect, plus a slow resync every ~10 seconds so a missed event still shows up.
+- Realtime ownership and hosting aren't assigned yet (section 7). `subscribe.ts` is the only file that knows the transport. Until it exists, its stub just runs the resync on a short timer, so the dashboard works end to end against fixtures and the memory adapter.
+- The route returns `SessionProgress` only. It must never include `answerGuide`, `next_question` guides or diagnostics. Add a test that fails if a guide appears in the response.
+- Render `SessionProgress.activeQuestion` separately from completed interactions: after the original wrong answer, show its incorrect evidence and the pending variant immediately. After the assessed variant answer, clear the pending question and retain both actual assessments, even if the second is incorrect. Match questions by `questionId`, as section 5 specifies.
+- Show all wording through `wording.ts` so section 3's claim limits live in one place, with unit tests for every `answerStatus` value.
+- Build against the section 8 fixtures first. The fixtures, the memory adapter and the Postgres adapter all go through the same `ProgressReader`.
+
+### UI states the foundation must cover
+
+| State | Shows |
+| --- | --- |
+| Loading | Skeleton, with no fake numbers |
+| No interactions yet | "Waiting for the first answer" |
+| Live | Interactions ordered by turn; the newest one appears without a page reload |
+| Sample data | A persistent "Sample data" badge, driven by the session record and not by the URL |
+| Error / store down / socket lost | A plain message; it reconnects and resyncs on its own |
+| Wrong or missing access code | Code entry form, no session data |
+
+### Foundation done when
+
+- Tailwind classes render in `web`, and `npm run build`, `lint` and `check-types` pass from the root.
+- `/parent/{sampleSessionId}` renders the fixture session in every state above.
+- A new committed interaction shows up within about two seconds with no page reload.
+- No private field reaches the browser, and the test proves it.
+- A designer can restyle everything by editing `@theme` tokens and component class names, with no data or logic changes.
+
+## 10. Future work — mention only
 
 - **Before/after learning checks.** The pitch may say: “We plan to add short checks before and after the episode to compare answers on similar questions.” These checks are not implemented or demonstrated. Do not add types, fields, routes, prompts, fixtures, UI placeholders, or storage scaffolding for them now. Question matching and interpretation will be designed when this feature is actually taken on.
 - **Progress across sessions.** A possible later extension, not an implemented read interface or demo claim. No second-session demonstration.
 - **Sample data.** Any seeded session illustrates the implemented episode interaction and is visibly labeled “Sample data.” It must not fabricate a before/after feature or real learning history.
 
-## 10. Privacy
+## 11. Privacy
 
 - No raw audio is retained in application storage. This does not establish the external transcription provider's retention policy.
 - Transcripts of children's speech are personal data. Use pseudonymous learner labels and synthetic or team-member voices for every demo and test. Never record a real child.
 - Parent-facing queries read only `interactions` and `sessions`, never `interaction_diagnostics`.
 - Before any real-child use after the hackathon, get advice on children's privacy law (for example COPPA in the US) and on the transcription provider's retention settings.
 
-## 11. Build order
+## 12. Build order
 
 1. Agree the documented turn/evidence/progress/realtime schemas with Luka. When implementation begins, create shared runtime types and synthetic fixtures, including `activeQuestion` and per-interaction `questionId`. No check-related contract changes.
 2. Implement `PipelineStore` against section 4, including full private question context, atomic updates, and session-scoped duplicate handling. Run the store contract tests against the durable adapter.
 3. Implement `getSessionProgress` and test empty sessions, original wrong answer with pending variant, terminal correct/incorrect variant answers, unclear answers, assistance counts, and preservation of the latest non-null summary. Omit private answer guides from active questions and interaction reads.
-4. Build the parent dashboard around ordered question/answer evidence, tentative assessments, and the session summary. Verify private guides and drafts are excluded from public responses.
+4. Build the parent dashboard foundation from section 9 (Tailwind, routes, the `subscribeToSession` wrapper, UI states, the wording module) against fixtures, then apply the design once it's ready. Preserve ordered question/answer evidence, tentative assessments, and the session summary. Verify private guides and drafts are excluded from public responses.
 5. Connect both views through the agreed realtime service. Verify that a committed child interaction refreshes parent evidence, reconnect/missed events resync from storage, and duplicate notifications do not duplicate evidence. The dashboard must read the same committed evidence returned by the pipeline.
 6. Prove records survive backend restart and rehearse the two-minute demo. Mention future checks in the pitch only.
