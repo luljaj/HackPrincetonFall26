@@ -6,17 +6,21 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  /* Highlight for a just-arrived wrong answer. Placeholder until the design lands. */
+  --color-attention: var(--attention);
 }
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --attention: #b45309;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --attention: #f59e0b;
   }
 }
 

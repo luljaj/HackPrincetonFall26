@@ -173,6 +173,13 @@ Built and tested against PGlite (15 tests) and Tiger Cloud:
 - `activeQuestion` is shown as soon as it exists: "Dora is asking a follow-up" appears right after the original wrong answer, and it's cleared once the variant is answered. Each interaction carries `questionId`. This was tested live on Tiger Cloud.
 - The sample session's ID is now a fixed UUID (`lib/parent/sample-id.ts`), because the shared schema requires UUID session and interaction IDs. Reseeding removes the old `sample-session` row.
 
+### New-answer highlight (Nov 14)
+
+- An answer that arrives while the page is open gets a "New answer" badge and an outline for 8 seconds, and the page scrolls to it. Wrong answers use the amber `--color-attention` token (a placeholder in `globals.css` for the designer); other answers get a quiet outline.
+- Nothing is highlighted on page load or refresh, only answers that arrive live.
+- Screen readers hear "New answer: …" with the same claim wording as the card. Scrolling is instant for viewers who prefer reduced motion.
+- The detection logic is in `lib/parent/highlight.ts`, with tests in `highlight.test.ts`. It was tested live on Tiger Cloud.
+
 ## 7. Integration agreement
 
 | With | Agreement | Boundary |
