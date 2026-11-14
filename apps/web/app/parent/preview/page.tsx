@@ -8,7 +8,9 @@ import {
   type PreviewSubject,
   type SkillStatus,
 } from "../../../lib/parent/preview-data";
+import { FOCUS_LABEL, type Focus } from "../../../lib/parent/preferences";
 import { getParentViewReader } from "../../../lib/parent/reader";
+import { getPreferencesStore } from "../../../server/storage";
 import { AFTER_HELP_CHIP, statusChip, type ChipTone } from "../../../lib/parent/wording";
 import { Chip } from "../_components/chip";
 
@@ -28,6 +30,7 @@ const day = (iso: string) =>
 // such everywhere. Only the "Live today" box under Math reads real sessions.
 export default async function PreviewPage() {
   const realMath = (await getParentViewReader().listParentViews(20)).filter((v) => !v.isSample);
+  const { focus } = await getPreferencesStore().get();
 
   return (
     <>
@@ -72,7 +75,7 @@ export default async function PreviewPage() {
       </nav>
 
       {PREVIEW_SUBJECTS.map((s) => (
-        <SubjectSection key={s.id} subject={s} liveCount={s.id === "math" ? realMath.length : null} />
+        <SubjectSection key={s.id} subject={s} focus={focus} liveCount={s.id === "math" ? realMath.length : null} />
       ))}
 
       <p className="text-sm text-foreground/60">
@@ -83,7 +86,16 @@ export default async function PreviewPage() {
   );
 }
 
-function SubjectSection({ subject, liveCount }: { subject: PreviewSubject; liveCount: number | null }) {
+function SubjectSection({
+  subject,
+  focus,
+  liveCount,
+}: {
+  subject: PreviewSubject;
+  focus: Focus;
+  liveCount: number | null;
+}) {
+  const level = focus[subject.id];
   return (
     <section
       id={subject.id}
@@ -96,6 +108,11 @@ function SubjectSection({ subject, liveCount }: { subject: PreviewSubject; liveC
             {subject.name}
           </h2>
           <span className="rounded border border-foreground/30 px-1.5 text-xs uppercase">Sample</span>
+          {level !== "usual" && (
+            <span className="rounded-full px-2 py-0.5 text-xs font-semibold text-white" style={{ background: subject.color }}>
+              {FOCUS_LABEL[level]} focus (your setting)
+            </span>
+          )}
         </div>
         <p className="text-[17px]">{subject.headline}</p>
       </div>

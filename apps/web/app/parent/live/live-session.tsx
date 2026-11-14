@@ -44,7 +44,7 @@ export function LiveSession({ demoTools, childName }: { demoTools: boolean; chil
       {live === undefined ? (
         <LoadingState />
       ) : live.view ? (
-        <SessionView key={live.view.progress.sessionId} view={live.view} childName={childName} />
+        <SessionView key={live.view.progress.sessionId} view={live.view} childName={childName} live />
       ) : (
         <div className="space-y-2">
           <p className="text-foreground/70">Waiting for a session to start…</p>

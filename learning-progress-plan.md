@@ -238,6 +238,19 @@ Rules it follows:
 - **No mastery or scores.** A test checks the sample text for words like "mastered", "score" or "%".
 - This is a demo of future work (progress across sessions, from section 10). It isn't an implemented progress model.
 
+### Compact home and learning focus (Nov 14)
+
+- **Compact `/parent` home.**
+  - The counts are a small row of pills.
+  - Below them, every show is one collapsed row: "Dora · 1 session · 2 answered · last Sat 4:29 PM". Click a show to list its sessions, then click a session to see the "Dora asked / Sam said / Dora replied" rows.
+  - Open sections stay open through the 5-second refresh.
+  - Once real sessions exist, the seeded sample stays out of the list, the same rule the counts use.
+- **Learning focus (parent control).** Math, English and Science each have Less / Usual / More.
+  - Every click saves immediately to `parent_preferences` (migration `0003`, applied on Tiger), and the parent can change it any time.
+  - The settings also appear as badges on `/parent/preview`.
+  - `GET /api/parent/preferences` returns `{ focus, updatedAt }`, so **Play mode can read it to pick more moments in a subject.** Nothing reads it yet. `PUT` requires parent access.
+  - Luka's pipeline doesn't depend on it (as agreed in pipeline plan §9).
+
 ## 7. Integration agreement
 
 | With | Agreement | Boundary |

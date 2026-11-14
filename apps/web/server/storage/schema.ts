@@ -110,3 +110,11 @@ export const learningEvents = pgTable(
   },
   (t) => [index("learning_events_session_time_idx").on(t.sessionId, t.eventTime)],
 );
+
+// What the parent wants more (or less) of, per subject. One row per learner; "default" until
+// learner accounts exist. Read by GET /api/parent/preferences so Play mode can use it later.
+export const parentPreferences = pgTable("parent_preferences", {
+  learnerKey: text("learner_key").primaryKey(),
+  focus: jsonb("focus").notNull(), // { math: "less" | "usual" | "more", english: …, science: … }
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+});
