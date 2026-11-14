@@ -16,6 +16,13 @@ Updated November 14, 2026. This document consolidates the planning conversation 
 
 An existing cartoon becomes an interactive learning experience. At a prepared story moment, Dora needs the child's help. The child answers aloud; generated teaching dialogue responds to the answer, then the original episode continues. Parents can inspect learning evidence.
 
+### Two connected experiences
+
+- **Kid view:** a TV-style hub with cartoon channels/tiles, such as Dora and Bluey, leading into playback. A separate teammate owns the intricate kid UI design. Only prepared content is actually playable as an interactive lesson in the initial slice.
+- **Parent view:** retains the learning-evidence dashboard. Proposed learning-preference controls (such as choosing math) belong to its owner; whether they are functional in the demo is not settled and is not a prerequisite for Luka's work.
+- **Live synchronization:** use a shared backend with WebSocket change notifications after durable writes. Child interactions refresh parent evidence. Parent-to-kid preference updates are conditional on the other owner implementing them, not required now. Browsers do not directly own each other's state. Audio submissions and model processing keep their HTTP flow.
+- The cartoon controller displays/plays supplied content and coordinates recording/playback. Question reasoning stays in the model pipeline. Parent-control functionality belongs to its teammate; view pairing and realtime hosting/ownership still need team agreement; see the learning progress plan. Do not infer an entire scheduling system or multi-show lesson catalog from the new presentation.
+
 ### Agreed constraints
 
 - **Hard two-minute demo cap**, supplied by the user. Do not plan a second-session demonstration.
@@ -48,7 +55,9 @@ The user's ownership is the **model/conversation pipeline and shared interfaces*
 | Cartoon experience | Cartoon teammate: scene preparation, microphone capture, end-of-answer detection, turn coordination, episode progression, ElevenLabs speech generation, avatar/video playback. |
 | Model pipeline | User: transcription, Luna integration, response selection, model context/history, learning-evidence output, pipeline visibility, small evaluation set. |
 | Shared interfaces | User defines the contracts among cartoon, pipeline, and dashboard, in agreement with teammates. This does not mean implementing their features. |
-| Dashboard and persistence | Dashboard teammate: dashboard UI/UX plus storage/read interfaces for interaction evidence. User's pipeline writes its completed processing result through that interface. |
+| Parent dashboard and persistence | Dashboard teammate: parent controls, evidence UI, and durable storage/read interfaces. User's pipeline writes completed processing results through that interface. |
+| Kid TV hub | Separate kid UI teammate: show/channel selection and kid-facing presentation; integrate with cartoon playback; functional parent controls are not a prerequisite. |
+| Realtime connection | Team must assign service ownership: authorized WebSocket subscriptions and notifications after durable changes. User defines the pipeline commit notification boundary, not all realtime infrastructure. |
 
 ### Explicitly outside the user's scope
 
@@ -69,7 +78,7 @@ The user's ownership is the **model/conversation pipeline and shared interfaces*
 6. **Luna returns proposed dialogue and a learning assessment in one call.** The same call also returns a one-sentence parent summary of the session so far. Do not add a second evaluator to the critical path by default.
 7. Application code composes the final response: teaching or clarification.
 8. **Save the interaction after processing finishes.** Do not wait for playback acknowledgment.
-9. Return the selected response text and response type to the cartoon controller, with the agreed assessment metadata.
+9. After the write succeeds, notify the parent view through the shared realtime integration. Return the selected response text and response type to the cartoon controller, with the agreed assessment metadata.
 10. The cartoon teammate generates speech, drives visuals, and decides whether another turn happens or the episode resumes.
 
 The exact endpoint layout, transport, response schema, and persistence-call ordering need to be defined in the application repository. These steps express responsibilities rather than finalized API signatures.
