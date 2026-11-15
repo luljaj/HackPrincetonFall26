@@ -25,3 +25,14 @@ test("every inserted addition has the correct answer to practise in all supporte
     }
   }
 });
+
+test("the treasure edit keeps the arithmetic and uses keys in the question, answer and prepared voice", () => {
+  for (const index of [0,1,2,3]) {
+    const lesson=additionLesson(index,"keys");
+    assert.match(lesson.question,/keys/);
+    assert.doesNotMatch(lesson.question,/stars/);
+    assert.equal(lesson.answer,additionLesson(index).answer);
+    assert.ok(lesson.accept.some(value => value === lesson.answer+" keys"));
+    assert.match(lesson.line,/^demoKeysAddition[123]$/);
+  }
+});

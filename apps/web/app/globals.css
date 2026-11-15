@@ -13,23 +13,10 @@
   --color-line: var(--line);
   --color-good: var(--good);
   --color-warn: var(--warn);
-  /* Tellavision parent look, read from the Figma parent frames. Used by /parent (.tv-home). */
-  --color-tv-page: #fdfdfc;
-  --color-tv-yellow: #ffde36;
-  --color-tv-card: #d9d9d9;
-  --color-tv-panel: #e7e7e7;
-  --color-tv-badge: #696969;
-  --color-tv-blue: #1b18e9;
-  --color-tv-blue-light: #9db8ff;
-  --font-display: var(--font-sora), system-ui, sans-serif;
-  --font-lexend: var(--font-lexend-face), system-ui, sans-serif;
-  --shadow-tv-halo: 0 0 92.5px rgb(0 0 0 / 0.1);
-  --shadow-tv-chip: 0 0 13.7px rgb(0 0 0 / 0.1);
-  --shadow-tv-button: 0 0 9.7px rgb(0 0 0 / 0.1);
-}
-
-/* shadcn/ui semantic tokens (components/ui). Inline, so they follow whichever theme sets the variables. */
-@theme inline {
+  /* shadcn/ui tokens (components/ui). Used by the parent companion. */
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -42,26 +29,29 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-card-foreground: var(--card-foreground);
 }
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
   --attention: #b45309;
-  --primary: #171717;
+  /* shadcn/ui palette, tuned to the companion's blue. */
+  --card: #ffffff;
+  --card-foreground: #23263a;
+  --popover: #ffffff;
+  --popover-foreground: #23263a;
+  --primary: #3949f4;
   --primary-foreground: #ffffff;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #171717;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --accent: #f4f4f5;
-  --accent-foreground: #171717;
-  --destructive: #b91c1c;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #a1a1aa;
-  --card-foreground: var(--foreground);
+  --secondary: #f2f3f8;
+  --secondary-foreground: #2f3347;
+  --muted: #f3f4f8;
+  --muted-foreground: #858a9e;
+  --accent: #eceeff;
+  --accent-foreground: #2c3270;
+  --destructive: #d6336c;
+  --border: #e8eaf1;
+  --input: #e4e6ee;
+  --ring: #3949f4;
 }
 
 @media (prefers-color-scheme: dark) {
