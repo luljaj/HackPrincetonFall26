@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { LESSONS_EVENT } from "../../../lib/play/language-lessons";
 import { useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   DEFAULT_FOCUS,
   FocusSchema,
@@ -15,6 +16,12 @@ import {
   type FocusLevel,
 } from "../../../lib/parent/preferences";
 import { demoAnswer, DEMO_MODE_EVENT, isDemoPrompt, readDemoMode } from "../../../lib/parent/demo-mode";
+import { Plus, RotateCcw } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import styles from "./chat-panel.module.css";
 
 type Tone = "good" | "help" | "miss" | "neutral";
@@ -42,17 +49,15 @@ const TONE_LABEL: Record<Tone, string> = {
   neutral: "",
 };
 
-function Sparkle() {
+function TellavisionMark({ size = 32 }: { size?: number }) {
   return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      aria-hidden="true"
-    >
-      <path d="M10 2l2.1 5.9L18 10l-5.9 2.1L10 18l-2.1-5.9L2 10l5.9-2.1zM19 14l1.1 3.1L23 18l-2.9 1.1L19 22l-1.1-2.9L15 18l2.9-.9z" />
-    </svg>
+    <Image
+      src="/tellavision-logomark.svg"
+      alt=""
+      width={size}
+      height={size}
+      unoptimized
+    />
   );
 }
 
@@ -61,12 +66,61 @@ const reducedMotion = () =>
   typeof window !== "undefined" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-// One slow veil that rises through the whole agent window when an answer lands.
+// One slow veil that rises through the whole page when the companion opens.
 const SWEEP_MS = 2800;
 const SWEEP_EASE = "cubic-bezier(0.4, 0, 0.3, 1)";
-const WAVE_H = 300;
-type Stage = { panel: React.RefObject<HTMLElement | null>; wave: React.RefObject<HTMLDivElement | null> };
-const StageContext = createContext<Stage | null>(null);
+// How long a reply takes to replace its skeleton.
+const REVEAL_MS = 650;
+
+/** Raise the veil through `panel` once; `content` comes up behind it. */
+function playSweep(panel: HTMLElement, wave: HTMLElement, content?: HTMLElement | null) {
+  const timing = { duration: SWEEP_MS, easing: SWEEP_EASE };
+  const box = panel.getBoundingClientRect();
+  const waveH = wave.offsetHeight || 300;
+  // The veil's middle crosses a point y (in panel space) at this share of the sweep.
+  const when = (y: number) => Math.min(1, Math.max(0, (box.height + waveH / 2 - y) / (box.height + waveH)));
+  const animations: (Animation | undefined)[] = [
+    wave.animate(
+      [
+        { transform: `translateY(${box.height}px) scaleX(.85)`, opacity: 0, offset: 0 },
+        { opacity: 1, offset: 0.08 },
+        { opacity: 1, offset: 0.9 },
+        { transform: `translateY(${-waveH}px) scaleX(1.1)`, opacity: 0, offset: 1 },
+      ],
+      timing,
+    ),
+    // The veil's body breathes as it rises: it swells, pulls in, and swells
+    // again, drifting side to side, so it reads as a ripple rather than a slab.
+    wave.firstElementChild?.animate(
+      [
+        { transform: "translateX(0) scale(1, 1)" },
+        { transform: "translateX(2%) scale(1.07, 1.28)", offset: 0.22 },
+        { transform: "translateX(-2.5%) scale(0.95, 0.86)", offset: 0.45 },
+        { transform: "translateX(1.5%) scale(1.05, 1.2)", offset: 0.68 },
+        { transform: "translateX(-1%) scale(0.97, 0.92)", offset: 0.86 },
+        { transform: "translateX(0) scale(1, 1)" },
+      ],
+      { duration: SWEEP_MS, easing: "ease-in-out" },
+    ),
+  ];
+  if (content) {
+    const rect = content.getBoundingClientRect();
+    const bottom = when(rect.bottom - box.top);
+    const top = Math.max(bottom + 0.001, when(rect.top - box.top));
+    animations.push(
+      content.animate(
+        [
+          { clipPath: "inset(100% 0 0 0)", offset: 0 },
+          { clipPath: "inset(100% 0 0 0)", offset: bottom },
+          { clipPath: "inset(0 0 0 0)", offset: top },
+          { clipPath: "inset(0 0 0 0)", offset: 1 },
+        ],
+        timing,
+      ),
+    );
+  }
+  return () => animations.forEach((a) => a?.cancel());
+}
 
 // A question's answer, drawn as a small sheet.
 function Sheet({ turn }: { turn: Turn }) {
@@ -200,6 +254,10 @@ function FocusBoard({
     return () => window.clearTimeout(timer);
   }, [change, focus, crankAt]);
 
+  const isChanged = (id: string) => !!change && change.before[id] !== change.after[id];
+  const hero = SUBJECTS.filter((subject) => isChanged(subject.id));
+  const rest = SUBJECTS.filter((subject) => !isChanged(subject.id));
+
   return (
     <article className={styles.board}>
       <div className={styles.boardHead}>
@@ -208,8 +266,9 @@ function FocusBoard({
           {reply && reply !== headline && <p>{reply}</p>}
         </div>
       </div>
+      {/* What changed gets a full dial; everything else sits in a quiet row below. */}
       <ul className={styles.subjects}>
-        {SUBJECTS.map((subject) => {
+        {hero.map((subject) => {
           const before = change?.before[subject.id];
           const level = shown[subject.id] ?? "usual";
           const changed = !!change && before !== change.after[subject.id];
@@ -240,6 +299,27 @@ function FocusBoard({
           );
         })}
       </ul>
+      {rest.length > 0 && (
+        <div className={styles.restRow}>
+          <span className={styles.focusStripLabel}>
+            {hero.length > 0 ? "Everything else stays as it was" : "Learning focus"}
+          </span>
+          {rest.map((subject) => {
+            const level = shown[subject.id] ?? "usual";
+            return (
+              <span key={subject.id} className={styles.focusChip}>
+                <span className={styles.miniDial}>
+                  <Dial level={level} color={subject.color} />
+                </span>
+                <span>
+                  <b>{subject.name}</b>
+                  <small>{FOCUS_LABEL[level]}</small>
+                </span>
+              </span>
+            );
+          })}
+        </div>
+      )}
     </article>
   );
 }
@@ -261,17 +341,33 @@ function Skeleton({ shape, child }: { shape: "dials" | "rows"; child: string }) 
         </span>
       </div>
       {shape === "dials" ? (
-        <div className={styles.subjects}>
-          {SUBJECTS.map((subject) => (
-            <div key={subject.id} className={styles.subject}>
+        <>
+          <div className={styles.subjects}>
+            <div className={styles.subject}>
               <DialFace />
               <span className={styles.bars} data-center>
-                <i style={{ width: 54, height: 16 }} />
-                <i style={{ width: 70, height: 8 }} />
+                <i style={{ width: 84, height: 22 }} />
+                <i style={{ width: 96, height: 8 }} />
               </span>
             </div>
-          ))}
-        </div>
+          </div>
+          <div className={styles.restRow}>
+            <span className={styles.bars} data-center style={{ width: "100%" }}>
+              <i style={{ width: 150, height: 8 }} />
+            </span>
+            {SUBJECTS.slice(1).map((subject) => (
+              <span key={subject.id} className={styles.focusChip} data-ghost>
+                <span className={styles.miniDial}>
+                  <DialFace />
+                </span>
+                <span className={styles.bars}>
+                  <i style={{ width: 64, height: 9 }} />
+                  <i style={{ width: 36, height: 7 }} />
+                </span>
+              </span>
+            ))}
+          </div>
+        </>
       ) : (
         <div className={styles.rows}>
           {[48, 66, 38, 58, 44].map((width, i) => (
@@ -290,70 +386,48 @@ function Skeleton({ shape, child }: { shape: "dials" | "rows"; child: string }) 
 }
 
 // One card per message, filling the window. It starts as a skeleton; when the
-// answer lands, the window's veil rises once, slowly, and the real answer comes
-// up behind it: below the veil it's real, above it still skeleton.
+// answer lands it crossfades in. (The big veil plays once, when the page opens.)
 function Result({ turn, focus, child }: { turn: Turn; focus: Focus; child: string }) {
   const done = turn.status === "done";
-  const stage = useContext(StageContext);
   const [shape] = useState<"dials" | "rows">(() => (STEERING.test(turn.prompt) ? "dials" : "rows"));
   const cardRef = useRef<HTMLDivElement>(null);
   const ghostRef = useRef<HTMLDivElement>(null);
   const realRef = useRef<HTMLDivElement>(null);
   const sawPending = useRef(!done);
-  const [crankAt] = useState(() => SWEEP_MS * 0.55);
+  const [crankAt] = useState(() => REVEAL_MS * 0.6);
 
-  // Before paint, so the finished card never shows ahead of the veil.
+  // Before paint, so the finished card never shows ahead of the crossfade.
+  // The skeleton blurs away while the answer settles in, in the same frame.
   useLayoutEffect(() => {
-    const panel = stage?.panel.current;
-    const card = cardRef.current;
-    if (!done || !sawPending.current || !panel || !card || reducedMotion()) return;
+    if (!done || !sawPending.current || reducedMotion()) return;
     sawPending.current = false;
-    const timing = { duration: SWEEP_MS, easing: SWEEP_EASE };
-    const box = panel.getBoundingClientRect();
-    const rect = card.getBoundingClientRect();
-    // The veil's top travels from the panel's bottom edge to above its top. Its
-    // middle crosses a point y (in panel space) at this share of the sweep:
-    const span = box.height + WAVE_H;
-    const when = (y: number) => Math.min(1, Math.max(0, (box.height + WAVE_H / 2 - y) / span));
-    const bottom = when(rect.bottom - box.top);
-    const top = Math.max(bottom + 0.001, when(rect.top - box.top));
-    const edge = (hidden: string, shown: string) => [
-      { clipPath: hidden, offset: 0 },
-      { clipPath: hidden, offset: bottom },
-      { clipPath: shown, offset: top },
-      { clipPath: shown, offset: 1 },
-    ];
+    const timing = { duration: REVEAL_MS, easing: "cubic-bezier(0.23, 1, 0.32, 1)" };
     const animations = [
-      stage.wave.current?.animate(
+      realRef.current?.animate(
         [
-          { transform: `translateY(${box.height}px) scaleX(.85)`, opacity: 0, offset: 0 },
-          { opacity: 1, offset: 0.08 },
-          { opacity: 1, offset: 0.9 },
-          { transform: `translateY(${-WAVE_H}px) scaleX(1.1)`, opacity: 0, offset: 1 },
+          { opacity: 0, filter: "blur(8px)", transform: "translateY(10px)" },
+          { opacity: 1, filter: "blur(0)", transform: "none" },
         ],
         timing,
       ),
-      // The veil's body breathes as it rises: it swells, pulls in, and swells
-      // again, drifting side to side, so it reads as a ripple rather than a slab.
-      stage.wave.current?.firstElementChild?.animate(
+      ghostRef.current?.animate(
         [
-          { transform: "translateX(0) scale(1, 1)" },
-          { transform: "translateX(2%) scale(1.07, 1.28)", offset: 0.22 },
-          { transform: "translateX(-2.5%) scale(0.95, 0.86)", offset: 0.45 },
-          { transform: "translateX(1.5%) scale(1.05, 1.2)", offset: 0.68 },
-          { transform: "translateX(-1%) scale(0.97, 0.92)", offset: 0.86 },
-          { transform: "translateX(0) scale(1, 1)" },
+          { opacity: 1, filter: "blur(0)", clipPath: "inset(0 0 0 0)" },
+          { opacity: 0, filter: "blur(6px)", clipPath: "inset(0 0 0 0)" },
         ],
-        { duration: SWEEP_MS, easing: "ease-in-out" },
+        { ...timing, duration: REVEAL_MS * 0.7, fill: "forwards" },
       ),
-      realRef.current?.animate(edge("inset(100% 0 0 0)", "inset(0 0 0 0)"), timing),
-      ghostRef.current?.animate(edge("inset(0 0 0 0)", "inset(0 0 100% 0)"), { ...timing, fill: "forwards" }),
     ];
     return () => animations.forEach((a) => a?.cancel());
-  }, [done, stage]);
+  }, [done]);
 
   return (
-    <div ref={cardRef} className={styles.result} data-status={turn.status} aria-busy={!done}>
+    <Card
+      ref={cardRef}
+      className={cn(styles.result, "gap-0 rounded-[28px] py-0")}
+      data-status={turn.status}
+      aria-busy={!done}
+    >
       {done && (
         <div ref={realRef} className={styles.realLayer}>
           {turn.focusChange ? (
@@ -372,7 +446,120 @@ function Result({ turn, focus, child }: { turn: Turn; focus: Focus; child: strin
       <div ref={ghostRef} className={styles.ghostLayer} aria-hidden={done}>
         <Skeleton shape={shape} child={child} />
       </div>
-    </div>
+    </Card>
+  );
+}
+
+// One exchange: the parent's message, then the companion's reply.
+function Exchange({
+  turn,
+  latest,
+  focus,
+  child,
+  busy,
+  onRetry,
+  origin,
+}: {
+  turn: Turn;
+  latest: boolean;
+  focus: Focus;
+  child: string;
+  busy: boolean;
+  onRetry: () => void;
+  /** The input the message was typed in; a new message lifts out of it. */
+  origin: React.RefObject<HTMLElement | null>;
+}) {
+  const bubbleRef = useRef<HTMLParagraphElement>(null);
+  const agentRef = useRef<HTMLDivElement>(null);
+  const [fresh] = useState(() => turn.status === "pending");
+
+  // Sending: the text lifts out of the input bar and settles into its bubble,
+  // then the reply row rises in behind it. Only for messages sent just now.
+  useLayoutEffect(() => {
+    const bubble = bubbleRef.current;
+    const from = origin.current?.getBoundingClientRect();
+    if (!fresh || !bubble || !from || reducedMotion()) return;
+    const to = bubble.getBoundingClientRect();
+    const dx = from.left - (to.left + 16); // 16px: the bubble's own padding
+    const dy = from.top + from.height / 2 - (to.top + to.height / 2);
+    const ease = "cubic-bezier(0.22, 1, 0.36, 1)";
+    const animations = [
+      bubble.animate(
+        [
+          { transform: `translate(${dx}px, ${dy}px) scale(0.98)`, backgroundColor: "rgb(236 238 255 / 0)" },
+          { backgroundColor: "rgb(236 238 255 / 0)", offset: 0.35 },
+          { transform: "none", backgroundColor: "var(--accent)" },
+        ],
+        { duration: 620, easing: ease },
+      ),
+      bubble.nextElementSibling?.animate(
+        [
+          { opacity: 0, transform: "scale(0.6)" },
+          { opacity: 1, transform: "none" },
+        ],
+        { duration: 400, delay: 260, easing: ease, fill: "backwards" },
+      ),
+      agentRef.current?.animate(
+        [
+          { opacity: 0, transform: "translateY(24px)" },
+          { opacity: 1, transform: "none" },
+        ],
+        { duration: 560, delay: 220, easing: ease, fill: "backwards" },
+      ),
+    ];
+    return () => animations.forEach((a) => a?.cancel());
+  }, [fresh, origin]);
+
+  const status =
+    turn.status === "pending"
+      ? { label: "Working on it", variant: "secondary" as const }
+      : turn.status === "error"
+        ? { label: "Didn't go through", variant: "destructive" as const }
+        : turn.focusChange
+          ? { label: "Focus updated", variant: "default" as const }
+          : { label: "Answer", variant: "outline" as const };
+  return (
+    <section className={styles.turn} data-latest={latest}>
+      <div className={styles.userRow}>
+        <p
+          ref={bubbleRef}
+          className="max-w-[min(70%,560px)] rounded-2xl rounded-br-md bg-accent px-4 py-2.5 text-sm leading-relaxed text-accent-foreground [overflow-wrap:anywhere]">
+          {turn.prompt}
+        </p>
+        <Avatar className="mt-0.5 border">
+          <AvatarFallback className="bg-card text-xs font-semibold text-secondary-foreground">P</AvatarFallback>
+        </Avatar>
+      </div>
+      <div ref={agentRef} className={styles.agentRow}>
+        <Avatar className="mt-0.5">
+          <AvatarFallback className="bg-white">
+            <TellavisionMark />
+          </AvatarFallback>
+        </Avatar>
+        <div className={styles.agentBody}>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-card-foreground">tellavision</span>
+            {/* Re-keyed so each status change pops in. */}
+            <Badge key={status.label} variant={status.variant} className={cn(styles.badgePop, "rounded-full")}>
+              {status.label}
+            </Badge>
+          </div>
+          {turn.status === "error" ? (
+            <Card className="gap-3 rounded-3xl px-5 py-4" role="alert">
+              <p className="text-sm text-muted-foreground">{turn.error}</p>
+              <div>
+                <Button size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={onRetry}>
+                  <RotateCcw />
+                  Try again
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            <Result turn={turn} focus={focus} child={child} />
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -385,7 +572,6 @@ export function ChatPanel({ child }: { child: string }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
   const waveRef = useRef<HTMLDivElement>(null);
-  const [stage] = useState<Stage>(() => ({ panel: panelRef, wave: waveRef }));
   const inputRef = useRef<HTMLInputElement>(null);
   const requestRef = useRef<AbortController | null>(null);
   const nextId = useRef(0);
@@ -417,13 +603,44 @@ export function ChatPanel({ child }: { child: string }) {
 
   useEffect(() => {
     // Scroll only the agent panel, never the dashboard behind it.
+    // Bring the newest message to the top, so its prompt stays in view above the answer.
     const scroll = scrollRef.current;
+    const latestTurn = scroll?.querySelector<HTMLElement>('[data-latest="true"]');
     if (scroll)
       scroll.scrollTo({
-        top: scroll.scrollHeight,
+        top: latestTurn ? latestTurn.offsetTop - 12 : scroll.scrollHeight,
         behavior: reducedMotion() ? "auto" : "smooth",
       });
-  }, [turns, open]);
+  }, [turns.length, open]);
+
+  const composerRef = useRef<HTMLFormElement>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
+
+  // The page grows out of the input bar, so its closed clip is the bar's box.
+  // Measure while closed (the bar moves once the page is open).
+  useLayoutEffect(() => {
+    if (open) return;
+    const measure = () => {
+      const bar = composerRef.current?.getBoundingClientRect();
+      const dock = dockRef.current;
+      if (!bar || !dock) return;
+      dock.style.setProperty("--bar-top", `${bar.top}px`);
+      dock.style.setProperty("--bar-left", `${bar.left}px`);
+      dock.style.setProperty("--bar-right", `${window.innerWidth - bar.right}px`);
+      dock.style.setProperty("--bar-bottom", `${window.innerHeight - bar.bottom}px`);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [open]);
+
+  // The big veil plays once each time the page opens; the page's content comes up behind it.
+  useEffect(() => {
+    const panel = panelRef.current;
+    const wave = waveRef.current;
+    if (!open || !panel || !wave || reducedMotion()) return;
+    return playSweep(panel, wave, scrollRef.current);
+  }, [open]);
 
   function toggle(next: boolean) {
     setOpen(next);
@@ -542,6 +759,7 @@ export function ChatPanel({ child }: { child: string }) {
 
   return (
     <div
+      ref={dockRef}
       className={styles.dock}
       data-open={open}
       onKeyDown={(event) => {
@@ -559,58 +777,55 @@ export function ChatPanel({ child }: { child: string }) {
         inert={!open}
         aria-hidden={!open}
       >
+        <div className={styles.ambient} aria-hidden="true" />
         <header className={styles.header}>
           <div className={styles.identity}>
-            <span className={styles.statusDot} data-busy={busy} aria-hidden="true" />
-            <h2 id="parent-agent-title">{child}&apos;s companion</h2>
-            <span className={styles.headerLabel}>
-              {busy ? "Working on it…" : "A little help, a little further."}
+            <span className={styles.mark} aria-hidden="true">
+              <TellavisionMark />
             </span>
+            <h2 id="parent-agent-title">tellavision</h2>
+            <Badge variant="outline" className={cn(styles.statusPill, "rounded-full bg-card/80")} data-busy={busy}>
+              <span className={styles.statusDot} aria-hidden="true" />
+              {busy ? "Working on it" : "Ready"}
+            </Badge>
           </div>
           <div className={styles.actions}>
             {turns.length > 0 && (
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                className="rounded-full bg-card"
                 disabled={busy}
-                className={styles.iconButton}
-                aria-label="New conversation"
-                title="New conversation"
                 onClick={() => {
                   setTurns([]);
                   inputRef.current?.focus();
                 }}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </button>
+                <Plus />
+                New chat
+              </Button>
             )}
-            <button
-              type="button"
-              className={styles.iconButton}
-              aria-label="Minimize"
-              title="Minimize · Esc"
+            <Button
+              variant="outline"
+              className="rounded-full bg-card"
+              aria-label="Close companion"
               onClick={() => toggle(false)}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="m6 9 6 6 6-6" />
-              </svg>
-            </button>
+              Close
+              <kbd className="rounded-md border px-1.5 text-[10px] font-normal text-muted-foreground">Esc</kbd>
+            </Button>
           </div>
         </header>
 
         <div ref={scrollRef} className={styles.conversation}>
           {turns.length === 0 ? (
             <div className={styles.welcome}>
-              <span className={styles.welcomeSparkle} aria-hidden="true">
-                <Sparkle />
+              <span className={styles.orb} aria-hidden="true">
+                <TellavisionMark size={54} />
               </span>
               <h3>
-                A small nudge.
-                <br />
-                <span>A new possibility.</span>
+                What should {child} explore next?
               </h3>
-              <p>What would you like to explore for {child}?</p>
+              <p>Ask about {child}&apos;s learning, or tell me what to change. I&apos;ll take care of it.</p>
               <div className={styles.starters}>
                 {starters.map(({ label, detail }) => (
                   <button key={label} type="button" onClick={() => send(detail)}>
@@ -620,41 +835,45 @@ export function ChatPanel({ child }: { child: string }) {
                   </button>
                 ))}
               </div>
+              <div className={styles.focusStrip} aria-label="Current learning focus">
+                <span className={styles.focusStripLabel}>Learning focus</span>
+                {SUBJECTS.map((subject) => (
+                  <span key={subject.id} className={styles.focusChip}>
+                    <span className={styles.miniDial}>
+                      <Dial level={focus[subject.id] ?? "usual"} color={subject.color} />
+                    </span>
+                    <span>
+                      <b>{subject.name}</b>
+                      <small>{FOCUS_LABEL[focus[subject.id] ?? "usual"]}</small>
+                    </span>
+                  </span>
+                ))}
+              </div>
             </div>
           ) : (
-            <StageContext.Provider value={stage}>
             <div className={styles.turns} role="log" aria-label="Answers" aria-live="polite">
               {turns.map((turn) => (
-                <section key={turn.id} className={styles.turn} data-latest={turn === latest}>
-                  <p className={styles.prompt}>
-                    <span aria-hidden="true">↳</span> {turn.prompt}
-                  </p>
-                  {turn.status === "error" ? (
-                    <div className={styles.error} role="alert">
-                      <p>{turn.error}</p>
-                      <button type="button" disabled={busy} onClick={() => retry(turn)}>
-                        Try again ↗
-                      </button>
-                    </div>
-                  ) : (
-                    <Result turn={turn} focus={focus} child={child} />
-                  )}
-                </section>
+                <Exchange
+                  key={turn.id}
+                  turn={turn}
+                  latest={turn === latest}
+                  focus={focus}
+                  child={child}
+                  busy={busy}
+                  onRetry={() => retry(turn)}
+                  origin={inputRef}
+                />
               ))}
             </div>
-            </StageContext.Provider>
           )}
         </div>
-        <footer className={styles.footer}>
-          <span>Built around {child}&apos;s learning</span>
-          <span>Esc to tuck away</span>
-        </footer>
         <div ref={waveRef} className={styles.revealWave} aria-hidden="true">
           <div />
         </div>
       </section>
 
       <form
+        ref={composerRef}
         className={styles.composer}
         onSubmit={(event) => {
           event.preventDefault();
@@ -669,13 +888,16 @@ export function ChatPanel({ child }: { child: string }) {
           aria-controls="parent-agent-panel"
           onClick={() => toggle(!open)}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/figma/home-imgVector.svg" alt="" width={16} height={16} />
+          <TellavisionMark size={24} />
         </button>
         <input
           ref={inputRef}
           value={draft}
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            if (!open) setOpen(true);
+          }}
+          onClick={() => !open && setOpen(true)}
           placeholder={`Have ${child} learn more about addition…`}
           aria-label="Ask about your child's learning"
           aria-controls="parent-agent-panel"
