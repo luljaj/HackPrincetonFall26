@@ -13,12 +13,45 @@
   --color-line: var(--line);
   --color-good: var(--good);
   --color-warn: var(--warn);
+  /* shadcn/ui tokens (components/ui). Used by the parent companion. */
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 }
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
   --attention: #b45309;
+  /* shadcn/ui palette, tuned to the companion's blue. */
+  --card: #ffffff;
+  --card-foreground: #23263a;
+  --popover: #ffffff;
+  --popover-foreground: #23263a;
+  --primary: #3949f4;
+  --primary-foreground: #ffffff;
+  --secondary: #f2f3f8;
+  --secondary-foreground: #2f3347;
+  --muted: #f3f4f8;
+  --muted-foreground: #858a9e;
+  --accent: #eceeff;
+  --accent-foreground: #2c3270;
+  --destructive: #d6336c;
+  --border: #e8eaf1;
+  --input: #e4e6ee;
+  --ring: #3949f4;
 }
 
 @media (prefers-color-scheme: dark) {
