@@ -7,7 +7,11 @@
   "de": "Hallo, ich bin Dora.",
   "zh": "Nǐ hǎo, wǒ shì Dora.",
   "hi": "Namaste, main Dora hoon.",
-  "ja": "Konnichiwa, watashi wa Dora."
+  "ja": "Konnichiwa, watashi wa Dora.",
+  "bed": [
+   46.08,
+   50.2
+  ]
  },
  {
   "start": 107.02,
@@ -17,7 +21,11 @@
   "de": "Hallo, Mommy!",
   "zh": "Nǐ hǎo, Mommy!",
   "hi": "Namaste, Mommy!",
-  "ja": "Konnichiwa, Mommy!"
+  "ja": "Konnichiwa, Mommy!",
+  "bed": [
+   106.42,
+   110.18
+  ]
  },
  {
   "start": 153.64,
@@ -27,7 +35,11 @@
   "de": "Komm schnell!",
   "zh": "Kuài lái!",
   "hi": "Jaldi aao!",
-  "ja": "Hayaku kite!"
+  "ja": "Hayaku kite!",
+  "bed": [
+   153.04,
+   156.3
+  ]
  },
  {
   "start": 385.9,
@@ -37,7 +49,11 @@
   "de": "And there's Tico and his Mama.",
   "zh": "And there's Tico and his māma.",
   "hi": "And there's Tico and his maa.",
-  "ja": "And there's Tico and his okaasan."
+  "ja": "And there's Tico and his okaasan.",
+  "bed": [
+   385.3,
+   390.84
+  ]
  },
  {
   "start": 482.92,
@@ -47,7 +63,11 @@
   "de": "To get the ladder up, we say, Hoch.",
   "zh": "To get the ladder up, we say, Shàngqù.",
   "hi": "To get the ladder up, we say, Upar.",
-  "ja": "To get the ladder up, we say, Ue."
+  "ja": "To get the ladder up, we say, Ue.",
+  "bed": [
+   482.32,
+   488.7
+  ]
  },
  {
   "start": 486.96,
@@ -57,7 +77,11 @@
   "de": "Can you say Hoch?",
   "zh": "Can you say Shàngqù?",
   "hi": "Can you say Upar?",
-  "ja": "Can you say Ue?"
+  "ja": "Can you say Ue?",
+  "bed": [
+   486.36,
+   490.8
+  ]
  },
  {
   "start": 490.92,
@@ -67,7 +91,11 @@
   "de": "Say, Hoch!",
   "zh": "Say, Shàngqù!",
   "hi": "Say, Upar!",
-  "ja": "Say, Ue!"
+  "ja": "Say, Ue!",
+  "bed": [
+   490.32,
+   494.7
+  ]
  },
  {
   "start": 504.6,
@@ -77,7 +105,11 @@
   "de": "Hoch!",
   "zh": "Shàngqù!",
   "hi": "Upar!",
-  "ja": "Ue!"
+  "ja": "Ue!",
+  "bed": [
+   504.0,
+   507.36
+  ]
  },
  {
   "start": 523.64,
@@ -87,7 +119,11 @@
   "de": "To get the ladder down, we say, runter.",
   "zh": "To get the ladder down, we say, xiàlái.",
   "hi": "To get the ladder down, we say, neeche.",
-  "ja": "To get the ladder down, we say, shita."
+  "ja": "To get the ladder down, we say, shita.",
+  "bed": [
+   523.04,
+   528.66
+  ]
  },
  {
   "start": 527.28,
@@ -97,7 +133,11 @@
   "de": "Can you say, nach unten?",
   "zh": "Can you say, xiàmiàn?",
   "hi": "Can you say, nīche?",
-  "ja": "Can you say, shita ni?"
+  "ja": "Can you say, shita ni?",
+  "bed": [
+   526.68,
+   530.7
+  ]
  },
  {
   "start": 531.74,
@@ -107,7 +147,11 @@
   "de": "Say, nach unten!",
   "zh": "Say, xià!",
   "hi": "Say, neeche!",
-  "ja": "Say, shita!"
+  "ja": "Say, shita!",
+  "bed": [
+   531.14,
+   534.64
+  ]
  },
  {
   "start": 539.52,
@@ -117,7 +161,11 @@
   "de": "Nach unten!",
   "zh": "Xiàmiàn!",
   "hi": "Nīche!",
-  "ja": "Shita!"
+  "ja": "Shita!",
+  "bed": [
+   538.92,
+   542.48
+  ]
  },
  {
   "start": 597.56,
@@ -127,7 +175,11 @@
   "de": "Wo ist sie? Where is the bridge?",
   "zh": "Zài nǎlǐ? Where is the bridge?",
   "hi": "Woh kahaan hai? Where is the bridge?",
-  "ja": "Doko ni aru no? Where is the bridge?"
+  "ja": "Doko ni aru no? Where is the bridge?",
+  "bed": [
+   596.96,
+   601.38
+  ]
  },
  {
   "start": 606.46,
@@ -137,7 +189,11 @@
   "de": "Ja! Da ist es!",
   "zh": "Shì! Zài nàlǐ!",
   "hi": "Hā̃! Vahā̃ hai!",
-  "ja": "Hai! Asoko ni aru!"
+  "ja": "Hai! Asoko ni aru!",
+  "bed": [
+   605.86,
+   609.78
+  ]
  },
  {
   "start": 979.12,
@@ -147,7 +203,11 @@
   "de": "Wo ist the pyramid?",
   "zh": "the pyramid zài nǎlǐ?",
   "hi": "the pyramid kahaan hai?",
-  "ja": "the pyramid wa doko?"
+  "ja": "the pyramid wa doko?",
+  "bed": [
+   978.52,
+   982.7
+  ]
  },
  {
   "start": 984.5,
@@ -157,7 +217,11 @@
   "de": "Ja, da ist sie.",
   "zh": "Shì de, tā zài nàli.",
   "hi": "Haan, vahaan hai.",
-  "ja": "Hai, soko ni aru yo."
+  "ja": "Hai, soko ni aru yo.",
+  "bed": [
+   983.9,
+   988.02
+  ]
  },
  {
   "start": 1000.9,
@@ -167,7 +231,11 @@
   "de": "Let's call Polizei.",
   "zh": "Let's call jǐngchá.",
   "hi": "Let's call pulis.",
-  "ja": "Let's call keisatsu."
+  "ja": "Let's call keisatsu.",
+  "bed": [
+   1000.3,
+   1004.74
+  ]
  },
  {
   "start": 1041.46,
@@ -177,7 +245,11 @@
   "de": "Hallo, mommy! Wir sind angekommen!",
   "zh": "Nǐ hǎo, mommy! Wǒmen dào le!",
   "hi": "Namaste, mommy! Hum pahunch gaye!",
-  "ja": "Konnichiwa, mommy! Tsuita yo!"
+  "ja": "Konnichiwa, mommy! Tsuita yo!",
+  "bed": [
+   1040.86,
+   1045.76
+  ]
  },
  {
   "start": 1348.04,
@@ -187,7 +259,11 @@
   "de": "To call the stars, sechs Sterne.",
   "zh": "To call the stars, liù kē xīngxing.",
   "hi": "To call the stars, chhah taare.",
-  "ja": "To call the stars, roku-tsu no hoshi."
+  "ja": "To call the stars, roku-tsu no hoshi.",
+  "bed": [
+   1347.44,
+   1353.78
+  ]
  },
  {
   "start": 1358.54,
@@ -197,7 +273,11 @@
   "de": "Eins, zwei, drei, vier, fünf, sechs.",
   "zh": "Yī, èr, sān, sì, wǔ, liù.",
   "hi": "Ek, do, teen, chaar, paanch, chhah.",
-  "ja": "Ichi, ni, san, shi, go, roku."
+  "ja": "Ichi, ni, san, shi, go, roku.",
+  "bed": [
+   1357.94,
+   1369.52
+  ]
  },
  {
   "start": 1368.36,
@@ -207,6 +287,10 @@
   "de": "Sechs Sterne.",
   "zh": "Liù kē xīngxing.",
   "hi": "Chhah taare.",
-  "ja": "Roku-tsu no hoshi."
+  "ja": "Roku-tsu no hoshi.",
+  "bed": [
+   1367.76,
+   1372.3
+  ]
  }
 ]

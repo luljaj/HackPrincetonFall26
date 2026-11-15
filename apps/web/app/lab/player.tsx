@@ -134,10 +134,12 @@ function lessonText(stage: Stage, sp: Spot, practiced = false, practice: Practic
 
 // Dora's Spanish show lines, re-voiced whole in the language being learned (tools/build-dubs.py), so the
 // show itself matches the chosen language and stays one voice per sentence.
-type Dub = { start: number; end: number; original: string } & Record<string, string | number>;
-const DUBS = dubsData as Dub[];
-const DUB_PREFETCH_S = 6; // fetch the re-voiced line this long before it's needed
-const DUB_DUCK = 0.06; // how far the show's own audio drops under the dub
+type Dub = { start: number; end: number; original: string; bed?: [number, number] } & Record<string, unknown>;
+const DUBS = dubsData as unknown as Dub[];
+const DUB_PREFETCH_S = 15; // fetch re-voiced lines this long before they're needed
+const DUB_DUCK = 0.06; // fallback when a line has no bed: how far the show's own audio drops under the dub
+const DUB_FADE_S = 0.25; // crossfade between the show and its no-voice bed
+const DUB_LATE_S = 1; // a dub that isn't ready may still start this long after its line ends
 const DUB_MAX_RATE = 1.2; // speed a longer dub up at most this much to fit the original line
 
 // Spots whose own scene has a calm waiting moment get an in-scene talk/wait loop (tools/cut-loops.py).
@@ -210,6 +212,35 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
   const [learn, setLearn] = useState(""); // language the kid is learning ("" = off)
   const [flash, setFlash] = useState<string | null>(null); // a quick caption, e.g. Dora's greeting in the new language
   const greetAbort = useRef<AbortController | null>(null);
+  // Dub audio, kept for the session: the re-voiced lines (per language) and the show's no-voice beds.
+  const dubCache = useRef(new Map<string, AudioBuffer | "pending">());
+  const bedCache = useRef(new Map<number, AudioBuffer | "pending">());
+  const dubbing = useRef(false); // a dub owns the show's volume right now: the greeting must not touch it
+
+  async function dubVoice(d: Dub, lang: string) {
+    const key = `${d.start}:${lang}`;
+    if (dubCache.current.has(key)) return;
+    dubCache.current.set(key, "pending");
+    for (let attempt = 0; attempt < 12; attempt++) { // the voice server takes one line at a time: wait our turn
+      try {
+        return void dubCache.current.set(key, await fetchVoice(d[lang] as string, audio.current!.ctx, new AbortController().signal));
+      } catch {
+        await new Promise((resolve) => setTimeout(resolve, 600));
+      }
+    }
+    dubCache.current.delete(key); // give up for now; a later pass may try again
+  }
+
+  async function dubBed(d: Dub) {
+    if (!d.bed || bedCache.current.has(d.start)) return;
+    bedCache.current.set(d.start, "pending");
+    try {
+      const data = await (await fetch(`/media/dubs/bed-${d.start.toFixed(2)}.m4a`)).arrayBuffer();
+      bedCache.current.set(d.start, await audio.current!.ctx.decodeAudioData(data));
+    } catch {
+      bedCache.current.delete(d.start);
+    }
+  }
   const learnRef = useRef(learn);
   learnRef.current = learn;
   const [hearing, setHearing] = useState(false);
@@ -336,7 +367,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
     const ac = new AbortController();
     greetAbort.current = ac;
     const a = audio.current!;
-    fadeEpisode(0.2);
+    if (!dubbing.current) fadeEpisode(0.2);
     showFlash(text, 8000);
     try {
       await streamVoice({ text, context: a.ctx, destination: a.analyser, signal: ac.signal,
@@ -346,7 +377,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
     }
     if (ac.signal.aborted) return;
     showFlash(null);
-    if (ctxRef.current.stage === "watching") fadeEpisode(1);
+    if (ctxRef.current.stage === "watching" && !dubbing.current) fadeEpisode(1);
   }
 
   // Kid view: the language row drives this player.
@@ -562,36 +593,71 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
       fadeEpisode(1);
       ep.play();
       // Freeze at whichever spot the playhead crosses.
-      // Dubbing: prepare the next re-voiced line ahead of time, then play it over the ducked show on cue.
-      const dub: { key: string; buffer: AudioBuffer | null; played: boolean } = { key: "", buffer: null, played: false };
-      const playDub = (d: Dub, buffer: AudioBuffer) => {
-        const a = audio.current!;
-        const src = a.ctx.createBufferSource();
-        src.buffer = buffer;
-        src.playbackRate.value = Math.min(DUB_MAX_RATE, Math.max(1, buffer.duration / (d.end - d.start + 0.3)));
-        src.connect(a.analyser);
-        a.epGain.gain.setTargetAtTime(DUB_DUCK, a.ctx.currentTime, 0.03);
-        src.onended = () => { if (!speechAbort.signal.aborted) a.epGain.gain.setTargetAtTime(1, a.ctx.currentTime, 0.08); };
-        speechAbort.signal.addEventListener("abort", () => { src.onended = null; try { src.stop(); } catch { /* already ended */ } }, { once: true });
-        src.start();
+      // Dubbing: the show crossfades to its own audio with the voice removed (the "bed"), and the re-voiced
+      // line plays on top, so music and effects never drop. Lines and beds are fetched well ahead and cached.
+      const a = audio.current!;
+      let active: { d: Dub; bed: AudioBufferSourceNode | null; bedGain: GainNode | null; voice: "waiting" | "playing" | "done"; voiceEnds: number } | null = null;
+      const fade = (param: AudioParam, to: number, seconds = DUB_FADE_S) => {
+        param.cancelScheduledValues(a.ctx.currentTime);
+        param.setValueAtTime(param.value, a.ctx.currentTime);
+        param.linearRampToValueAtTime(to, a.ctx.currentTime + seconds);
       };
+      const endDub = (restore: boolean) => {
+        if (!active) return;
+        const { bed, bedGain } = active;
+        active = null;
+        dubbing.current = false;
+        if (bedGain) fade(bedGain.gain, 0);
+        if (bed) setTimeout(() => { try { bed.stop(); } catch { /* already stopped */ } }, DUB_FADE_S * 1000 + 50);
+        if (restore) fade(a.epGain.gain, 1);
+      };
+      speechAbort.signal.addEventListener("abort", () => endDub(false), { once: true }); // a pause takes over the audio
       const dubTick = () => {
         const lang = learnRef.current;
-        if (!lang || lang === "es") return; // Spanish is what the show already speaks
         const t = ep.currentTime;
-        const d = DUBS.find((x) => typeof x[lang] === "string" && t >= x.start - DUB_PREFETCH_S && t < x.start + 0.25);
-        if (!d) return;
-        const key = `${d.start}:${lang}`;
-        if (dub.key !== key) {
-          dub.key = key; dub.buffer = null; dub.played = false;
-          fetchVoice(d[lang] as string, audio.current!.ctx, speechAbort.signal)
-            .then((b) => { if (dub.key === key) dub.buffer = b; })
-            .catch(() => undefined); // voice server busy or off: the show just plays its own line
+        if (!lang || lang === "es") return endDub(true); // Spanish is what the show already speaks
+        // Fetch the next couple of lines (and their beds) ahead of time; retried while the voice server is busy.
+        for (const d of DUBS.filter((x) => typeof x[lang] === "string" && x.start > t && x.start - t < DUB_PREFETCH_S).slice(0, 2)) {
+          void dubVoice(d, lang);
+          void dubBed(d);
         }
-        if (!dub.played && t >= d.start - 0.05) {
-          dub.played = true; // not ready in time = skip, never late over the next line
-          if (dub.buffer) playDub(d, dub.buffer);
+        if (!active) {
+          const d = DUBS.find((x) => typeof x[lang] === "string" && t >= (x.bed?.[0] ?? x.start - 0.05) && t < x.end);
+          if (!d) return;
+          active = { d, bed: null, bedGain: null, voice: "waiting", voiceEnds: 0 };
+          dubbing.current = true;
+          const bedBuffer = d.bed ? bedCache.current.get(d.start) : undefined;
+          if (d.bed && bedBuffer instanceof AudioBuffer) {
+            // The same moment of the show, minus the voice: started at the matching offset so it stays in sync.
+            const bed = a.ctx.createBufferSource();
+            const bedGain = a.ctx.createGain();
+            bedGain.gain.value = 0;
+            bed.buffer = bedBuffer;
+            bed.connect(bedGain).connect(a.ctx.destination);
+            bed.start(0, Math.max(0, t - d.bed[0]));
+            fade(bedGain.gain, 1);
+            fade(a.epGain.gain, 0);
+            active.bed = bed;
+            active.bedGain = bedGain;
+          } else fade(a.epGain.gain, DUB_DUCK); // no bed cut for this line: fall back to turning the show down
         }
+        const { d } = active;
+        const voiceBuffer = dubCache.current.get(`${d.start}:${lang}`);
+        // Play on cue, or as soon as it's ready if it arrives a little late (never skipped back to the Spanish line).
+        if (active.voice === "waiting" && t >= d.start - 0.05 && voiceBuffer instanceof AudioBuffer) {
+          const src = a.ctx.createBufferSource();
+          src.buffer = voiceBuffer;
+          src.playbackRate.value = Math.min(DUB_MAX_RATE, Math.max(1, voiceBuffer.duration / (d.end - d.start + 0.3)));
+          src.connect(a.analyser);
+          src.start();
+          speechAbort.signal.addEventListener("abort", () => { try { src.stop(); } catch { /* already ended */ } }, { once: true });
+          active.voice = "playing";
+          active.voiceEnds = t + voiceBuffer.duration / src.playbackRate.value;
+          src.onended = () => { if (active?.d === d) active.voice = "done"; };
+        }
+        const bedEnd = d.bed ? d.bed[1] - DUB_FADE_S - 0.05 : Infinity;
+        const lineOver = active.voice === "waiting" ? t >= d.end + DUB_LATE_S : t >= Math.max(d.end, active.voiceEnds) + 0.1;
+        if (lineOver || t >= bedEnd) endDub(true);
       };
       const watch = () => {
         dubTick();
