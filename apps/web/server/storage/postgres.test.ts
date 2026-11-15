@@ -20,6 +20,8 @@ import { createPostgresStore, type StoreDb } from "./postgres";
 import * as schema from "./schema";
 import { createDemoAdmin, type DemoAdmin } from "./admin";
 import { activityReport } from "./insights";
+import { createPreferencesStore } from "./preferences";
+import { DEFAULT_FOCUS } from "../../lib/parent/preferences";
 import { resetDemo, reseedSample } from "./sample";
 import { SAMPLE_SESSION_ID } from "./sample-data";
 import { sampleView } from "../../lib/parent/fixtures";
@@ -411,5 +413,21 @@ describe("learning_events log and activity report", () => {
     ]);
     const withSample = await activityReport(db, { bucketMinutes: 60, sinceMinutes: 24 * 60, now, includeSample: true });
     expect(withSample.totals.answers).toBe(4);
+  });
+});
+
+describe("parent preferences", () => {
+  it("defaults to usual, saves, and overwrites on change", async () => {
+    const pg = drizzle(new PGlite(), { schema });
+    await migrate(pg, { migrationsFolder: "./drizzle" });
+    const prefs = createPreferencesStore(pg as unknown as StoreDb);
+    expect(await prefs.get()).toEqual({ focus: DEFAULT_FOCUS, updatedAt: null });
+    await prefs.set({ math: "usual", english: "more", science: "usual" }, undefined, new Date("2026-11-14T17:00:00Z"));
+    const changed = await prefs.set({ math: "less", english: "more", science: "more" }, undefined, new Date("2026-11-14T17:05:00Z"));
+    expect(changed.focus.science).toBe("more");
+    expect(await prefs.get()).toEqual({
+      focus: { math: "less", english: "more", science: "more" },
+      updatedAt: "2026-11-14T17:05:00.000Z",
+    });
   });
 });

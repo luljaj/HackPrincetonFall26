@@ -12,7 +12,15 @@ import { EmptyState } from "./states";
 import { useFreshAnswers } from "./use-fresh-answers";
 
 // Presentational view of one session. Used by the session page and the live demo page.
-export function SessionView({ view, childName }: { view: ParentView; childName?: string }) {
+export function SessionView({
+  view,
+  childName = "Your child",
+  live = false,
+}: {
+  view: ParentView;
+  childName?: string;
+  live?: boolean;
+}) {
   const { progress } = view;
   const hasAnswers = progress.interactions.length > 0;
   const fresh = useFreshAnswers(progress.interactions);
@@ -24,7 +32,7 @@ export function SessionView({ view, childName }: { view: ParentView; childName?:
       <p className="sr-only" role="status" aria-live="polite">
         {newest ? `New answer: ${assessmentWording(newest.assessment)}.` : ""}
       </p>
-      <SessionHeader objective={progress.objective} isSample={view.isSample} />
+      <SessionHeader view={view} childName={childName} live={live} />
       {hasAnswers && <ParentSummary episode={progress.episode} />}
       {hasAnswers && (
         <ol className="space-y-3">

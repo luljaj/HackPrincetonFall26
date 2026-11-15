@@ -1,130 +1,135 @@
 import Link from "next/link";
 import { childName } from "../../lib/parent/child";
 import { demoToolsEnabled } from "../../lib/parent/demo";
+import { groupByShow } from "../../lib/parent/group";
 import { getParentViewReader } from "../../lib/parent/reader";
-import { showFor } from "../../lib/parent/shows";
 import { parentStats } from "../../lib/parent/stats";
-import { AFTER_HELP_CHIP, SNAPSHOT_NOTE, statsLabels, statusChip } from "../../lib/parent/wording";
+import { SNAPSHOT_NOTE, statsLabels, statusChip } from "../../lib/parent/wording";
+import { getPreferencesStore } from "../../server/storage";
 import { AutoRefresh } from "./_components/auto-refresh";
 import { Chip } from "./_components/chip";
+import { FocusControls } from "./_components/focus-controls";
+import { TurnRows } from "./_components/turn-rows";
 
 export const dynamic = "force-dynamic";
 
 const when = (iso: string) =>
   new Date(iso).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" });
 
-// Parent home, folded in from the apps/parent mock: the same layout, backed by real sessions.
+// Compact parent home: counts, learning focus, then one collapsed row per show. Click a show to
+// see its sessions; click a session to see what was asked and answered.
 export default async function ParentHome() {
   const name = childName();
-  const views = await getParentViewReader().listParentViews(20);
+  const [views, prefs] = await Promise.all([
+    getParentViewReader().listParentViews(50),
+    getPreferencesStore().get(),
+  ]);
+  // Same rule as the counts: once real sessions exist, the seeded sample stays out of the list.
+  const real = views.filter((v) => !v.isSample);
+  const listed = real.length > 0 ? real : views;
   const stats = parentStats(views);
-  const labels = statsLabels();
+  const labels = statsLabels(stats);
+  const shows = groupByShow(listed);
 
   return (
     <>
       <AutoRefresh seconds={5} />
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground/60">
-            Parent view
-          </p>
-          <h1 className="text-[32px] font-bold tracking-tight">{name}&apos;s learning moments</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-foreground/60">Parent view</p>
+          <h1 className="text-2xl font-bold tracking-tight">{name}&apos;s learning moments</h1>
         </div>
-        <div className="flex flex-wrap items-center gap-3 text-sm">
-          <Link className="underline" href="/parent/live">
-            Live now
-          </Link>
-          <Link className="underline" href="/parent/preview">
-            Preview by subject (sample)
-          </Link>
-          {demoToolsEnabled() && (
-            <Link className="underline" href="/parent/insights">
-              Insights
-            </Link>
-          )}
-          <Link className="rounded-full bg-foreground px-[18px] py-2.5 font-semibold text-background" href="/">
-            Open Play mode ↗
-          </Link>
-        </div>
+        <Link className="rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background" href="/">
+          Open Play mode ↗
+        </Link>
       </header>
 
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm" aria-label="Parent pages">
+        <Link className="underline" href="/parent/live">
+          Live now
+        </Link>
+        <Link className="underline" href="/parent/topics">
+          Topics (sample)
+        </Link>
+        <Link className="underline" href="/parent/preview">
+          Preview by subject (sample)
+        </Link>
+        {demoToolsEnabled() && (
+          <Link className="underline" href="/parent/insights">
+            Insights
+          </Link>
+        )}
+      </nav>
+
+      <p className="flex flex-wrap gap-2 text-sm">
         {(Object.keys(labels) as (keyof typeof labels)[]).map((k) => (
-          <div key={k} className="grid rounded-2xl border border-line bg-card p-[18px]">
-            <b className="text-[34px] tabular-nums">{stats[k]}</b>
-            <span className="text-sm text-foreground/60">{labels[k]}</span>
-          </div>
+          <span key={k} className="rounded-full border border-line bg-card px-3 py-1">
+            <b className="tabular-nums">{stats[k]}</b> <span className="text-foreground/60">{labels[k]}</span>
+          </span>
+        ))}
+      </p>
+
+      <FocusControls initial={prefs} />
+
+      <section className="space-y-2" aria-labelledby="shows-title">
+        <h2 id="shows-title" className="text-sm font-semibold text-foreground/60">
+          Shows
+        </h2>
+        {shows.length === 0 && <p className="text-sm text-foreground/60">No sessions yet.</p>}
+        {shows.map((g) => (
+          <details
+            key={g.show}
+            className="group rounded-2xl border border-l-[6px] border-line bg-card"
+            style={{ borderLeftColor: g.color }}
+          >
+            <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+              <span className="font-bold" style={{ color: g.color }}>
+                {g.show}
+              </span>
+              <span className="text-sm text-foreground/60">
+                {g.sessions.length} session{g.sessions.length === 1 ? "" : "s"} · {g.answered} answered · last{" "}
+                {when(g.sessions[0]!.startedAt)}
+              </span>
+              <span aria-hidden className="ml-auto text-foreground/40 transition-transform group-open:rotate-90">
+                ›
+              </span>
+            </summary>
+            <ul className="space-y-2 px-4 pb-4">
+              {g.sessions.map((v) => {
+                const last = v.progress.interactions.at(-1);
+                const chip = last ? statusChip(last.assessment.answerStatus) : null;
+                return (
+                  <li key={v.progress.sessionId}>
+                    <details className="group/s rounded-xl border border-line">
+                      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 text-sm [&::-webkit-details-marker]:hidden">
+                        <span className="text-foreground/60">{when(v.startedAt)}</span>
+                        {v.isSample && (
+                          <span className="rounded border border-foreground/30 px-1 text-[10px] uppercase">Sample</span>
+                        )}
+                        <span className="min-w-0 flex-1 truncate">
+                          {v.progress.episode.parentSummary ?? "No answer heard yet."}
+                        </span>
+                        {chip && <Chip tone={chip.tone}>{chip.label}</Chip>}
+                        <span aria-hidden className="text-foreground/40 transition-transform group-open/s:rotate-90">
+                          ›
+                        </span>
+                      </summary>
+                      <div className="space-y-2 px-3 pb-3">
+                        <TurnRows view={v} childName={name} />
+                        <Link className="inline-block text-sm underline" href={`/parent/${v.progress.sessionId}`}>
+                          Open this session
+                        </Link>
+                      </div>
+                    </details>
+                  </li>
+                );
+              })}
+            </ul>
+          </details>
         ))}
       </section>
 
-      <section className="grid gap-3.5">
-        {views.map((v, idx) => {
-          const show = showFor(v.sceneId);
-          return (
-            <details
-              key={v.progress.sessionId}
-              open={idx === 0}
-              className="rounded-2xl border border-l-[6px] border-line bg-card px-5 py-[18px]"
-              style={{ borderLeftColor: show.color }}
-            >
-              <summary className="grid cursor-pointer list-none grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-1 [&::-webkit-details-marker]:hidden">
-                <span className="font-bold" style={{ color: show.color }}>
-                  {show.show}
-                </span>
-                <span className="text-sm text-foreground/60">
-                  {[show.episode, when(v.startedAt)].filter(Boolean).join(" · ")}
-                  {v.isSample && (
-                    <span className="ml-2 rounded border border-foreground/30 px-1.5 text-xs uppercase">
-                      Sample data
-                    </span>
-                  )}
-                </span>
-                <p className="col-span-2 text-[17px]">
-                  {v.progress.episode.parentSummary ?? "No answer was heard in this session yet."}
-                </p>
-              </summary>
-              <ol className="mt-4 grid gap-3.5">
-                {v.progress.interactions.map((i) => {
-                  const chip = statusChip(i.assessment.answerStatus);
-                  return (
-                    <li key={i.interactionId} className="grid gap-1.5 border-t border-line pt-3.5">
-                      <p className="grid grid-cols-[100px_1fr]">
-                        <span className="text-[13px] text-foreground/60">Dora asked</span>
-                        {i.questionText}
-                      </p>
-                      <p className="grid grid-cols-[100px_1fr]">
-                        <span className="text-[13px] text-foreground/60">{name} said</span>
-                        <span>
-                          {i.transcript ? `“${i.transcript}”` : <em className="text-foreground/60">nothing heard</em>}
-                          <Chip tone={chip.tone}>{chip.label}</Chip>
-                          {i.assessment.assistanceBeforeAnswer && <Chip tone="muted">{AFTER_HELP_CHIP}</Chip>}
-                        </span>
-                      </p>
-                      <p className="grid grid-cols-[100px_1fr]">
-                        <span className="text-[13px] text-foreground/60">Dora replied</span>
-                        {i.responseText}
-                      </p>
-                    </li>
-                  );
-                })}
-                {v.progress.activeQuestion && (
-                  <li className="border-t border-line pt-3.5 text-sm text-foreground/70">
-                    Dora is asking: “{v.progress.activeQuestion.text}” · waiting for the answer
-                  </li>
-                )}
-              </ol>
-              <Link
-                className="mt-3 inline-block text-sm underline"
-                href={`/parent/${v.progress.sessionId}`}
-              >
-                Open this session
-              </Link>
-            </details>
-          );
-        })}
-      </section>
-
-      <p className="text-sm text-foreground/60">{SNAPSHOT_NOTE}</p>
+      <p className="text-xs text-foreground/60">{SNAPSHOT_NOTE}</p>
     </>
   );
 }
