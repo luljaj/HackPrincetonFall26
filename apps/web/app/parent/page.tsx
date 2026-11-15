@@ -14,6 +14,11 @@ import { FocusControls } from "./_components/focus-controls";
 import { STAT_TILES } from "./_components/stat-icons";
 import { TurnRows } from "./_components/turn-rows";
 import { WeekGauge } from "./_components/week-gauge";
+import { demoToolsEnabled } from "../../lib/parent/demo";
+import InsightsPage from "./insights/page";
+import TopicsPage from "./topics/page";
+import PreviewPage from "./preview/page";
+import SettingsPage from "./settings/page";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +61,7 @@ export default async function ParentHome() {
   return (
     <>
       <AutoRefresh seconds={5} />
+      <section id="home" aria-label="Home" className="scroll-mt-10 space-y-8">
       <div className="grid items-start gap-8 lg:grid-cols-[1fr_400px]">
         <header className="space-y-6">
           <h1 className="text-[44px] leading-tight tracking-tight">{name}&apos;s Learning Moments</h1>
@@ -191,6 +197,31 @@ export default async function ParentHome() {
       </section>
 
       <p className="text-xs text-foreground/60">{SNAPSHOT_NOTE}</p>
+      </section>
+
+      {/* One scrolling page: every tab is a section, and the side nav scrolls between them. */}
+      {demoToolsEnabled() && (
+        <Section id="insights" label="Insights">
+          <InsightsPage searchParams={Promise.resolve({})} />
+        </Section>
+      )}
+      <Section id="mastery" label="Mastery">
+        <TopicsPage />
+      </Section>
+      <Section id="roadmap" label="Roadmap">
+        <PreviewPage />
+      </Section>
+      <Section id="settings" label="Settings">
+        <SettingsPage />
+      </Section>
     </>
+  );
+}
+
+function Section({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
+  return (
+    <section id={id} aria-label={label} className="scroll-mt-10 space-y-8 border-t border-foreground/10 pt-14">
+      {children}
+    </section>
   );
 }

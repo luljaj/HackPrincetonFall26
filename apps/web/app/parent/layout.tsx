@@ -11,17 +11,18 @@ export const metadata: Metadata = { title: "Tellavision · Parent view" };
 
 export default async function ParentLayout({ children }: { children: React.ReactNode }) {
   const allowed = await hasParentAccess();
+  // One scrolling page (/parent): each item is a section on it.
   const nav = [
-    { label: "Home", href: "/parent" },
-    { label: "Insights", href: demoToolsEnabled() ? "/parent/insights" : null },
-    { label: "Mastery", href: "/parent/topics" },
-    { label: "Roadmap", href: "/parent/preview" },
-    { label: "Settings", href: "/parent/settings" },
+    { label: "Home", section: "home" },
+    { label: "Insights", section: demoToolsEnabled() ? "insights" : null },
+    { label: "Mastery", section: "mastery" },
+    { label: "Roadmap", section: "roadmap" },
+    { label: "Settings", section: "settings" },
   ];
   return (
     <div className="parent-theme min-h-screen bg-background font-sans text-foreground">
       <div className="mx-auto grid max-w-[1400px] gap-10 px-8 py-10 md:grid-cols-[240px_1fr]">
-        <aside className="space-y-16">
+        <aside className="space-y-16 md:sticky md:top-10 md:self-start">
           <p className="pl-1 text-[24px] font-semibold tracking-tight">tellavision</p>
           {allowed && <SideNav items={nav} />}
         </aside>
