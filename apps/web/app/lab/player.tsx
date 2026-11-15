@@ -11,8 +11,7 @@ import translationsData from "./translations.json";
 import focusTranslations from "./focus-translations.json";
 import loopsData from "./loops.json";
 import trialEpisode from "./episode.json";
-import demoQuestions from "./demo-questions.json";
-import { TREASURE_EDIT, demoPlaybackAt, demoWatchedSeconds, type ExerciseRequest, type DemoExercise } from "./demo-edit";
+import { DEMO_EDIT, DEMO_PAUSE_IDS, skipTarget } from "./demo-edit";
 import s from "./lab.module.css";
 import { afterRelease, canTake, silencesGreeting, type SoundOwner } from "./sound";
 import { fetchVoice, captionFallback, streamVoice } from "./voice";
@@ -82,7 +81,6 @@ const TALK_RMS = 0.03; // mouth-open threshold, about -30 dB (calibration knob: 
 const MOUTH_HOLD_MS = 350; // keep talking through gaps between words; swap loops per phrase, not per syllable
 const RESUME_LEAD_S = 0.3; // come back in just before the next line so its first word isn't clipped
 const LIKELY_GAP = 1.5; // the show waits at least this long at a real audience pause
-const DEMO_QUESTIONS: Record<string,Record<string,string>> = demoQuestions;
 const LINES: Record<string, string> = lines; // same file the voice generator reads
 const strictnessOf = (sp: Spot) => policy.recall.skills.includes(skillOf(sp.id) ?? "") ? "recall" : "gentle";
 const FIREHOUSE = SPOTS.find((sp) => sp.custom) ?? SPOTS[0]!;
@@ -90,9 +88,11 @@ const FIREHOUSE = SPOTS.find((sp) => sp.custom) ?? SPOTS[0]!;
 const fmt = (t: number) => `${String(Math.floor(t / 60)).padStart(2, "0")}:${(t % 60).toFixed(1).padStart(4, "0")}`;
 
 // Which audio file a stage plays at this spot. null = no line (generic spots: the show already asked).
-function lineFor(stage: Stage, spot: Spot, tries: number, language = ""): string | null {
+// Questions are always asked in the kid's own language; the learning language only comes in afterwards, as the
+// answer word Dora teaches ("In Hindi, bridge is पुल. Can you say it?").
+function lineFor(stage: Stage, spot: Spot, tries: number): string | null {
   if (stage === "practicing" && spot.practiceLine) return spot.practiceLine;
-  if (stage === "asking" && spot.preparedLine) return DEMO_QUESTIONS[language]?.[spot.preparedLine] ? `${spot.preparedLine}_${language}` : spot.preparedLine;
+  if (stage === "asking" && spot.preparedLine) return spot.preparedLine;
   let base = STAGES[stage].line;
   if (!base) return null;
   if (base === "teach") base = `teach${Math.min(Math.max(tries, 1), 2)}`;
@@ -126,7 +126,7 @@ const spoken = (p: Practice) => p.word;
 // Dora's lines built from the spot's lesson, for spots without hand-written lines. No saved audio exists
 // for these, so they're spoken live by the voice server.
 function lessonText(stage: Stage, sp: Spot, practiced = false, practice: Practice | null = null): string | null {
-  if (stage === "asking" && sp.preparedLine?.startsWith("demo")) return DEMO_QUESTIONS[practice?.language ?? ""]?.[sp.preparedLine] ?? LINES[sp.preparedLine] ?? null;
+  if (stage === "asking" && sp.preparedLine?.startsWith("demo")) return LINES[sp.preparedLine] ?? null;
   if (practice) {
     if (stage === "practicing") return practiced
       ? `Listen: ${practice.word}! Let's try ${practice.word} one more time!`
@@ -192,12 +192,12 @@ type Loop = "talk" | "wait";
 
 // The interactive Dora player. `/lab` shows it with every debug control; the kid view (`/`) shows only the
 // screen, with the mic always on and the same controls in a hidden dev drawer (press ` or add ?dev).
-export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, controlsTarget, captionsEnabled = true, learningFocus, requestedLesson, onLanguageState, demo = false, exerciseRequest, onDemoExercise, paused = false }: {
+export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, controlsTarget, captionsEnabled = true, learningFocus, requestedLesson, onLanguageState, demo = false, skipRequest = 0, onSkipTarget, paused = false }: {
   kid?: boolean;
-  demo?: boolean;
+  demo?: boolean; // the pitch: only the moments in demo-edit.json pause
   paused?: boolean;
-  exerciseRequest?: ExerciseRequest;
-  onDemoExercise?: (exercise: DemoExercise) => void;
+  skipRequest?: number; // bump to skip the non-interactive part to the next demo moment
+  onSkipTarget?: (label: string | null) => void; // what Skip would jump to right now (null: nothing to skip)
   learn?: string; // language to practise, driven by the kid view's language row
   onLearnChange?: (code: string) => void; // the dev drawer's picker changed it
   controlsTarget?: HTMLElement | null;
@@ -206,13 +206,13 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
   requestedLesson?: RequestedLesson;
   onLanguageState?: (state: { code: string; status: "queued" | "active" }) => void;
 }) {
-  const episodeId = demo ? "dora-treasure-demo" : trialEpisode.id;
-  const activeSpots = demo ? SPOTS.filter(sp => TREASURE_EDIT.pauseIds.includes(sp.id)).map(sp => ({ ...sp, question: "How many keys do we have altogether?", preparedLine: "demoCountKeys" })) : SPOTS;
+  const episodeId = trialEpisode.id; // the demo plays the real episode, uncut
+  // The demo's own list decides where it pauses, whether or not a moment is among the regular curated pauses.
+  const activeSpots = demo ? SPOTS.filter((sp) => DEMO_PAUSE_IDS.includes(sp.id)).map((sp) => ({ ...sp, keep: true })) : SPOTS;
   const openedAt = useRef(Date.now());
   const watchedSeconds = useRef(0);
-  const pendingExerciseSpot = useRef<Spot | null>(null);
   const visitedSpots = useRef(new Set<string>());
-  const lastExerciseRequest = useRef(0);
+  const lastSkipRequest = useRef(skipRequest);
   const [ctx, setCtx] = useState<Ctx>(INITIAL);
   const [started, setStarted] = useState(false);
   const previousFocus = useRef(learningFocus?.numbers);
@@ -315,7 +315,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
 
   // Session trace (Postgres via /api/play/events): every stage, what was heard, how it was judged.
   function rec(fields: Parameters<ReturnType<typeof createTrace>["record"]>[0]) {
-    trace.current?.record({ turnId: turnId.current ?? undefined, spotId: spotRef.current.id, ...fields, ...(demo && fields.moment !== undefined ? { moment: Math.round(demoWatchedSeconds(fields.moment)*10)/10 } : {}) });
+    trace.current?.record({ turnId: turnId.current ?? undefined, spotId: spotRef.current.id, ...fields });
   }
 
   useEffect(() => {
@@ -373,9 +373,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
       publishTurn(n);
       if (n.stage === "entering") {
         if (!wasPaused) turnId.current = crypto.randomUUID();
-        if (demo) onDemoExercise?.(spotRef.current.practiceOnly ? "translation" : spotRef.current.id.startsWith("demo-addition-") ? "addition" : "count");
       }
-      if (demo && n.stage === "practicing") onDemoExercise?.("translation");
       const sp = spotRef.current;
       rec({
         type: "stage", stage: n.stage, tries: n.tries, nudges: n.nudges, modeled: n.modeled, practiced: n.practiced,
@@ -701,7 +699,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     if (!started) return;
     if (!kid) return jump(FIREHOUSE);
     lastResumed.current = null;
-    episode.current!.currentTime = demo ? TREASURE_EDIT.clips[0]!.in : 0;
+    episode.current!.currentTime = 0;
     commit({ ...INITIAL }, "start");
     void episode.current!.play();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on start
@@ -735,7 +733,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     priorStage.current = stage;
     if (finishedMath && learningFocus?.numbers === "more") queuedAddition.current = true;
     if (!started || stage !== "watching" || ctxRef.current.stage !== "watching" || !queuedAddition.current || learningFocus?.numbers !== "more") return;
-    if (demo && episode.current!.currentTime < TREASURE_EDIT.additionAfter) return;
+    if (demo && episode.current!.currentTime < DEMO_EDIT.additionAfter) return; // the demo's addition fits after the key count
     queuedAddition.current = false;
     const lesson = additionLesson(additionIndex.current++, demo ? "keys" : "stars");
     const at = episode.current!.currentTime;
@@ -746,37 +744,48 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     // eslint-disable-next-line react-hooks/exhaustive-deps -- refs own the active turn; only plan/stage changes schedule a new lesson
   }, [learningFocus, stage, started]);
 
+  // Browsers pause media in hidden tabs. When the page is visible again and the show should be playing (not
+  // paused by the kid or the play/pause button), carry on instead of sitting frozen.
   useEffect(() => {
-    if (!demo || !started || !exerciseRequest || exerciseRequest.sequence <= lastExerciseRequest.current) return;
-    lastExerciseRequest.current = exerciseRequest.sequence;
-    pendingLanguageLesson.current = null;
-    queuedAddition.current = false;
-    if (exerciseRequest.exercise === "story") {
-      ticket();
-      liveText.current = null;
-      pendingExerciseSpot.current = null;
-      for (const spot of activeSpots) visitedSpots.current.add(spot.id);
-      episode.current!.currentTime = TREASURE_EDIT.clips[3]!.in;
-      commit({ ...INITIAL }, "continue story");
-      void episode.current!.play();
-      return;
-    }
-    const core = activeSpots[0];
-    if (!core) return;
-    const lesson = additionLesson(0, "keys");
-    const keysScene = SPOTS.find(sp => sp.id === "ep3-54");
-    if (!keysScene) return;
-    const target: Spot = exerciseRequest.exercise === "count" ? core : {
-      ...lesson, accept: [...lesson.accept], question: lesson.question, text: lesson.question,
-      preparedLine: lesson.line, practiceOnly: exerciseRequest.exercise === "translation", skill: "counting", visual: false,
-      practiceLine: exerciseRequest.exercise === "translation" ? ({ hi: "practiceHindiThree", es: "practiceSpanishThree" } as Record<string,string>)[learnProp ?? learnRef.current] : undefined,
-      t: keysScene.t, pauseAt: keysScene.pauseAt, resumeAt: keysScene.resumeAt, gap: keysScene.gap, talk: keysScene.talk, wait: keysScene.wait,
+    const resume = () => {
+      const ep = episode.current;
+      if (document.visibilityState === "visible" && started && !paused && ep?.paused && ctxRef.current.stage === "watching") void ep.play().catch(() => undefined);
     };
-    if (exerciseRequest.exercise !== "count") visitedSpots.current.add(core.id);
-    pendingExerciseSpot.current = target;
-    jump(target, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- each numbered request is a deliberate new exercise
-  }, [demo, started, exerciseRequest]);
+    document.addEventListener("visibilitychange", resume);
+    return () => document.removeEventListener("visibilitychange", resume);
+  }, [started, paused]);
+
+  // Demo Skip: jump over the non-interactive part to the next moment's setup. Only while the show is playing:
+  // a question in progress isn't a cutscene. A forward jump is a seek, so the pause detector skips any moment
+  // in between and catches the next one normally. The show's sound dips for the cut, so it never clicks.
+  useEffect(() => {
+    if (!demo || !started || skipRequest <= lastSkipRequest.current) return;
+    lastSkipRequest.current = skipRequest;
+    const ep = episode.current!;
+    const target = skipTarget(ep.currentTime, (id) => SPOTS.find((x) => x.id === id)!.pauseAt);
+    if (!target || ctxRef.current.stage !== "watching") return;
+    const dips = sound.current === "show";
+    if (dips) fadeEpisode(0, 0.08);
+    setTimeout(() => {
+      ep.addEventListener("seeked", () => { if (dips && sound.current === "show") fadeEpisode(1, 0.25); }, { once: true });
+      ep.currentTime = target.from;
+    }, dips ? 90 : 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- each press is one skip
+  }, [skipRequest]);
+
+  // Tell the page what Skip would do right now, so the button can say where it goes (or hide).
+  useEffect(() => {
+    if (!demo || !onSkipTarget) return;
+    const update = () => {
+      const t = episode.current?.currentTime ?? 0;
+      const target = ctxRef.current.stage === "watching" ? skipTarget(t, (id) => SPOTS.find((x) => x.id === id)!.pauseAt) : null;
+      onSkipTarget(target?.label ?? null);
+    };
+    update();
+    const id = setInterval(update, 500);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- polls the playhead; the callback is stable
+  }, [demo, stage]);
 
   // Kid view: start right away (the parent's "Let's watch" tap already allowed sound and the mic),
   // and a hidden dev drawer with the stage machine: press ` or open with ?dev.
@@ -795,7 +804,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     if (paused) {
       const current = ctxRef.current;
       const sp = spotRef.current;
-      const file = lineFor(current.stage, sp, current.tries, learnRef.current);
+      const file = lineFor(current.stage, sp, current.tries);
       const standard = lessonText(current.stage, sp, current.practiced, practiceFor(sp, learnRef.current));
       if (STAGES[current.stage].line && speechCaption && speechCaption !== standard && speechCaption !== (file ? LINES[file] : undefined)) liveText.current = speechCaption;
       ticket(); send("PAUSE");
@@ -921,23 +930,16 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
       // a big jump ahead is a seek and skips them. "entering" rewinds to the exact pause frame.
       let prev = ep.currentTime;
       const watch = () => {
-        if (demo) {
-          const step = demoPlaybackAt(ep.currentTime);
-          if (step.kind === "done") { ep.pause(); endDub(true); return; }
-          if (step.kind === "seek") { endDub(true); ep.currentTime = step.time; prev = step.time; raf = requestAnimationFrame(watch); return; }
-          if (ep.seeking) { raf = requestAnimationFrame(watch); return; }
-        }
+        if (ep.seeking) { raf = requestAnimationFrame(watch); return; } // mid-skip: wait for the new frame
         dubTick();
         const t = ep.currentTime;
         const reached = (x: Spot) => t >= x.pauseAt && (t < x.pauseAt + 0.5 || (prev < x.pauseAt && t - prev < 3));
         prev = t;
-        const requested = pendingExerciseSpot.current;
-        const hit = requested && reached(requested) ? requested : autoRef.current
+        const hit = autoRef.current
           ? activeSpots.find((x) => x.keep !== false && !visitedSpots.current.has(x.id) && x.id !== lastResumed.current && reached(x))
           : undefined;
         if (hit) {
           visitedSpots.current.add(hit.id);
-          pendingExerciseSpot.current = null;
           pickSpot(hit);
           send("PAUSE_POINT");
         } else raf = requestAnimationFrame(watch);
@@ -970,7 +972,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     }
     if (meta.line) {
       filler.current!.pause(); // never talk over her own "Hmm!"
-      const file = lineFor(stage, sp, ctxRef.current.tries, learnRef.current);
+      const file = lineFor(stage, sp, ctxRef.current.tries);
       const fromLesson = lessonText(stage, sp, ctxRef.current.practiced, practiceFor(sp, learnRef.current));
       if (file || fromLesson) {
         const customText = liveText.current;
@@ -1098,15 +1100,13 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     return () => cancelAnimationFrame(raf);
   }, [started]);
 
-  const file = lineFor(stage, spot, ctx.tries, learn);
+  const file = lineFor(stage, spot, ctx.tries);
   const practiceNow = practiceFor(spot, learn);
   const sayNow = practiceNow && (ctx.practiced || swapsSayWord(spot, practiceNow)) ? practiceNow : spot.say; // what the record button scores
   const lineText = lessonText(stage, spot, ctx.practiced, practiceFor(spot, learn)) ?? (file && LINES[file] ? localFlair(LINES[file], learn) : null);
-  const translatedQuestion = spot.preparedLine ? DEMO_QUESTIONS[learn]?.[spot.preparedLine] : undefined;
-  const captionEnglish = demo && translatedQuestion && ["asking", "listening"].includes(stage) && !ctx.practiced ? askedText(spot) : null;
   const caption = lineText ? (speechCaption ?? lineText)
     : flash ? flash
-    : stage === "listening" ? (hearing ? "🗣️ I'm listening…" : ctx.practiced && practiceNow ? `🎤 ${practiceNow.english} → ${practiceNow.word}${practiceNow.romanized !== practiceNow.word ? ` (${practiceNow.romanized})` : ""}` : `🎤 ${translatedQuestion ?? askedText(spot)}`)
+    : stage === "listening" ? (hearing ? "🗣️ I'm listening…" : ctx.practiced && practiceNow ? `🎤 ${practiceNow.english} → ${practiceNow.word}${practiceNow.romanized !== practiceNow.word ? ` (${practiceNow.romanized})` : ""}` : `🎤 ${askedText(spot)}`)
     : stage === "paused" ? "Paused" : stage === "thinking" ? "…" : "";
   const inScene = LOOPS[spot.id]; // this spot's own in-scene loops, if its scene has a calm wait
   const shown = likelyOnly ? activeSpots.filter((x) => x.gap >= LIKELY_GAP) : activeSpots;
@@ -1135,7 +1135,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
           </div>
           {stage === "listening" && <div className={s.listenRing} />}
           {stage === "away" && <div className={`${s.layer} ${s.away}`}>📺 Another channel…</div>}
-          {captionsEnabled && caption && <p className={s.caption}>{caption}{captionEnglish && <small className={s.translation}>{captionEnglish}</small>}</p>}
+          {captionsEnabled && caption && <p className={s.caption}>{caption}</p>}
           {!started && !controlsTarget && (
             <button className={s.start} onClick={start}>
               ▶ Start

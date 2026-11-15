@@ -1,40 +1,16 @@
 {
-  "id": "treasure",
-  "title": "Dora and the lost jewel",
-  "clips": [
-    {
-      "label": "Mommy needs help finding a lost jewel",
-      "in": 127.02,
-      "out": 146.3
-    },
-    {
-      "label": "The pyramid is locked and needs six keys",
-      "in": 1053.12,
-      "out": 1071.6
-    },
-    {
-      "label": "Dora and Boots dig up the keys and count them",
-      "in": 1117.6,
-      "out": 1152.0
-    },
-    {
-      "label": "The pyramid opens and reveals the treasure",
-      "in": 1167.0,
-      "out": 1175.5
-    },
-    {
-      "label": "Find the red diamond-shaped jewel",
-      "in": 1191.42,
-      "out": 1210.6
-    },
-    {
-      "label": "Mommy thanks the team and they celebrate",
-      "in": 1304.3,
-      "out": 1315.5
-    }
+  "id": "pitch",
+  "title": "Dora: When I Grow Up (demo pauses)",
+  "note": "The real episode plays uncut. In demo mode only these moments pause, and Skip jumps over the non-interactive parts to `from`: a shot change a few seconds before the question, so its setup still plays. Times come from a Whisper transcript and ffmpeg shot detection of dora-ep3.mp4.",
+  "exercises": [
+    { "pauseId": "ep3-07", "from": 166.07, "label": "Who helps when we're lost?" },
+    { "pauseId": "ep3-26", "from": 565.36, "label": "Where do we go next?" },
+    { "pauseId": "ep3-27", "from": 589.59, "label": "Find the bridge" },
+    { "pauseId": "ep3-39", "from": 867.33, "label": "Which shape fits?" },
+    { "pauseId": "ep3-55", "from": 1129.23, "label": "Count the keys" },
+    { "pauseId": "ep3-57", "from": 1183.65, "label": "Find the jewel" },
+    { "pauseId": "ep3-60", "from": 1238.27, "label": "Swiper, no swiping!" }
   ],
-  "pauseIds": [
-    "ep3-55"
-  ],
-  "additionAfter": 1138.58
+  "finale": { "from": 1274.41, "label": "The end" },
+  "additionAfter": 1150
 }

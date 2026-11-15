@@ -281,6 +281,13 @@
   display: none;
 }
 
+/* Play/pause and the demo's Skip live on the remote, not over the picture. */
+.transport { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; }
+.transport button { min-height: 36px; padding: 8px 10px; border-radius: 12px; background: #3b2414; color: #ffe9c9; font-size: 13px; font-weight: 700; text-align: left; }
+.transport button:only-child { grid-column: 1 / -1; }
+.transport button:disabled { opacity: .45; cursor: default; }
+.transport button:focus-visible { outline: 2px solid #8d5a31; outline-offset: 2px; }
+
 .playbackControls {
   display: grid;
   grid-template-columns: 92px minmax(0, 1fr);
@@ -499,20 +506,10 @@
 @media (max-width:700px) { .learningNotice { top: 10px; right: 10px; max-width: 230px; padding: 9px 12px; } }
 @media (prefers-reduced-motion:reduce) { .learningNotice { animation: none; } }
 
-.demoExercises { display: grid; gap: 6px; }
-.demoExercises button { padding: 8px 11px; border: 1px solid #ffffff50; border-radius: 12px; background: #ffffff45; color: #4c3928; text-align: left; font-size: 12px; cursor: pointer; }
-.demoExercises button:disabled { opacity: .4; cursor: default; }
-.demoExercises button:focus-visible { outline: 2px solid #8d5a31; outline-offset: 2px; }
-
-.demoExercises small { display: block; margin-top: 3px; opacity: .65; font-size: 10px; }
-
 .room[data-remote-collapsed=true] { grid-template-columns: minmax(0,1fr); }
 .room[data-remote-collapsed=true] .sidebar { display: none; }
 .remoteHeader { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .remoteHeader button { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; background: #ffffff45; font-size: 24px; }
 .remoteHeader .brand { margin: 0; }
 .restoreRemote { position: fixed; z-index: 20; right: 20px; top: 18px; padding: 10px 14px; border-radius: 14px; background: #f5e5cde8; box-shadow: 0 3px 15px #3b241422; font-size: 12px; }
-.playPause, .screenNext { position: absolute; z-index: 12; bottom: 12px; border-radius: 12px; background: #211810b0; color: #ffefd9; }
-.playPause { left: 12px; width: 42px; height: 40px; font-size: 21px; }
-.screenNext { right: 12px; padding: 12px; font-size: 12px; }
-.playPause:focus-visible, .screenNext:focus-visible, .restoreRemote:focus-visible, .remoteHeader button:focus-visible { outline: 2px solid #ffde36; outline-offset: 3px; }
+.restoreRemote:focus-visible, .remoteHeader button:focus-visible { outline: 2px solid #ffde36; outline-offset: 3px; }

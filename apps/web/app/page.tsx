@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { CHANNELS } from "./channels";
 import { DoraPlayer } from "./lab/player";
-import { nextDemoExercise, type DemoExercise, type ExerciseRequest } from "./lab/demo-edit";
 import { type RequestedLesson, subscribeToPlan } from "../lib/parent/subscribe";
 import s from "./play.module.css";
 
@@ -27,11 +26,20 @@ const channelOsd = (i: number) =>
   `CH ${String(i + 1).padStart(2, "0")}  ${CHANNELS[i]!.name.toUpperCase()}`;
 
 export default function Play() {
-  const [seenExercises, setSeenExercises] = useState<DemoExercise[]>([]);
-  const nextExercise = nextDemoExercise(seenExercises);
-  const [exerciseRequest, setExerciseRequest] = useState<ExerciseRequest>();
+  // The TV runs the demo (app/lab/demo-edit.json): it starts in Spanish, and only changes the parent makes
+  // after the TV opened apply (a language left over from a rehearsal doesn't). ?full pauses at every curated
+  // question instead, with no Skip.
   const [demo, setDemo] = useState(false);
-  useEffect(() => { setDemo(new URLSearchParams(location.search).get("demo") === "treasure"); }, []);
+  const [skipRequest, setSkipRequest] = useState(0);
+  const [skipLabel, setSkipLabel] = useState<string | null>(null); // where Skip goes now; null hides it
+  const demoRef = useRef(false);
+  const openedAt = useRef(Date.now());
+  useEffect(() => {
+    const on = !new URLSearchParams(location.search).has("full");
+    demoRef.current = on;
+    setDemo(on);
+    if (on) setLearn("es");
+  }, []);
   const [on, setOn] = useState(false);
   const [paused, setPaused] = useState(false);
   const [remoteCollapsed, setRemoteCollapsed] = useState(false);
@@ -108,7 +116,6 @@ export default function Play() {
 
   function power() {
     setPaused(false);
-    if (on) { setExerciseRequest(undefined); setSeenExercises([]); }
     setOn(!on);
     setOsd(on ? null : channelOsd(ch));
   }
@@ -118,18 +125,13 @@ export default function Play() {
     if (on) setLearningNotice({ code, status: "queued" });
   }
 
-  function advanceExercise() {
-    setPaused(false);
-    if (nextExercise === "translation" && !learn) pickLanguage("hi");
-    setExerciseRequest(previous => ({ exercise: nextExercise, sequence: (previous?.sequence ?? 0) + 1 }));
-  }
-
   // The parent's learning plan (learning-plan.md): a language change lands mid-episode, at Dora's next line.
   useEffect(
     () =>
-      subscribeToPlan(({ language, focus: nextFocus, lesson }) => {
+      subscribeToPlan(({ language, focus: nextFocus, lesson, updatedAt }) => {
         if (lesson) setRequestedLesson(lesson);
         if (nextFocus) setFocus(nextFocus);
+        if (demoRef.current && updatedAt < openedAt.current) return; // the demo's own start (Spanish) wins
         const l = LANGUAGES.find((x) => x.code === language);
         if (!l) return; // unset or unknown: keep what the kid picked
         setLearn(l.code);
@@ -196,9 +198,9 @@ export default function Play() {
                 <DoraPlayer
                   kid
                   demo={demo}
+                  skipRequest={skipRequest}
+                  onSkipTarget={setSkipLabel}
                   paused={paused}
-                  exerciseRequest={exerciseRequest}
-                  onDemoExercise={exercise => setSeenExercises(seen => seen.includes(exercise) ? seen : [...seen, exercise])}
                   learn={learn}
                   onLearnChange={setLearn}
                   controlsTarget={playerControls}
@@ -209,8 +211,6 @@ export default function Play() {
                 />
               </div>
             )}
-            {on && channel.id === "dora" && <button className={s.playPause} aria-label={paused ? "Play" : "Pause"} title={paused ? "Play" : "Pause"} onClick={() => setPaused(value => !value)}>{paused ? "▶" : "Ⅱ"}</button>}
-            {remoteCollapsed && demo && on && channel.id === "dora" && <button className={s.screenNext} onClick={advanceExercise}>{nextExercise === "story" ? "Continue story" : "Next exercise"} →</button>}
             {on && learningNotice && <div className={s.learningNotice} role="status" aria-live="polite" data-language={learningNotice.code}>
               <span aria-hidden="true">{LANGUAGES.find(l => l.code === learningNotice.code)?.flag}</span>
               <div><b>{learningNotice.status === "queued" ? `${LANGUAGES.find(l => l.code === learningNotice.code)?.name} is next` : `Let's learn ${LANGUAGES.find(l => l.code === learningNotice.code)?.name}!`}</b>
@@ -331,11 +331,18 @@ export default function Play() {
             </button>
           ))}
         </nav>
-        {demo && <div className={s.demoExercises}>
-          <button disabled={!on || channel.id !== "dora"} onClick={advanceExercise}>{nextExercise === "story" ? "Continue story" : "Next exercise"}
-            {nextExercise !== "story" && <small>{({ count: "Count keys", addition: "Add keys", translation: "Translate three" })[nextExercise]} →</small>}
-          </button>
-        </div>}
+        {on && channel.id === "dora" && (
+          <div className={s.transport}>
+            <button aria-label={paused ? "Play" : "Pause"} onClick={() => setPaused((value) => !value)}>
+              {paused ? "▶ Play" : "Ⅱ Pause"}
+            </button>
+            {demo && (
+              <button onClick={() => setSkipRequest((n) => n + 1)} disabled={!skipLabel} title="Skip the part without an exercise">
+                {skipLabel ? <>Skip to: {skipLabel} ⏭</> : "Skip ⏭"}
+              </button>
+            )}
+          </div>
+        )}
         <div className={s.playbackControls}>
           <button
             className={s.cc}

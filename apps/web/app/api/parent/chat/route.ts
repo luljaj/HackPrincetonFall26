@@ -2,7 +2,6 @@ import OpenAI from "openai";
 import { setPlan } from "../../../../lib/live/plan";
 import { hasParentAccess } from "../../../../lib/parent/access";
 import { childName } from "../../../../lib/parent/child";
-import { LanguageCodeSchema } from "../../../../lib/play/language-lessons";
 import { demoCommand } from "../../../../lib/parent/demo-mode";
 import { getParentViewReader } from "../../../../lib/parent/reader";
 import { ChatRequestSchema, runChat, type ChatClient } from "../../../../server/parent-chat/chat";
@@ -24,13 +23,10 @@ export async function POST(request: Request): Promise<Response> {
   const lessons = getLanguageLessonStore();
   const learning = {
     currentSkill: () => play.currentSkill(), resetSkills: (ids: readonly string[]) => play.resetSkills(ids), mastery: () => play.mastery(),
-    setLanguage: async (language: Parameters<typeof setPlan>[0]["language"]) => {
-      const code = LanguageCodeSchema.safeParse(language);
-      if (!code.success) return setPlan({ language });
-      const available = (await lessons.list(code.data)).filter(row => row.active);
-      const lesson = available.find(row => row.lessonId === "demo-addition-1" && row.level < 3) ?? available.sort((a,b) => a.level - b.level)[0];
-      return setPlan({ language, ...(lesson ? { lessonId: lesson.lessonId } : {}) });
-    },
+    // Switching language only switches the language: the show's next pause teaches its answer in it, in
+    // context. A word out of nowhere at whatever frame is on screen was the old behaviour. Explicit lesson
+    // requests still go through change_lesson.
+    setLanguage: (language: Parameters<typeof setPlan>[0]["language"]) => setPlan({ language }),
     lessons,
   };
   // An explicit language command goes straight through the real write tool, even with Demo Mode off.
