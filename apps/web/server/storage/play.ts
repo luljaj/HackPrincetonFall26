@@ -111,7 +111,7 @@ export function createPostgresPlayStore(db: StoreDb): PlayStore {
           // Retention: what the kid said is kept TRANSCRIPT_DAYS, then blanked (turns) and removed (events).
           const cutoff = new Date(Date.now() - TRANSCRIPT_DAYS * 86_400_000);
           await tx.update(playTurns).set({ transcript: "" }).where(and(lt(playTurns.endedAt, cutoff), ne(playTurns.transcript, "")));
-          await tx.execute(sql`UPDATE play_events SET payload = payload - 'text' WHERE event_time < ${cutoff} AND payload ? 'text'`);
+          await tx.execute(sql`UPDATE play_events SET payload = payload - 'text' WHERE event_time < ${cutoff.toISOString()} AND payload ? 'text'`);
           return { session, turns };
         });
       } catch (e) {
