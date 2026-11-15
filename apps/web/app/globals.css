@@ -153,3 +153,7 @@ body {
     corner-shape: squircle;
   }
 }
+
+/* Global 3D tilt for icons set inside illustrations (Figma: X -19deg, Y -42.99deg, Z 0, depth 903). */
+:root { --tilt-x: -19deg; --tilt-y: -42.99deg; --tilt-z: 0deg; --tilt-depth: 903px; }
+.tilt-3d { transform: perspective(var(--tilt-depth)) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) rotateZ(var(--tilt-z)); transform-style: preserve-3d; }
