@@ -151,3 +151,38 @@ export function speakFallback(text: string, signal: AbortSignal, onSpeaking: (sp
     speechSynthesis.speak(utterance);
   });
 }
+
+/** Fetch a whole line from the voice server as one buffer (for dubbing, where it's prepared ahead and played on cue). */
+export async function fetchVoice(text: string, context: AudioContext, signal: AbortSignal): Promise<AudioBuffer> {
+  const response = await fetch("/api/voice", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }), signal,
+  });
+  if (!response.ok) throw new Error("Voice service unavailable.");
+  let sampleRate: number | undefined;
+  const chunks: Int16Array[] = [];
+  for (const line of (await response.text()).split("\n")) {
+    if (!line.trim()) continue;
+    const message = parseMessage(line);
+    if (message.type === "start") sampleRate = message.sampleRate;
+    else if (message.type === "error") throw new Error(message.error);
+    else if (message.type === "audio") {
+      const bytes = Uint8Array.from(atob(message.pcm), (c) => c.charCodeAt(0));
+      chunks.push(new Int16Array(bytes.buffer, 0, bytes.length >> 1));
+    }
+  }
+  const length = chunks.reduce((n, c) => n + c.length, 0);
+  if (!sampleRate || !length) throw new Error("Empty voice audio.");
+  const all = new Float32Array(length);
+  let at = 0;
+  for (const c of chunks) for (let i = 0; i < c.length; i++) all[at++] = c[i]! / 32768;
+  // Trim the silence generated speech carries at both ends (keeping 40 ms), so a dub fits its line better.
+  const pad = Math.round(sampleRate * 0.04);
+  let first = 0;
+  let last = all.length - 1;
+  while (first < last && Math.abs(all[first]!) < 0.02) first++;
+  while (last > first && Math.abs(all[last]!) < 0.02) last--;
+  const trimmed = all.subarray(Math.max(0, first - pad), Math.min(all.length, last + pad));
+  const buffer = context.createBuffer(1, trimmed.length, sampleRate);
+  buffer.getChannelData(0).set(trimmed);
+  return buffer;
+}

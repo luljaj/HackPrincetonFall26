@@ -97,6 +97,15 @@ pipeline saved turn ──► publish hook ─┴─► Convex live:publish (che
 - **Parent view:** `/parent/live` shows a **Right now** card. Measured: a lab event appears in about 190 ms, with no refresh.
 - **Setup:** run `npx convex dev` in `apps/web` (writes the URL to `.env.local`), then set `LIVE_PUBLISH_SECRET` on the deployment and in `.env.local` (see `.env.example`). Convex reads are unauthenticated, which is why nothing private is ever sent.
 
+### The show itself follows the language (dubbing)
+
+The episode is English with Spanish baked into the recording ("Hola, soy Dora", "¿Dónde está? Where is the bridge?"). When another language is picked, Dora's Spanish lines are re-voiced **as whole sentences** in the voice model, so each sentence stays one voice: "Bonjour, je suis Dora.", "To get the ladder up, we say, En haut."
+
+- `python3 tools/build-dubs.py <transcript.json>` writes `apps/web/app/lab/dubs.json`. For each transcript line with Spanish, Luna judges the speaker from the dialogue and rewrites the line per language (English kept, Spanish swapped, non-Latin romanised). **Only Dora's lines are dubbed.** Speaker calls were read by hand and unclear ones pinned off in `SPEAKER_OVERRIDES` (21 lines dubbed in ep3).
+- While watching, the player fetches the next dub 6 s ahead, ducks the show's audio and plays it on cue, trimmed of silence and sped up at most 1.2× to fit. If the voice server is busy or off, the show plays its own line.
+- "Say it" pauses then ask for the word in that language ("Can you say en haut?") and score that word.
+- Limits: lips don't match; a dub slightly longer than its line can cover the next speaker's first syllable; music under a dubbed line dips with it.
+
 ## Turn judging and pronunciation
 
 - **Luna judge** (`/api/judge`, `server/judge/judge.ts`): one tool call picks the stage-machine event (`correct` / `wrong` / `unclear`) and writes Dora's next line, told in advance what the machine will do for each event. 26/26 on the test answers, about 1.2 s.

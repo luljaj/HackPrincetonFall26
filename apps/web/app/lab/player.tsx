@@ -11,7 +11,8 @@ import translationsData from "./translations.json";
 import loopsData from "./loops.json";
 import trialEpisode from "./episode.json";
 import s from "./lab.module.css";
-import { speakFallback, streamVoice } from "./voice";
+import { fetchVoice, speakFallback, streamVoice } from "./voice";
+import dubsData from "./dubs.json";
 import { listenOnce, openMic, recorderOptions } from "./listen";
 import { localFlair } from "./flair";
 import { clearlyCorrect } from "./quick-judge";
@@ -100,6 +101,10 @@ const GREETING: Record<string, string> = {
   zh: "Nǐ hǎo! Let's learn Chinese!", hi: "Namaste! Let's learn Hindi!", ja: "Konnichiwa! Let's learn Japanese!",
 };
 
+// A "say X" spot whose word should be said in the learning language instead of the show's Spanish.
+const swapsSayWord = (sp: Spot, practice: Practice | null): practice is Practice => !!(sp.say && practice && practice.language !== sp.say.language);
+// A separate "now say it in French" step only makes sense when the pause itself wasn't already a say-it turn.
+const canPractice = (sp: Spot, language: string) => !sp.say && !!practiceFor(sp, language);
 // Non-Latin words also get their romanization, e.g. 梯子 (tīzi).
 const spoken = (p: Practice) => (p.romanized && p.romanized !== p.word ? `${p.word} (${p.romanized})` : p.word);
 
@@ -112,8 +117,10 @@ function lessonText(stage: Stage, sp: Spot, practiced = false, practice: Practic
     if (practiced && stage === "giving") return `${spoken(practice)}! That's ${practice.english} in ${practice.name}. Great try!`;
   }
   if (sp.custom || !sp.question) return null;
-  const q = sp.question;
-  const target = sp.say?.word ?? sp.answer;
+  // A "say it" spot asks for the word in the language being learned (the dubbed show just said it that way).
+  const swap = swapsSayWord(sp, practice) ? practice : null;
+  const q = swap ? `Can you say ${spoken(swap)}?` : sp.question;
+  const target = swap?.word ?? sp.say?.word ?? sp.answer;
   switch (stage) {
     case "asking": return q;
     case "nudging": return `Take your time! ${q}`;
@@ -124,6 +131,14 @@ function lessonText(stage: Stage, sp: Spot, practiced = false, practice: Practic
     default: return null;
   }
 }
+
+// Dora's Spanish show lines, re-voiced whole in the language being learned (tools/build-dubs.py), so the
+// show itself matches the chosen language and stays one voice per sentence.
+type Dub = { start: number; end: number; original: string } & Record<string, string | number>;
+const DUBS = dubsData as Dub[];
+const DUB_PREFETCH_S = 6; // fetch the re-voiced line this long before it's needed
+const DUB_DUCK = 0.06; // how far the show's own audio drops under the dub
+const DUB_MAX_RATE = 1.2; // speed a longer dub up at most this much to fit the original line
 
 // Spots whose own scene has a calm waiting moment get an in-scene talk/wait loop (tools/cut-loops.py).
 // Every other spot holds the paused frame. Dora never jumps to a different scene.
@@ -280,8 +295,9 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
 
   // What the kid should say right now, if it's a "say" turn: the practice word, or the spot's say word.
   function sayTarget(): { word: string; language: string; ipa: string } | undefined {
-    const p = ctxRef.current.practiced ? practiceFor(spotRef.current, learnRef.current) : null;
-    return p ? { word: p.word, language: p.language, ipa: p.ipa } : spotRef.current.say;
+    const sp = spotRef.current;
+    const p = practiceFor(sp, learnRef.current);
+    return p && (ctxRef.current.practiced || swapsSayWord(sp, p)) ? { word: p.word, language: p.language, ipa: p.ipa } : sp.say;
   }
 
   // A listening step failed: go back to listening (the mic re-arms).
@@ -299,7 +315,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
     if (code === learnRef.current) return;
     setLearn(code);
     learnRef.current = code;
-    const n = { ...ctxRef.current, practice: !!practiceFor(spotRef.current, code) };
+    const n = { ...ctxRef.current, practice: canPractice(spotRef.current, code) };
     ctxRef.current = n;
     setCtx(n);
     onLearnChange?.(code);
@@ -469,7 +485,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
   function pickSpot(sp: Spot) {
     spotRef.current = sp;
     setSpot(sp);
-    ctxRef.current = { ...ctxRef.current, known: isKnown(sp), practice: !!practiceFor(sp, learnRef.current) };
+    ctxRef.current = { ...ctxRef.current, known: isKnown(sp), practice: canPractice(sp, learnRef.current) };
   }
 
   function jump(sp: Spot) {
@@ -482,7 +498,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
     pickSpot(sp);
     lastResumed.current = null;
     episode.current!.currentTime = Math.max(0, sp.t - 2);
-    commit({ ...INITIAL, known: isKnown(sp), practice: !!practiceFor(sp, learnRef.current) }, `jump ${sp.id}`);
+    commit({ ...INITIAL, known: isKnown(sp), practice: canPractice(sp, learnRef.current) }, `jump ${sp.id}`);
     episode.current!.play();
   }
 
@@ -546,7 +562,39 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
       fadeEpisode(1);
       ep.play();
       // Freeze at whichever spot the playhead crosses.
+      // Dubbing: prepare the next re-voiced line ahead of time, then play it over the ducked show on cue.
+      const dub: { key: string; buffer: AudioBuffer | null; played: boolean } = { key: "", buffer: null, played: false };
+      const playDub = (d: Dub, buffer: AudioBuffer) => {
+        const a = audio.current!;
+        const src = a.ctx.createBufferSource();
+        src.buffer = buffer;
+        src.playbackRate.value = Math.min(DUB_MAX_RATE, Math.max(1, buffer.duration / (d.end - d.start + 0.3)));
+        src.connect(a.analyser);
+        a.epGain.gain.setTargetAtTime(DUB_DUCK, a.ctx.currentTime, 0.03);
+        src.onended = () => { if (!speechAbort.signal.aborted) a.epGain.gain.setTargetAtTime(1, a.ctx.currentTime, 0.08); };
+        speechAbort.signal.addEventListener("abort", () => { src.onended = null; try { src.stop(); } catch { /* already ended */ } }, { once: true });
+        src.start();
+      };
+      const dubTick = () => {
+        const lang = learnRef.current;
+        if (!lang || lang === "es") return; // Spanish is what the show already speaks
+        const t = ep.currentTime;
+        const d = DUBS.find((x) => typeof x[lang] === "string" && t >= x.start - DUB_PREFETCH_S && t < x.start + 0.25);
+        if (!d) return;
+        const key = `${d.start}:${lang}`;
+        if (dub.key !== key) {
+          dub.key = key; dub.buffer = null; dub.played = false;
+          fetchVoice(d[lang] as string, audio.current!.ctx, speechAbort.signal)
+            .then((b) => { if (dub.key === key) dub.buffer = b; })
+            .catch(() => undefined); // voice server busy or off: the show just plays its own line
+        }
+        if (!dub.played && t >= d.start - 0.05) {
+          dub.played = true; // not ready in time = skip, never late over the next line
+          if (dub.buffer) playDub(d, dub.buffer);
+        }
+      };
       const watch = () => {
+        dubTick();
         const hit = autoRef.current
           ? SPOTS.find((x) => x.keep !== false && ep.currentTime >= x.pauseAt && ep.currentTime < x.pauseAt + 0.5 && x.id !== lastResumed.current)
           : undefined;
@@ -710,7 +758,8 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
   }, [started]);
 
   const file = lineFor(stage, spot, ctx.tries);
-  const sayNow = ctx.practiced ? practiceFor(spot, learn) : spot.say; // what the record button scores
+  const practiceNow = practiceFor(spot, learn);
+  const sayNow = practiceNow && (ctx.practiced || swapsSayWord(spot, practiceNow)) ? practiceNow : spot.say; // what the record button scores
   const lineText = lessonText(stage, spot, ctx.practiced, practiceFor(spot, learn)) ?? (file && LINES[file] ? localFlair(LINES[file], learn) : null);
   const caption = lineText ? (speechCaption ?? lineText)
     : flash ? flash
