@@ -48,6 +48,9 @@ export default async function ParentHome() {
         <Link className="underline" href="/parent/live">
           Live now
         </Link>
+        <Link className="underline" href="/parent/topics">
+          Topics (sample)
+        </Link>
         <Link className="underline" href="/parent/preview">
           Preview by subject (sample)
         </Link>

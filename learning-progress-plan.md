@@ -251,6 +251,23 @@ Rules it follows:
   - `GET /api/parent/preferences` returns `{ focus, updatedAt }`, so **Play mode can read it to pick more moments in a subject.** Nothing reads it yet. `PUT` requires parent access.
   - Luka's pipeline doesn't depend on it (as agreed in pipeline plan §9).
 
+### Topics view with sample data (Nov 14)
+
+`/parent/topics`, linked from the parent home as "Topics (sample)", is built from the team's whiteboard notes, using **hard-coded sample data** (`lib/parent/topics-data.ts`). Everything is labeled "Sample data".
+
+- **Overview:**
+  - Basic stats: questions asked, on the first try, after help, missed, and missed-then-got-it.
+  - A card per topic (Shapes, Numbers, Objects) with topic progress.
+  - "Getting better at" and "Needs more practice" lists.
+  - Every missed question, with what was said, the answer, and the video moment.
+  - A learning-plan summary.
+- **Topic page (`/parent/topics/{shapes|numbers|objects}`):**
+  - What was learned, each item with the video it came from (show · episode · moment).
+  - Questions missed, plus getting better / needs practice.
+  - **Learning plan:** outcomes to aim for, and what to watch next.
+- **"Topic-wise mastery" is shown as topic progress:** Exploring → Practicing → Comfortable. A few answers aren't enough to claim mastery (section 3), and a test checks the sample text for "mastery" and score wording.
+- **To make it real later:** map scenes and objectives to topics, compute the lists from `interactions` and `learning_events`, and author outcomes and next videos per topic.
+
 ## 7. Integration agreement
 
 | With | Agreement | Boundary |
