@@ -122,6 +122,38 @@ body {
   --color-line: var(--line);
   --color-good: var(--good);
   --color-warn: var(--warn);
+  /* Same for the fonts: next/font sets --font-sora and --font-lexend-face on this element. */
+  --font-display: var(--font-sora), system-ui, sans-serif;
+  --font-lexend: var(--font-lexend-face), system-ui, sans-serif;
+  /* shadcn tokens in the Tellavision palette: yellow is the one action colour. */
+  --primary: #ffde36;
+  --primary-foreground: #000000;
+  --secondary: #ffffff;
+  --secondary-foreground: #000000;
+  --muted: #d9d9d9;
+  --muted-foreground: rgb(0 0 0 / 0.44);
+  --accent: #fff4bf;
+  --accent-foreground: #000000;
+  --border: rgb(0 0 0 / 0.1);
+  --input: rgb(0 0 0 / 0.1);
+  --ring: #ffde36;
   --color-attention: var(--attention);
   color-scheme: light;
 }
+
+/* iOS-style continuous corners (Figma corner smoothing 100%). Set the Figma radius with --r,
+   e.g. class="sq [--r:48px]". A squircle needs about 1.84x the radius to bulge as far into the
+   corner as Figma's smoothed corner does; browsers without corner-shape get the plain radius. */
+.sq {
+  border-radius: var(--r, 16px);
+}
+@supports (corner-shape: squircle) {
+  .sq {
+    border-radius: calc(var(--r, 16px) * 1.84);
+    corner-shape: squircle;
+  }
+}
+
+/* Global 3D tilt for icons set inside illustrations (Figma: X -19deg, Y -42.99deg, Z 0, depth 903). */
+:root { --tilt-x: -19deg; --tilt-y: -42.99deg; --tilt-z: 0deg; --tilt-depth: 903px; }
+.tilt-3d { transform: perspective(var(--tilt-depth)) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) rotateZ(var(--tilt-z)); transform-style: preserve-3d; }

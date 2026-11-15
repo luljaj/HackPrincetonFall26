@@ -1,0 +1,58 @@
+/* Tellavision parent view tokens, read from the Figma frames
+   "Not selected" (14:78) and "Selected parent view" (14:312).
+   Paste the custom properties into the @theme block of apps/web/app/globals.css
+   (Tailwind v4), or use the :root block as plain CSS. */
+
+@theme {
+  /* color */
+  --color-page: #fdfdfc;
+  --color-yellow: #ffde36;
+  --color-ink: #000000;
+  --color-wordmark: #161616;
+  --color-badge-text: #696969;
+  --color-muted: rgb(0 0 0 / 0.44);
+  --color-faint: rgb(0 0 0 / 0.3);
+  --color-card: #d9d9d9;
+  --color-panel-empty: rgb(217 217 217 / 0.48);
+  --color-panel-selected: #e7e7e7;
+  --color-tile: rgb(255 255 255 / 0.5);
+  --color-hairline: rgb(0 0 0 / 0.1);
+  --color-divider: rgb(0 0 0 / 0.06);
+  --color-icon-blue: #1b18e9;
+  --color-icon-blue-light: #9db8ff; /* approximate second tone of the duotone icons */
+
+  /* type */
+  --font-display: "Sora", system-ui, sans-serif;   /* Bold 700 only */
+  --font-body: "Lexend", system-ui, sans-serif;    /* Medium 500; Regular 400 for placeholders */
+  --text-page-title: 36px;
+  --text-card-title: 32px;
+  --text-section-title: 24px;
+  --text-wordmark: 20px;
+  --text-label-lg: 16px;
+  --text-body: 14px;
+  --text-small: 12px;
+  --text-tiny: 11px;
+  --leading-all: 1.35;
+
+  /* radius */
+  --radius-surface: 48px;  /* cards, insights panel */
+  --radius-pill: 24px;     /* prompt bar */
+  --radius-tile: 16px;
+  --radius-button: 14px;
+  --radius-badge: 11px;
+  --radius-chip: 7px;
+  --radius-icon-button: 3px;
+
+  /* shadow: glows only, never offset */
+  --shadow-halo: 0 0 92.5px rgb(0 0 0 / 0.1);
+  --shadow-chip: 0 0 13.7px rgb(0 0 0 / 0.1);
+  --shadow-chip-rank-1: 0 0 13.7px #ffde36;
+  --shadow-chip-rank-2: 0 0 13.7px rgb(255 222 54 / 0.55);
+  --shadow-button: 0 0 9.7px rgb(0 0 0 / 0.1);
+}
+
+/* Selected state: 4px yellow outline around the merged card + panel shape. */
+.selected-outline { outline: 4px solid #ffde36; }
+
+/* Rank 2 chip: white with a 23% yellow wash. */
+.chip-rank-2 { background: linear-gradient(rgb(255 222 54 / 0.23), rgb(255 222 54 / 0.23)), #fff; }

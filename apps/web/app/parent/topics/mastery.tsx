@@ -9,7 +9,6 @@ import { LanguageLessonControls, useLanguageLessons } from "./language-lessons";
 import type { PlayTurn } from "../../../lib/play/trace";
 import { categoryProgress } from "../../../lib/parent/mastery-chart";
 import { languageName } from "../../../lib/play/view";
-import { MasteryCarousel } from "./mastery-carousel";
 import { shortDate } from "./parts";
 
 const SKILL: Record<SkillLevel, string> = { new: "Not yet", practising: "Practising", got_it: "Mastery", rusty: "Needs a refresh" };
@@ -110,27 +109,21 @@ export function MasterySection({ mastery, name, evidence = [], initialLanguage =
                 onClick={() => { setSelected(subject.id); setExpanded(false); }} />;
             })}
           </div>
-          <p className="mastery-map-note">{languageCode ? "Language petal: lessons remembered" : "Mastery · fill includes practice so far"}</p>
         </div>
         <div className="mastery-detail">
           <div className="mastery-detail-content" key={category?.id ?? "empty"}>
-          {isLanguage ? <><header><img src="/figma/mastery-imgMastery1.svg" alt="" width={24} height={24} /><div><h3>{languageCategory?.name}</h3><p>Learning language · lessons saved separately</p></div></header><LanguageLessonControls state={languageState} name={name} /></> : category ? <><header>
-            {spanish ? <span className="mastery-subject-icon"><img src="/figma/mastery-imgSpanish1.svg" alt="" /></span>
-              : <img src="/figma/mastery-imgMastery1.svg" alt="" width={24} height={24} />}
-            <div><h3>{category.name}</h3><p>What {name} can do · saved learning evidence</p></div>
-          </header>
-          <div className="mastery-track" aria-hidden="true">{category.skills.map(s => <i key={s.id} data-level={s.level} />)}</div>
-          <p className="text-xs text-foreground/60">{category.skills.filter(s => s.level === "got_it").length} of {category.skills.length} skills at mastery</p>
-          <MasteryCarousel key={category.id} label="Skills">{category.skills.map(s => <article key={s.id} className="mastery-skill-card">
-            <span className="mastery-badge" data-good={s.level === "got_it"}>{SKILL[s.level]}</span>
-            <h4>{s.name}</h4>
-            {SKILL_DESCRIPTION[s.id] && <p className="mastery-card-blurb">{SKILL_DESCRIPTION[s.id]}</p>}
-            <p className="mastery-card-blurb">{s.asked === 0 ? `This skill hasn’t been practised yet. Saved answers will show how ${name} is getting on.` : `${name} answered independently on ${s.firstTry} of ${s.asked} saved questions for this skill. These answers reflect practice so far.`}</p>
-            {s.lastSeen && <small>Last practised {when(s.lastSeen)}</small>}
-          </article>)}</MasteryCarousel>
-          <img className="mastery-divider" src="/figma/mastery-imgVector2.svg" alt="" />
-          <h4 className="text-base">{asked} Questions Practised</h4>
+          {isLanguage ? <><SubjectHeader icon="/figma/mastery-imgSpanish1.svg" title={languageCategory?.name ?? ""} subtitle="Learning language" /><LanguageLessonControls state={languageState} name={name} /></> : category ? <>
+          <SubjectHeader icon={spanish ? "/figma/mastery-imgSpanish1.svg" : "/figma/mastery-imgMastery1.svg"} title={category.name}
+            subtitle={`${category.skills.filter(s => s.level === "got_it").length} of ${category.skills.length} mastered${asked ? ` · ${asked} question${asked === 1 ? "" : "s"}` : ""}`}
+            current={(category.skills.find(s => s.level === "practising" || s.level === "rusty") ?? category.skills.find(s => s.level === "new"))?.name} />
+          <SkillTrack skills={category.skills} color={PETALS.find(p => p.id === category.id)?.color ?? "#ff8000"} />
+          <ul className="mastery-skill-list">{category.skills.map(s => <li key={s.id} className="mastery-skill-card">
+            <div><h4>{s.name}</h4><span className="mastery-badge" data-good={s.level === "got_it"}>{SKILL[s.level]}</span></div>
+            {SKILL_DESCRIPTION[s.id] && <p>{SKILL_DESCRIPTION[s.id]}</p>}
+            {s.asked > 0 && <small>{s.firstTry}/{s.asked} on own{s.lastSeen ? ` · ${when(s.lastSeen)}` : ""}</small>}
+          </li>)}</ul>
           {shown.length ? <>
+            <h4 className="mt-4 text-sm font-medium">Questions practised</h4>
             <ul className="mastery-evidence">
               {shown.map(t => <li key={t.turnId}>
                 <header>
@@ -145,10 +138,8 @@ export function MasterySection({ mastery, name, evidence = [], initialLanguage =
                 <time dateTime={new Date(t.endedAt).toISOString()}>{when(t.endedAt)} · {t.episode}</time>
               </li>)}
             </ul>
-            {turns.length > 2 && <button className="mt-4 w-full cursor-pointer text-xs" onClick={() => setExpanded(!expanded)}>{expanded ? "− See less" : `+ See more (${turns.length - 2})`}</button>}
-            <p className="mt-3 text-[10px] text-foreground/55">Saved history stays visible when progress is reset.</p>
-          </> : <p className="mt-4 text-sm text-foreground/60">No saved questions for this subject yet.</p>}
-          <img className="mastery-divider" src="/figma/mastery-imgVector2.svg" alt="" />
+            {turns.length > 2 && <button className="mt-3 w-full cursor-pointer text-xs" onClick={() => setExpanded(!expanded)}>{expanded ? "− See less" : `+ See more (${turns.length - 2})`}</button>}
+          </> : null}
           </> : <div className="mastery-empty">
             <img src="/figma/mastery-select-subject.svg" alt="" width={32} height={32} />
             <p>Select a subject to view skills</p>
@@ -174,4 +165,30 @@ export function MasterySection({ mastery, name, evidence = [], initialLanguage =
       </section>
     </div>
   );
+}
+
+/** Subject header: icon tile, name, one short summary line, and the skill being worked on now. */
+function SubjectHeader({ icon, title, subtitle, current }: { icon: string; title: string; subtitle: string; current?: string }) {
+  return <header className="mastery-subject">
+    <span className="mastery-subject-tile"><img src={icon} alt="" /></span>
+    <div>
+      <h3>{title}</h3>
+      <p>{subtitle}</p>
+      {current && <p className="mastery-subject-current"><i aria-hidden="true" />{current}</p>}
+    </div>
+  </header>;
+}
+
+type TrackSkill = { id: string; level: SkillLevel };
+/** One segment per skill: mastered segments fill, the current one fills partway with a marker. */
+function SkillTrack({ skills, color }: { skills: TrackSkill[]; color: string }) {
+  const current = (skills.find(s => s.level === "practising" || s.level === "rusty") ?? skills.find(s => s.level === "new"))?.id;
+  return <div className="mastery-track" aria-hidden="true" style={{ "--track": color } as React.CSSProperties}>
+    {skills.map(s => {
+      const fill = s.level === "got_it" ? 100 : s.level === "practising" ? 60 : s.level === "rusty" ? 35 : 0;
+      return <span key={s.id} data-level={s.level} style={{ "--fill": `${fill}%` } as React.CSSProperties}>
+        {s.id === current && <b />}
+      </span>;
+    })}
+  </div>;
 }

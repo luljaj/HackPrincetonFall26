@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export function DeleteSessionButton({ sessionId }: { sessionId: string }) {
   const router = useRouter();
@@ -23,16 +24,11 @@ export function DeleteSessionButton({ sessionId }: { sessionId: string }) {
   };
 
   return (
-    <div className="space-y-1">
-      <button
-        type="button"
-        onClick={onDelete}
-        disabled={busy}
-        className="rounded border border-foreground/30 px-3 py-1.5 text-sm disabled:opacity-50"
-      >
+    <div className="flex flex-col items-start gap-1">
+      <Button type="button" variant="outline" size="sm" onClick={onDelete} disabled={busy}>
         {busy ? "Deleting…" : "Delete this session"}
-      </button>
-      {error && <p className="text-sm">{error}</p>}
+      </Button>
+      {error && <p role="status">{error}</p>}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import type { PublicQuestion } from "../../../lib/parent/types";
 
 // The question Dora is asking right now (learning-progress-plan.md §2, §5): after a wrong answer
@@ -11,16 +12,19 @@ export function ActiveQuestion({
 }) {
   if (!question) return null;
   return (
-    <section
+    // Yellow outline: this is the thing in focus right now.
+    <Card
       aria-live="polite"
-      className="space-y-1 rounded border border-foreground/30 p-4"
+      className="gap-1 border-2 border-primary px-5 py-4"
       data-question-id={question.questionId}
     >
-      <h2 className="text-sm text-foreground/60">
-        {hasAnswers ? "Dora is asking a follow-up" : "Dora is asking"}
-      </h2>
-      <p className="text-lg">{question.text}</p>
-      <p className="text-sm text-foreground/60">Waiting for the answer…</p>
-    </section>
+      <CardHeader className="gap-1 px-0">
+        <CardDescription className="text-xs">
+          {hasAnswers ? "Dora is asking a follow-up" : "Dora is asking"}
+        </CardDescription>
+        <CardTitle className="text-2xl leading-[1.35]">{question.text}</CardTitle>
+      </CardHeader>
+      <CardFooter className="px-0 text-muted-foreground">Waiting for the answer…</CardFooter>
+    </Card>
   );
 }

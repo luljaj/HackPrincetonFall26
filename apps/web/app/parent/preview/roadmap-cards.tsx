@@ -5,17 +5,14 @@ import { Tabs } from "radix-ui";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import type { subjectRoadmaps } from "@/lib/parent/curriculum";
+import { RoadmapToken, TOKEN_COLOR } from "./roadmap-token";
 
-const ICON: Record<string, string> = {
-  numbers: "home-imgImage18Vectorized",
-  shapes: "home-imgMastery1",
-  remembering: "home-imgInsights1",
-  choosing: "home-imgRoadmap1",
-  words: "home-imgImage19Vectorized",
-  stories: "home-imgPuzzledSmileyStreamlineFlex1Vectorized",
-  "joining-in": "home-imgTv1",
-  "show-spanish": "home-imgMastery1",
-};
+// Flat duotone subject icons (flat-duotone-icons skill), one per roadmap subject.
+const ICON_IDS = ["numbers", "shapes", "remembering", "choosing", "words", "stories", "joining-in", "show-spanish"];
+const icon = (id: string) => `/icons/subject-${ICON_IDS.includes(id) ? id : "numbers"}.svg`;
+// Vertical distance between checkpoints; neighbours sit in alternate columns, so they can overlap in height.
+const STEP = 170;
+const tokenIcon = (id: string) => `/icons/subject-${ICON_IDS.includes(id) ? id : "numbers"}-token.svg`;
 /* eslint-disable @next/next/no-img-element -- Exact local Figma artwork. */
 
 type Subject = ReturnType<typeof subjectRoadmaps>[number];
@@ -118,7 +115,7 @@ export function RoadmapCards({ subjects }: { subjects: Subject[] }) {
             className="roadmap-choice"
           >
             <span className="roadmap-choice-icon">
-              <img src={`/figma/${ICON[subject.id]}.svg`} alt="" />
+              <img src={icon(subject.id)} alt="" />
             </span>
             <span className="roadmap-choice-name">{subject.name}</span>
           </Tabs.Trigger>
@@ -168,28 +165,34 @@ export function RoadmapCards({ subjects }: { subjects: Subject[] }) {
                 >
                   <div
                     className="roadmap-course"
-                    style={{ height: subject.nodes.length * 240 + 90 }}
+                    style={{ height: subject.nodes.length * STEP + 160 }}
                   >
                     <svg className="roadmap-path" aria-hidden="true">
-                      {subject.nodes.slice(0, -1).map((node, n) => (
-                        <line
-                          key={node.id}
-                          x1={n % 2 ? "72%" : "28%"}
-                          y1={n * 240 + 183}
-                          x2={n % 2 ? "28%" : "72%"}
-                          y2={(n + 1) * 240 + 183}
-                          stroke={
-                            node.state === "complete" ? "#ffe436" : "#b7bec850"
-                          }
-                          strokeWidth="35"
-                        />
-                      ))}
+                      {subject.nodes.slice(0, -1).map((node, n) => {
+                        const next = subject.nodes[n + 1]!;
+                        const ahead = next.state === "locked" || next.state === "planned";
+                        const fromLeft = n % 2 === 0;
+                        const line = { x1: fromLeft ? "28%" : "72%", y1: n * STEP + 160, x2: fromLeft ? "72%" : "28%", y2: (n + 1) * STEP + 160 };
+                        const g = `band-${node.id}`;
+                        return (
+                          <g key={node.id}>
+                            <defs>
+                              <linearGradient id={g} x1={fromLeft ? 0 : 1} x2={fromLeft ? 1 : 0} y1="0" y2="0">
+                                <stop offset="0" stopColor={ahead ? "#C9CBD1" : TOKEN_COLOR[next.state]} stopOpacity="0" />
+                                <stop offset=".75" stopColor={ahead ? "#C9CBD1" : TOKEN_COLOR[next.state]} stopOpacity={ahead ? 0.35 : 0.85} />
+                              </linearGradient>
+                            </defs>
+                            <line {...line} stroke={`url(#${g})`} strokeWidth="46" />
+                            {ahead && <line {...line} stroke="#D3D5DC" strokeWidth="9" strokeLinecap="round" strokeDasharray="0 22" />}
+                          </g>
+                        );
+                      })}
                     </svg>
                     <div className="roadmap-ruler" aria-hidden="true">
                       {subject.nodes.map((node) => (
                         <span
                           key={node.id}
-                          style={{ top: (node.checkpoint / 10) * 240 + 130 }}
+                          style={{ top: (node.checkpoint / 10) * STEP + 130 }}
                         >
                           {node.checkpoint}
                           <i />
@@ -202,7 +205,7 @@ export function RoadmapCards({ subjects }: { subjects: Subject[] }) {
                           <div
                             key={node.id}
                             className="roadmap-grade-divider"
-                            style={{ top: n * 240 + 15 }}
+                            style={{ top: n * STEP + 15 }}
                           >
                             <span>{node.band}</span>
                           </div>
@@ -213,49 +216,15 @@ export function RoadmapCards({ subjects }: { subjects: Subject[] }) {
                         className="roadmap-checkpoint"
                         data-state={node.state}
                         key={node.id}
-                        style={{ left: n % 2 ? "72%" : "28%", top: n * 240 + 58 }}
+                        style={{ left: n % 2 ? "72%" : "28%", top: n * STEP + 58 }}
                       >
                         <p className="roadmap-grade">{node.band}</p>
-                        <div className="roadmap-token">
-                          {subject.id === "numbers" ? (
-                            <img
-                              className="roadmap-math"
-                              src={`/figma/roadmap-imgFrame${node.state === "locked" || node.state === "planned" ? "86" : "84"}.svg`}
-                              alt=""
-                            />
-                          ) : (
-                            <>
-                              <img
-                                className="roadmap-hex"
-                                src="/figma/roadmap-imgPolygon2.svg"
-                                alt=""
-                              />
-                              <span className="roadmap-topic-icon">
-                                <img
-                                  src={`/figma/${ICON[subject.id]}.svg`}
-                                  alt=""
-                                />
-                              </span>
-                            </>
-                          )}
-                          {(node.state === "locked" ||
-                            node.state === "planned") &&
-                            subject.id !== "numbers" && (
-                              <img
-                                className="roadmap-lock"
-                                src="/figma/roadmap-lock.svg"
-                                alt=""
-                              />
-                            )}
-                          {node.state === "complete" && (
-                            <span
-                              className="roadmap-complete"
-                              aria-label="Mastery"
-                            >
-                              ✓
-                            </span>
-                          )}
-                        </div>
+                        <RoadmapToken id={node.id} state={node.state} icon={tokenIcon(subject.id)} />
+                        {node.state === "complete" && (
+                          <span className="roadmap-complete" aria-label="Mastery">
+                            ✓
+                          </span>
+                        )}
                         <h4>{node.name}</h4>
                         <p className="roadmap-status">
                           {node.state === "complete"
@@ -268,11 +237,6 @@ export function RoadmapCards({ subjects }: { subjects: Subject[] }) {
                                   ? `${node.asked} saved attempts · practising`
                                   : "Start here"}
                         </p>
-                        <small>
-                          {node.lessonIds.length
-                            ? `${node.lessonIds.length} prepared Dora moments`
-                            : "New teaching moment needed"}
-                        </small>
                       </div>
                     ))}
                   </div>
