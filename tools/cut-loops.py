@@ -1,20 +1,39 @@
-"""Cut in-scene talk/wait loops for the spots that have a calm waiting moment: python3 tools/cut-loops.py
+"""Cut Dora's talking loops for the pauses where she is the one on screen talking: python3 tools/cut-loops.py
 
-Dora never leaves the scene she is in. Where the show itself waits for the viewer after a prompt (same camera
-shot, little movement), that waiting moment becomes the wait loop and the prompt just before it the talk loop,
-both as boomerangs (forward then reversed) so `<video loop>` never jumps. Everywhere else the player simply
-holds the paused frame. Writes the clips to public/media/loops/ and a manifest to app/lab/loops.json.
-Needs only ffmpeg.
+While Dora waits or listens, the player holds the exact paused frame (with a slow push-in), so nothing in the
+background ever moves. While she talks, it plays a short loop of her own mouth from the last ~1.2 s before
+the pause, built backwards-then-forwards from the paused frame. It starts and ends on that very frame, so
+showing or hiding it is invisible, and it's too short for anything else in the shot to wander.
+
+Old approach, and why it's gone: whole-frame boomerangs of the show's waiting moment. Moving background
+characters walked forwards then backwards, the talk and wait clips came from different seconds (things jumped
+when Dora started or stopped talking), and some waits contained the show revealing the answer.
+
+Only hand-checked spots get a loop (REVIEWED): which character is talking can't be detected automatically, and
+another character's mouth moving to Dora's voice is worse than a still frame. Everything else holds its frame.
+Writes public/media/loops/<spot>-talk.mp4 and app/lab/loops.json. Needs only ffmpeg.
 """
-import json, re, statistics, subprocess
+import json, re, subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 LAB = ROOT / 'apps/web/app/lab'
 SRC = ROOT / 'apps/web/public/media/dora-ep3.mp4'
 OUT = ROOT / 'apps/web/public/media/loops'
-MIN_WAIT_S, MAX_WAIT_S, MIN_TALK_S, PAD = 0.8, 4.0, 0.4, 0.05
-CALM = 0.7  # mean frame difference; the show's quiet waits measure 0.06-0.6, busy shots 0.9-5.6
+TALK_S = 1.2  # how far back the mouth loop reaches: long enough to read as talking, short enough not to drift
+MIN_TALK_S = 0.6
+FRAME_S = 1 / 29.97
+
+# Checked frame by frame (the strips in the demo review): Dora is the one talking in the last TALK_S, in the
+# same shot, with little else moving. Add a spot only after looking at it.
+REVIEWED = {
+    'ep3-07': 'Dora asks who helps when we are lost; Boots only blinks',
+    'ep3-26': 'Dora close-up, "Where do we go next?"',
+    'ep3-55': 'Dora close-up holding the keys, "Count with me"',
+    'ep3-60': 'Dora, "Say it with us"',
+}
+# Looked at and rejected: ep3-27 (wide shot, the bird painting moves a lot), ep3-39 (no characters, a shape
+# piece animates), ep3-57 (Mommy is the one talking).
 
 
 def scene_cuts():
@@ -27,59 +46,39 @@ def scene_cuts():
     return cuts
 
 
-def shot(t, cuts):
-    """(start, end) of the camera shot containing t."""
-    return max([c for c in cuts if c <= t] or [0]) + PAD, min([c for c in cuts if c > t] or [1e9]) - PAD
-
-
-def wait_window(sp, cuts):
-    """The show's own wait after the prompt, kept inside the shot; None if it's too short."""
-    start = sp['pauseAt'] + 0.1
-    end = min(sp['pauseAt'] + sp['gap'] - 0.1, shot(sp['pauseAt'], cuts)[1], sp['pauseAt'] + MAX_WAIT_S)
-    return (start, end) if end - start >= MIN_WAIT_S else None
-
-
 def talk_window(sp, cuts):
-    """The prompt just before the pause, kept inside the same shot as the wait; None if too short."""
-    s0, _ = shot(sp['pauseAt'], cuts)
-    start, end = max(sp['talk'][0], s0), min(sp['talk'][1], sp['pauseAt'])
-    return (start, end) if end - start >= MIN_TALK_S else None
+    """The last TALK_S before the pause, inside its camera shot and the prompt; None if too short."""
+    shot_start = max([c for c in cuts if c <= sp['pauseAt']] or [0])
+    start = max(sp['pauseAt'] - TALK_S, shot_start + 0.05, sp['talk'][0])
+    return (start, sp['pauseAt']) if sp['pauseAt'] - start >= MIN_TALK_S else None
 
 
-def motion(start, end):
-    out = subprocess.run(['ffmpeg', '-v', 'error', '-ss', f'{start:.2f}', '-t', f'{end - start:.2f}', '-i', str(SRC), '-vf',
-                          'scale=160:-1,tblend=all_mode=difference,signalstats,metadata=print:file=-', '-an', '-f', 'null', '-'],
-                         capture_output=True, text=True).stdout
-    values = [float(v) for v in re.findall(r'YAVG=([\d.]+)', out)]
-    return statistics.mean(values) if values else 99.0
-
-
-def boomerang(start, end, dest):
-    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-ss', f'{start:.3f}', '-t', f'{end - start:.3f}', '-i', str(SRC),
-                    '-filter_complex', '[0:v]split[a][b];[b]reverse[r];[a][r]concat=n=2:v=1[o]', '-map', '[o]', '-an',
-                    '-c:v', 'libx264', '-crf', '22', '-g', '10', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', str(dest)], check=True)
+def anchored_loop(start, end, dest):
+    """Backwards from the paused frame, then forwards back to it: first and last frames are the paused frame."""
+    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-ss', f'{start:.3f}', '-t', f'{end - start + FRAME_S:.3f}', '-i', str(SRC),
+                    '-filter_complex', '[0:v]split[a][b];[a]reverse[r];[r][b]concat=n=2:v=1[o]', '-map', '[o]', '-an',
+                    '-c:v', 'libx264', '-crf', '18', '-g', '12', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', str(dest)], check=True)
 
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     cuts = scene_cuts()
-    for old in OUT.glob('*.mp4'): old.unlink()  # every clip is rebuilt; nothing stale (or from another scene) is left
+    for old in OUT.glob('*.mp4'): old.unlink()  # every clip is rebuilt; nothing stale is left
+    spots = {sp['id']: sp for sp in json.loads((LAB / 'spots.json').read_text())}
     manifest = {}
-    for sp in json.loads((LAB / 'spots.json').read_text()):
-        wait = wait_window(sp, cuts)
-        if not wait or motion(*wait) > CALM: continue  # busy or no pause: the player holds the frame instead
-        boomerang(*wait, OUT / f"{sp['id']}-wait.mp4")
-        talk = talk_window(sp, cuts)
-        if talk: boomerang(*talk, OUT / f"{sp['id']}-talk.mp4")
-        manifest[sp['id']] = {'talk': bool(talk)}
-        print(sp['id'], 'wait %.1fs' % (wait[1] - wait[0]), 'talk' if talk else 'no talk', flush=True)
+    for sid in REVIEWED:
+        window = talk_window(spots[sid], cuts)
+        if not window: print(sid, 'skipped: no clean talking window'); continue
+        anchored_loop(*window, OUT / f'{sid}-talk.mp4')
+        manifest[sid] = {'talk': True}
+        print(sid, 'talk loop %.2fs' % (2 * (window[1] - window[0])), flush=True)
     (LAB / 'loops.json').write_text(json.dumps(manifest, indent=1) + '\n')
-    print(f'{len(manifest)} spots loop in their own scene; the rest hold the paused frame')
+    print(f'{len(manifest)} spots have a talking loop; every other spot holds its paused frame')
 
 
 if __name__ == '__main__':
-    # self-check: a camera cut 0.5 s after the pause leaves too short a wait, so that spot holds the frame
-    assert wait_window({'pauseAt': 10.0, 'gap': 3.0}, [5.0, 10.5]) is None
-    assert wait_window({'pauseAt': 10.0, 'gap': 3.0}, [5.0, 20.0]) == (10.1, 12.9)
-    assert talk_window({'pauseAt': 10.0, 'talk': [8.0, 10.0]}, [9.0, 20.0]) == (9.05, 10.0)
+    # self-checks: the window stays inside the shot and the prompt, and is skipped when too short
+    assert talk_window({'pauseAt': 10.0, 'talk': [5.0, 10.0]}, [2.0]) == (8.8, 10.0)
+    assert talk_window({'pauseAt': 10.0, 'talk': [5.0, 10.0]}, [9.5]) is None  # cut 0.5 s before the pause
+    assert talk_window({'pauseAt': 10.0, 'talk': [9.2, 10.0]}, [2.0]) == (9.2, 10.0)
     main()

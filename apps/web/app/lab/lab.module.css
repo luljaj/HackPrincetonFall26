@@ -50,19 +50,16 @@
   object-fit: contain;
 }
 
-/* assistant layer crossfades over the frozen episode frame */
-.assistant {
-  opacity: 0;
-  transition: opacity 300ms ease;
-}
-
-.assistant.show {
-  opacity: 1;
-}
-
-/* mouth switching between loops: fast but not a hard cut */
+/* Dora's mouth loop over the held frame: it starts and ends on that frame, the short fade is just insurance */
 .loop {
   transition: opacity 120ms linear;
+  pointer-events: none;
+}
+
+/* the held frame, drawn at resume and dissolved out over the show */
+.snapshot {
+  object-fit: contain;
+  pointer-events: none;
 }
 
 .listenRing {
@@ -391,7 +388,7 @@
   background: #ffd84d;
 }
 
-/* No in-scene loop for this spot: hold the paused frame and push in very slowly, so it never looks frozen. */
+/* While Dora has the floor, the paused frame (with her mouth loop) pushes in very slowly, so it never looks frozen. */
 .hold {
   transform: scale(1.04);
   transition: transform 9s ease-out;

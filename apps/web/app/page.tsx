@@ -121,8 +121,7 @@ export default function Play() {
   }
 
   function pickLanguage(code: string) {
-    setLearn(code);
-    if (on) setLearningNotice({ code, status: "queued" });
+    setLearn(code); // the player applies it at once and shows the "Let's learn …" card
   }
 
   // The parent's learning plan (learning-plan.md): a language change lands mid-episode, at Dora's next line.
@@ -337,7 +336,7 @@ export default function Play() {
               {paused ? "▶ Play" : "Ⅱ Pause"}
             </button>
             {demo && (
-              <button onClick={() => setSkipRequest((n) => n + 1)} disabled={!skipLabel} title="Skip the part without an exercise">
+              <button onClick={() => { setPaused(false); setSkipRequest((n) => n + 1); }} disabled={!skipLabel} title="Skip to the next moment">
                 {skipLabel ? <>Skip to: {skipLabel} ⏭</> : "Skip ⏭"}
               </button>
             )}

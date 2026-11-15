@@ -5,7 +5,8 @@ wrong, and teaches the answer in Spanish. Then a parent opens their view and say
 and the cartoon switches on the spot.
 
 About 4–5 minutes. Every moment below is a real pause in the real episode ("When I Grow Up"). Nothing is
-re-edited; **Skip** on the remote just jumps over the parts with no exercise.
+re-edited. **Skip** on the remote (it shows "1/7 · …") jumps to the next moment from anywhere: over a
+cartoon part, or out of a question you want to cut short.
 
 ---
 
@@ -17,8 +18,8 @@ re-edited; **Skip** on the remote just jumps over the parts with no exercise.
      `{"ready": true}` at `localhost:8767/health`.
    - Dora's voice: `uv run tools/voice-server.py`. It must report `"ready": true` at `localhost:8766/health`.
 2. **Two windows side by side, not two tabs.** Kid TV on the left: `http://localhost:3010/`. Parent
-   view on the right: `http://localhost:3010/parent`. A hidden tab gets paused by the browser. The TV now
-   resumes when it's visible again, but questions that pass while it's hidden are skipped.
+   view on the right: `http://localhost:3010/parent`. Browsers pause video in hidden tabs. The TV resumes
+   and still catches its questions, but the show stalls while it's hidden.
 3. **Use real Chrome, and allow the microphone** when the TV asks. The Claude in-app browser blocks the mic.
 4. Sound on, and a quiet room if you can. The mic is always on; Dora waits for you to stop talking.
 5. In the parent view, make sure **Learning focus** is all "Usual". "More Numbers" adds extra addition
@@ -35,7 +36,7 @@ re-edited; **Skip** on the remote just jumps over the parts with no exercise.
 
 **Do:** click **Turn TV on**. The TV starts in Spanish: "Let's learn Español!".
 **Say:** "This is Sam's TV. Dora's on, but this Dora can hear Sam."
-**Do:** press **Skip to: Who helps when we're lost? ⏭** on the remote.
+**Do:** press **Skip to: 1/7 · Who helps when we're lost? ⏭** on the remote.
 
 ### 1. Feedback loop: "Who do we ask for help?" (≈40 s)
 
@@ -47,15 +48,15 @@ Lands at 2:46: Boots wants to go to the pyramid; Dora says "We don't know how to
   our way." She asks again.
 - **Kid:** "The map!"
 - **Dora celebrates**, then teaches the answer in Spanish: "In Spanish, map is *mapa*! Can you say mapa?"
-- **Kid:** "mapa". The pronunciation is scored; Dora praises it or models it once more. The show carries on
-  from the exact frame.
+- **Kid:** "mapa". The pronunciation is scored; Dora praises it or models it once more. The paused frame
+  dissolves back into the show right before its next line.
 
 **Say:** "Wrong answers get a hint, then choices, then Dora shows the answer. It's never just 'no'.
 And every answer becomes a Spanish word."
 
 ### 2. Remembering: "Where do we go next?" (≈30 s)
 
-**Do:** **Skip to: Where do we go next? ⏭**. It lands at 9:25, after they've rescued Benny at the
+**Do:** **Skip to: 2/7 · Where do we go next? ⏭**. It lands at 9:25, after they've rescued Benny at the
 firehouse. Early on the Map said "firehouse, bridge, pyramid".
 
 - **Dora:** "We went past the firehouse. Where do we go next?"
@@ -69,13 +70,13 @@ firehouse. Early on the Map said "firehouse, bridge, pyramid".
   (Remembering), plus the Spanish words Sam said.
 - Open the companion at the bottom and type: **"Now teach Sam Hindi"**.
 - **On the TV, instantly:** "हिन्दी is next. Dora is finishing this question." if she's mid-question,
-  otherwise straight away "Let's learn हिन्दी!", and Dora says "नमस्ते! Let's learn Hindi!" over the show.
+  otherwise straight away the card "Let's learn हिन्दी!". The show keeps playing; nothing talks over it.
 
 **Say:** "No reload. The parent's plan goes to the TV live through Convex."
 
 ### 4. The cartoon is now teaching Hindi (≈30 s)
 
-**Do:** **Skip to: Find the bridge ⏭**. It lands at 9:49.
+**Do:** **Skip to: 3/7 · Find the bridge ⏭**. It lands at 9:49.
 
 - **Dora:** "Where is the bridge?" **Kid:** "There!" (or point and say it)
 - **Dora:** "In Hindi, bridge is *पुल* (pul)! Can you say पुल?" **Kid:** "pul".
@@ -96,6 +97,15 @@ only the word Dora teaches changed."
 **Close:** "Any cartoon, any language. The show waits for the kid, and the parent can steer it live."
 
 ---
+
+## How the pauses look
+
+- While Dora waits or listens, the paused frame holds with a slow push-in, so nothing in the background moves.
+- Where Dora is the one on screen talking (moments 1, 2, 5 and 7), her mouth moves while she speaks, using a
+  short loop from that very shot that starts and ends on the paused frame.
+- The other moments hold the frame while she talks. Moment 6 (the jewel) is Mommy on screen, and moment 3
+  has a moving bird, so it holds a second after the show's own pause, once the bird has walked off the
+  bridge.
 
 ## What's real vs. prepared
 

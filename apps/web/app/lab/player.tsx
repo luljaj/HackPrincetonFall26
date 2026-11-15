@@ -11,9 +11,9 @@ import translationsData from "./translations.json";
 import focusTranslations from "./focus-translations.json";
 import loopsData from "./loops.json";
 import trialEpisode from "./episode.json";
-import { DEMO_EDIT, DEMO_PAUSE_IDS, skipTarget } from "./demo-edit";
+import { DEMO_EDIT, DEMO_PAUSE_IDS, demoPauseAt, skipTarget } from "./demo-edit";
 import s from "./lab.module.css";
-import { afterRelease, canTake, silencesGreeting, type SoundOwner } from "./sound";
+import { afterRelease, canTake, type SoundOwner } from "./sound";
 import { fetchVoice, captionFallback, streamVoice } from "./voice";
 import dubsData from "./dubs.json";
 import { listenOnce, openMic, recorderOptions } from "./listen";
@@ -111,11 +111,6 @@ function practiceFor(sp: Spot, language: string): Practice | null {
   const w = language && t ? (t[language] as Word | undefined) : undefined;
   return w && t ? { ...w, english: t.english, language, name: LEARN_LANGUAGES[language] ?? language } : null;
 }
-// The multilingual model reads the original script; romanization is display guidance only.
-const GREETING: Record<string, string> = {
-  es: "¡Hola! Let's learn Spanish!", fr: "Bonjour! Let's learn French!", de: "Hallo! Let's learn German!",
-  zh: "你好! Let's learn Chinese!", hi: "नमस्ते! Let's learn Hindi!", ja: "こんにちは! Let's learn Japanese!",
-};
 
 // A "say X" spot whose word should be said in the learning language instead of the show's Spanish.
 const swapsSayWord = (sp: Spot, practice: Practice | null): practice is Practice => !!(sp.say && practice && practice.language !== sp.say.language);
@@ -160,9 +155,11 @@ const DUB_FADE_S = 0.25; // crossfade between the show and its no-voice bed
 const DUB_LATE_S = 1; // a dub that isn't ready may still start this long after its line ends
 const DUB_END_PAD_S = 0.4; // keep the voice removed this long past a line's transcript end
 
-// Spots whose own scene has a calm waiting moment get an in-scene talk/wait loop (tools/cut-loops.py).
-// Every other spot holds the paused frame. Dora never jumps to a different scene.
+// While Dora waits or listens, the paused frame holds (slow push-in): nothing in the background moves. Spots
+// where she's the one on screen talking also get a short mouth loop that starts and ends on that exact frame
+// (tools/cut-loops.py), shown only while she speaks. Dora never jumps to a different scene.
 const LOOPS = loopsData as Record<string, { talk: boolean }>;
+const RESUME_DISSOLVE_MS = 350; // held frame dissolves into the show as it carries on
 
 const isKnown = (sp: Spot) => !!(sp.custom || sp.say || (sp.answer && !sp.open));
 const askedText = (sp: Spot) => sp.question ?? (sp.custom ? LINES.ask : undefined) ?? sp.text;
@@ -188,7 +185,6 @@ const KID: { label: string; result: Event | "SILENCE" }[] = [
   { label: "Pipeline breaks", result: "ERROR" },
 ];
 
-type Loop = "talk" | "wait";
 
 // The interactive Dora player. `/lab` shows it with every debug control; the kid view (`/`) shows only the
 // screen, with the mic always on and the same controls in a hidden dev drawer (press ` or add ?dev).
@@ -208,7 +204,9 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
 }) {
   const episodeId = trialEpisode.id; // the demo plays the real episode, uncut
   // The demo's own list decides where it pauses, whether or not a moment is among the regular curated pauses.
-  const activeSpots = demo ? SPOTS.filter((sp) => DEMO_PAUSE_IDS.includes(sp.id)).map((sp) => ({ ...sp, keep: true })) : SPOTS;
+  const activeSpots = demo
+    ? SPOTS.filter((sp) => DEMO_PAUSE_IDS.includes(sp.id)).map((sp) => ({ ...sp, keep: true, pauseAt: demoPauseAt(sp.id, sp.pauseAt) }))
+    : SPOTS;
   const openedAt = useRef(Date.now());
   const watchedSeconds = useRef(0);
   const visitedSpots = useRef(new Set<string>());
@@ -219,8 +217,6 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
   const queuedAddition = useRef(false);
   const pendingLanguageLesson = useRef<RequestedLesson | null>(null);
   const lastLessonRequest = useRef(0);
-  const pendingLanguage = useRef<string | undefined>(undefined);
-  const [languageTick, setLanguageTick] = useState(0);
   const additionIndex = useRef(0);
   const priorStage = useRef<Stage>("watching");
   const [spot, setSpot] = useState<Spot>(FIREHOUSE);
@@ -256,8 +252,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
   const [handsFree, setHandsFree] = useState(kid); // kid view: the mic is always on
   const [devOpen, setDevOpen] = useState(false);
   const [learn, setLearn] = useState(""); // language the kid is learning ("" = off)
-  const [flash, setFlash] = useState<string | null>(null); // a quick caption, e.g. Dora's greeting in the new language
-  const greetAbort = useRef<AbortController | null>(null);
+  const [flash, setFlash] = useState<string | null>(null); // a quick caption (lab only: the kid view shows a card)
   // Dub audio, kept for the session: the re-voiced lines (per language) and the show's no-voice beds.
   const dubCache = useRef(new Map<string, AudioBuffer | "pending">());
   const bedCache = useRef(new Map<number, AudioBuffer | "pending">());
@@ -307,7 +302,8 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
   const episode = useRef<HTMLVideoElement>(null);
   const line = useRef<HTMLAudioElement>(null);
   const filler = useRef<HTMLAudioElement>(null); // its own element: stage changes pause `line`, which would cut the "Hmm!" off
-  const loops = useRef<Record<Loop, HTMLVideoElement | null>>({ talk: null, wait: null });
+  const talkLoop = useRef<HTMLVideoElement | null>(null); // Dora's mouth while she speaks (spots in LOOPS only)
+  const snapshot = useRef<HTMLCanvasElement | null>(null); // the held frame, dissolving out as the show resumes
   const audio = useRef<{ ctx: AudioContext; epGain: GainNode; analyser: AnalyserNode } | null>(null);
   const stage = ctx.stage;
   const meta = STAGES[stage];
@@ -441,36 +437,32 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
   const ticket = () => ++turn.current;
   const stillMine = (t: number) => t === turn.current && answering();
 
-  // Switching language takes effect at once: the very next answer is practised in it, and if the show is
-  // playing Dora greets in that language right away (the show dips while she talks).
-  function applyLearn(code: string, greetNow = true) {
-    if (code === learnRef.current) {
-      if (pendingLanguage.current !== undefined) {
-        pendingLanguage.current = undefined;
-        onLanguageState?.({ code, status: "active" });
-      }
-      return;
-    }
-    if (started && (ctxRef.current.stage !== "watching" || sound.current === "greeting")) {
-      if (pendingLanguage.current !== code) {
-        pendingLanguage.current = code;
-        if (onLanguageState) onLanguageState({ code, status: "queued" });
-        else showFlash(`${LEARN_LANGUAGES[code] ?? "English"} is next. Let's finish this question!`);
-      }
-      return;
-    }
-    pendingLanguage.current = undefined;
+  // Switching language applies at once, anywhere, and silently (no spoken "Hallo! Let's learn German!" over the
+  // show). Every language word follows: the word Dora teaches after the answer, the "say it" target, captions,
+  // and her Spanish lines in the show (dubbing). Mid-practice she starts the word over in the new language;
+  // switching to English mid-practice just ends the practice.
+  function applyLearn(code: string) {
+    if (code === learnRef.current) return;
     setLearn(code);
     learnRef.current = code;
     rec({ type: "language", language: code });
-    const n = { ...ctxRef.current, practice: canPractice(spotRef.current, code) };
-    ctxRef.current = n;
-    setCtx(n);
     onLearnChange?.(code);
-    onLanguageState?.({ code, status: "active" });
-    const text = code ? GREETING[code] ?? `Let's learn ${LEARN_LANGUAGES[code]}!` : "Okay, just English for now!";
-    if (greetNow && audio.current && canTake(sound.current, "greeting")) void greet(text);
-    else if (!onLanguageState) showFlash(text);
+    if (onLanguageState) onLanguageState({ code, status: "active" });
+    else showFlash(code ? `Let's learn ${LEARN_LANGUAGES[code] ?? code}!` : "Just English for now!"); // lab: no page card
+    const c = ctxRef.current;
+    const n = { ...c, practice: canPractice(spotRef.current, code) };
+    // On the word right now: Dora teaching it, the kid trying it, or her answer to that try.
+    const onWord = c.stage === "practicing" || (c.practiced && ["listening", "thinking", "celebrating", "giving"].includes(c.stage));
+    if (!started || !onWord) {
+      ctxRef.current = n;
+      setCtx(n);
+      return;
+    }
+    ticket(); // a score or reply for the old word must not land on the new one
+    liveText.current = null;
+    if (!n.practice) return commit({ ...n, stage: "exiting" }, "practice ended: English only");
+    commit({ ...n, stage: "practicing", practiced: false }, "language switched");
+    if (c.stage === "practicing") setSpeechVersion((v) => v + 1); // same stage: say the line again, in the new language
   }
 
   const flashTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -480,32 +472,11 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     if (text) flashTimer.current = setTimeout(() => setFlash(null), ms);
   }
 
-  async function greet(text: string) {
-    greetAbort.current?.abort();
-    const ac = new AbortController();
-    greetAbort.current = ac;
-    const a = audio.current!;
-    takeSound("greeting", 0.2); // the show dips while she talks; mid-dub it just stays dubbed
-    showFlash(text, 8000);
-    try {
-      await streamVoice({ text, learningLanguage: learnRef.current || undefined,
-        context: a.ctx, destination: a.analyser, signal: ac.signal,
-        onSpeaking: (on) => { liveSpeaking.current = on; }, onMetrics: () => undefined });
-    } catch {
-      if (!ac.signal.aborted) await captionFallback(text, ac.signal);
-    }
-    if (ac.signal.aborted) return;
-    showFlash(null);
-    releaseSound("greeting");
-    setLanguageTick(tick => tick + 1);
-  }
-
-  // Kid view: the language row drives this player.
+  // Kid view: the language row (and the parent's plan) drives this player.
   useEffect(() => {
-    const code = learnProp ?? pendingLanguage.current;
-    if (code !== undefined) applyLearn(code, requestedLesson?.language !== code);
+    if (learnProp !== undefined) applyLearn(learnProp);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the prop only
-  }, [learnProp, stage, languageTick]);
+  }, [learnProp]);
 
   // Hands-free: the kid's spoken answer → local Whisper → Luna.
   async function transcribeAndJudge(clip: Blob) {
@@ -669,7 +640,6 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
   // The only two places the show's volume changes hands (app/lab/sound.ts has the rules).
   function takeSound(who: SoundOwner, volume: number, seconds?: number): boolean {
     if (!canTake(sound.current, who)) return false;
-    if (silencesGreeting(who)) greetAbort.current?.abort();
     sound.current = who;
     fadeEpisode(volume, seconds);
     return true;
@@ -690,7 +660,6 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     ctx.createMediaElementSource(line.current!).connect(analyser).connect(ctx.destination);
     ctx.createMediaElementSource(filler.current!).connect(analyser); // same analyser: the mouth moves on "Hmm!" too
     audio.current = { ctx, epGain, analyser };
-    Object.values(loops.current).forEach((v) => v?.play());
     setStarted(true);
   }
 
@@ -723,7 +692,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
       skill: "words", visual: false, t: at, pauseAt: at, resumeAt: at, gap: 0, talk: [at, at], wait: [at, at] });
     send("PAUSE_POINT");
     // eslint-disable-next-line react-hooks/exhaustive-deps -- queued requests wait for the active exchange to finish
-  }, [requestedLesson, stage, started, learnProp, languageTick]);
+  }, [requestedLesson, stage, started, learnProp]);
 
   useEffect(() => {
     if (wantsAddition(previousFocus.current, learningFocus?.numbers)) queuedAddition.current = true;
@@ -755,15 +724,25 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     return () => document.removeEventListener("visibilitychange", resume);
   }, [started, paused]);
 
-  // Demo Skip: jump over the non-interactive part to the next moment's setup. Only while the show is playing:
-  // a question in progress isn't a cutscene. A forward jump is a seek, so the pause detector skips any moment
-  // in between and catches the next one normally. The show's sound dips for the cut, so it never clicks.
+  // Demo Skip: jump to the next moment's setup from anywhere. Mid-question it ends that question first (Dora
+  // stops, late replies are dropped, the moment won't fire again), then jumps. A forward jump is a seek, so the
+  // pause detector skips any moment in between and catches the next one normally. The show's sound dips for
+  // the cut, so it never clicks.
   useEffect(() => {
     if (!demo || !started || skipRequest <= lastSkipRequest.current) return;
     lastSkipRequest.current = skipRequest;
     const ep = episode.current!;
-    const target = skipTarget(ep.currentTime, (id) => SPOTS.find((x) => x.id === id)!.pauseAt);
-    if (!target || ctxRef.current.stage !== "watching") return;
+    const target = skipTarget(ep.currentTime, (id) => demoPauseAt(id, SPOTS.find((x) => x.id === id)!.pauseAt));
+    if (!target) return;
+    if (ctxRef.current.stage !== "watching") {
+      ticket();
+      liveText.current = null;
+      lastResumed.current = spotRef.current.id;
+      visitedSpots.current.add(spotRef.current.id);
+      ep.currentTime = target.from; // lands before the watching effect starts playing, so it plays from here
+      commit({ ...ctxRef.current, stage: "watching" }, "skip");
+      return;
+    }
     const dips = sound.current === "show";
     if (dips) fadeEpisode(0, 0.08);
     setTimeout(() => {
@@ -778,7 +757,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     if (!demo || !onSkipTarget) return;
     const update = () => {
       const t = episode.current?.currentTime ?? 0;
-      const target = ctxRef.current.stage === "watching" ? skipTarget(t, (id) => SPOTS.find((x) => x.id === id)!.pauseAt) : null;
+      const target = skipTarget(t, (id) => demoPauseAt(id, SPOTS.find((x) => x.id === id)!.pauseAt));
       onSkipTarget(target?.label ?? null);
     };
     update();
@@ -828,11 +807,9 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
       ep.pause();
       ln.pause();
       filler.current?.pause();
-      greetAbort.current?.abort();
-      for (const video of Object.values(loops.current)) video?.pause();
+      talkLoop.current?.pause();
       return;
     }
-    for (const video of Object.values(loops.current)) void video?.play().catch(() => undefined);
     if (stage === "watching") {
       releaseSound("pause");
       releaseSound("dub"); // a fresh watching effect has no dub running yet: a "dub" owner here is left over
@@ -928,9 +905,12 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
       // A pause point counts when the playhead is just past it, or crossed it since the last frame during normal
       // playback. Frames can be a second apart (background tab), so a narrow window alone misses questions;
       // a big jump ahead is a seek and skips them. "entering" rewinds to the exact pause frame.
+      // Checked every frame, and on the video's own timeupdate too: a hidden or background tab stops animation
+      // frames entirely while the video keeps playing, and a question must never slip past.
       let prev = ep.currentTime;
-      const watch = () => {
-        if (ep.seeking) { raf = requestAnimationFrame(watch); return; } // mid-skip: wait for the new frame
+      let hitDone = false;
+      const check = () => {
+        if (hitDone || ep.seeking) return; // mid-skip: wait for the new frame
         dubTick();
         const t = ep.currentTime;
         const reached = (x: Spot) => t >= x.pauseAt && (t < x.pauseAt + 0.5 || (prev < x.pauseAt && t - prev < 3));
@@ -938,12 +918,15 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
         const hit = autoRef.current
           ? activeSpots.find((x) => x.keep !== false && !visitedSpots.current.has(x.id) && x.id !== lastResumed.current && reached(x))
           : undefined;
-        if (hit) {
-          visitedSpots.current.add(hit.id);
-          pickSpot(hit);
-          send("PAUSE_POINT");
-        } else raf = requestAnimationFrame(watch);
+        if (!hit) return;
+        hitDone = true;
+        visitedSpots.current.add(hit.id);
+        pickSpot(hit);
+        send("PAUSE_POINT");
       };
+      const watch = () => { check(); if (!hitDone) raf = requestAnimationFrame(watch); };
+      ep.addEventListener("timeupdate", check);
+      speechAbort.signal.addEventListener("abort", () => ep.removeEventListener("timeupdate", check), { once: true });
       watch();
     } else {
       ep.pause();
@@ -951,9 +934,8 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     }
 
     if (stage === "entering") {
-      // Freeze exactly on the pause frame: the wait loop starts on that same frame, so the crossfade is invisible.
+      // Freeze exactly on the pause frame: the mouth loop starts and ends on this same frame.
       ep.currentTime = sp.pauseAt;
-      for (const el of Object.values(loops.current)) if (el) el.currentTime = 0;
       timers.push(setTimeout(() => send("TRANSITION_DONE"), FADE_MS));
     }
     if (stage === "exiting") {
@@ -961,9 +943,23 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
       lastResumed.current = sp.id;
       const done = () => timers.push(setTimeout(() => send("TRANSITION_DONE"), FADE_MS));
       ep.addEventListener("seeked", done, { once: true });
-      // Held frame: carry on from exactly the frame on screen, so unpausing is invisible. In-scene loop: the loop
-      // has moved past the pause, so come back just before the next line (its first word isn't clipped).
-      ep.currentTime = LOOPS[sp.id] ? Math.max(sp.pauseAt, sp.resumeAt - RESUME_LEAD_S) : sp.pauseAt;
+      // Carry on just before the show's next line, skipping its own silent wait for an answer Dora already
+      // handled. The held frame is drawn on top first and dissolves out once the show has landed there, so the
+      // change of pose reads as a soft dissolve, never a jump.
+      const shot = snapshot.current;
+      const g = shot?.getContext("2d");
+      if (shot && g && ep.videoWidth) {
+        shot.width = ep.videoWidth;
+        shot.height = ep.videoHeight;
+        g.drawImage(ep, 0, 0);
+        shot.style.transition = "none";
+        shot.style.opacity = "1";
+        ep.addEventListener("seeked", () => {
+          shot.style.transition = `opacity ${RESUME_DISSOLVE_MS}ms ease`;
+          shot.style.opacity = "0";
+        }, { once: true });
+      }
+      ep.currentTime = Math.max(sp.pauseAt, sp.resumeAt - RESUME_LEAD_S);
       timers.push(setTimeout(() => ep.removeEventListener("seeked", done), 5000));
     }
     if (stage === "thinking" && labVerdict.current) {
@@ -1071,34 +1067,45 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-arm per listening stage
   }, [stage, mic, listenKey]);
 
-  // Mouth follows the voice: talk loop while she speaks (held through short gaps), wait loop otherwise.
-  // Loops are pre-cut boomerang clips (tools/cut-loops.py), so <video loop> never seeks.
+  // Mouth follows the voice. The talk loop starts and ends on the held frame, so it's only shown from its first
+  // frame and only hidden at its last: she finishes the phrase she's on instead of freezing mid-word, and the
+  // swap is never visible. Spots without a loop just hold the frame while she talks.
   useEffect(() => {
     if (!started) return;
     const a = audio.current!;
     const buf = new Float32Array(a.analyser.fftSize);
     let raf = 0;
     let openUntil = 0;
-    let shown: Loop = "wait";
+    let talking = false;
+    const el = talkLoop.current;
+    const cycle = () => {
+      if (!el) return;
+      if (talking) { el.currentTime = 0; void el.play().catch(() => undefined); }
+      else el.style.opacity = "0";
+    };
+    el?.addEventListener("ended", cycle);
     const tick = (now: number) => {
       a.analyser.getFloatTimeDomainData(buf);
       const rms = Math.sqrt(buf.reduce((sum, x) => sum + x * x, 0) / buf.length);
       const speaking = !line.current!.paused || !filler.current!.paused || liveSpeaking.current;
       // The browser voice can't be measured, so the mouth just talks while it speaks.
       if (speaking && rms > TALK_RMS) openUntil = now + MOUTH_HOLD_MS;
-      const show: Loop = speaking && now < openUntil ? "talk" : "wait";
-      if (show !== shown) {
-        shown = show;
-        for (const n of ["talk", "wait"] as Loop[]) {
-          const el = loops.current[n];
-          if (el) el.style.opacity = n === show ? "1" : "0";
-        }
+      talking = speaking && now < openUntil;
+      if (el && talking && el.style.opacity !== "1" && el.readyState >= 2) {
+        el.currentTime = 0;
+        el.style.opacity = "1";
+        void el.play().catch(() => undefined);
+      }
+      // Stopped while the loop is still heading away from the held frame: jump to the mirror frame (identical,
+      // since the loop is the same clip backwards then forwards) so it heads home now, not after a full cycle.
+      if (el && !talking && el.style.opacity === "1" && el.duration && el.currentTime < el.duration / 2) {
+        el.currentTime = el.duration - el.currentTime;
       }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [started]);
+    return () => { cancelAnimationFrame(raf); el?.removeEventListener("ended", cycle); };
+  }, [started, spot.id]);
 
   const file = lineFor(stage, spot, ctx.tries);
   const practiceNow = practiceFor(spot, learn);
@@ -1113,25 +1120,20 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
 
   const screen = (
         <div className={s.screen}>
-          <video ref={episode} crossOrigin="anonymous" src={EPISODE} playsInline preload="auto"
-            className={`${s.layer} ${meta.assistant && stage !== "exiting" && !inScene ? s.hold : s.release}`} />
-          <div className={`${s.layer} ${s.assistant} ${meta.assistant && inScene ? s.show : ""}`}>
-            {(["wait", "talk"] as Loop[]).map((n) => (
-              <video
-                key={n}
-                ref={(el) => {
-                  loops.current[n] = el;
-                }}
-                src={inScene ? `/media/loops/${spot.id}-${n === "talk" && !inScene.talk ? "wait" : n}.mp4` : undefined}
-                muted
-                loop
-                autoPlay
-                playsInline
-                preload="auto"
-                className={`${s.layer} ${s.loop}`}
-                style={{ opacity: n === "wait" ? 1 : 0 }}
-              />
-            ))}
+          {/* One frame stack: the episode, Dora's mouth loop and the resume snapshot zoom together. */}
+          <div className={`${s.layer} ${meta.assistant && stage !== "exiting" ? s.hold : s.release}`}>
+            <video ref={episode} crossOrigin="anonymous" src={EPISODE} playsInline preload="auto" className={s.layer} />
+            <video
+              key={spot.id}
+              ref={talkLoop}
+              src={inScene?.talk ? `/media/loops/${spot.id}-talk.mp4` : undefined}
+              muted
+              playsInline
+              preload="auto"
+              className={`${s.layer} ${s.loop}`}
+              style={{ opacity: 0 }}
+            />
+            <canvas ref={snapshot} className={`${s.layer} ${s.snapshot}`} style={{ opacity: 0 }} />
           </div>
           {stage === "listening" && <div className={s.listenRing} />}
           {stage === "away" && <div className={`${s.layer} ${s.away}`}>📺 Another channel…</div>}
