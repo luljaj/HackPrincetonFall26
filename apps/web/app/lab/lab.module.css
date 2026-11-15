@@ -367,6 +367,7 @@
   transition: transform 9s ease-out;
 }
 
+/* eases back to normal during "exiting" (while still paused), so the show resumes at its true framing */
 .release {
-  transition: transform 400ms ease;
+  transition: transform 300ms ease-out;
 }

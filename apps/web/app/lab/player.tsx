@@ -686,7 +686,9 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
       lastResumed.current = sp.id;
       const done = () => timers.push(setTimeout(() => send("TRANSITION_DONE"), FADE_MS));
       ep.addEventListener("seeked", done, { once: true });
-      ep.currentTime = Math.max(sp.pauseAt, sp.resumeAt - RESUME_LEAD_S);
+      // Held frame: carry on from exactly the frame on screen, so unpausing is invisible. In-scene loop: the loop
+      // has moved past the pause, so come back just before the next line (its first word isn't clipped).
+      ep.currentTime = LOOPS[sp.id] ? Math.max(sp.pauseAt, sp.resumeAt - RESUME_LEAD_S) : sp.pauseAt;
       timers.push(setTimeout(() => ep.removeEventListener("seeked", done), 5000));
     }
     if (stage === "thinking" && pending.current) {
@@ -837,7 +839,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
   const screen = (
         <div className={s.screen}>
           <video ref={episode} crossOrigin="anonymous" src={EPISODE} playsInline preload="auto"
-            className={`${s.layer} ${meta.assistant && !inScene ? s.hold : s.release}`} />
+            className={`${s.layer} ${meta.assistant && stage !== "exiting" && !inScene ? s.hold : s.release}`} />
           <div className={`${s.layer} ${s.assistant} ${meta.assistant && inScene ? s.show : ""}`}>
             {(["wait", "talk"] as Loop[]).map((n) => (
               <video
