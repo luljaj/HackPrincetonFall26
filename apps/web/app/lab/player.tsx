@@ -12,6 +12,7 @@ import trialEpisode from "./episode.json";
 import s from "./lab.module.css";
 import { speakFallback, streamVoice } from "./voice";
 import { listenOnce, openMic, recorderOptions } from "./listen";
+import { localFlair } from "./flair";
 import { clearlyCorrect } from "./quick-judge";
 
 // Episode 3 with every detected question spot. Spots come from tools-side detection (spots.json);
@@ -96,6 +97,7 @@ const GREETING: Record<string, string> = {
   es: "¡Hola! Let's learn Spanish!", fr: "Bonjour! Let's learn French!", de: "Hallo! Let's learn German!",
   zh: "Nǐ hǎo! Let's learn Chinese!", hi: "Namaste! Let's learn Hindi!", ja: "Konnichiwa! Let's learn Japanese!",
 };
+
 // Non-Latin words also get their romanization, e.g. 梯子 (tīzi).
 const spoken = (p: Practice) => (p.romanized && p.romanized !== p.word ? `${p.word} (${p.romanized})` : p.word);
 
@@ -159,7 +161,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
   const [autoPause, setAutoPause] = useState(true);
   const [likelyOnly, setLikelyOnly] = useState(false);
   const [localVoice, setLocalVoice] = useState(false); // saved lines start instantly; Luna's own lines are still generated live
-  const [voiceText, setVoiceText] = useState("Hola! A bigger number on the bottom means smaller pieces. Shall we try again?");
+  const [voiceText, setVoiceText] = useState("A bigger number on the bottom means smaller pieces. Shall we try again?");
   const [voiceError, setVoiceError] = useState("");
   const [voiceMetrics, setVoiceMetrics] = useState("");
   const [speechVersion, setSpeechVersion] = useState(0);
@@ -384,6 +386,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
           said,
           // Only the sound to model goes to Luna, so the line can't dwell on what the kid got wrong.
           pronunciation: pronunciation && { verdict: pronunciation.verdict, expected: pronunciation.coach?.expected ?? null },
+          language: learnRef.current ? { code: learnRef.current, name: LEARN_LANGUAGES[learnRef.current] ?? learnRef.current } : undefined,
           outcomes: { correct: outcome(next(c, "CORRECT")), wrong: outcome(next(c, "WRONG")), unclear: outcome(next(c, "UNCLEAR")) },
         }),
       });
@@ -577,10 +580,13 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
       if (file || fromLesson) {
         const customText = liveText.current;
         liveText.current = null;
-        const text = customText ?? fromLesson ?? (file ? LINES[file] : undefined);
+        const saved = file ? LINES[file] : undefined;
+        const flaired = saved && localFlair(saved, learnRef.current);
+        const text = customText ?? fromLesson ?? flaired;
         setSpeechCaption(text ?? null);
         setVoiceError("");
-        if ((voiceMode.current || customText !== null || fromLesson !== null) && text) {
+        // Live when the text differs from the saved recording (custom, lesson, or a swapped catchphrase).
+        if ((voiceMode.current || customText !== null || fromLesson !== null || flaired !== saved) && text) {
           const a = audio.current!;
           void streamVoice({
             text, context: a.ctx, destination: a.analyser, signal: speechAbort.signal,
@@ -699,7 +705,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
 
   const file = lineFor(stage, spot, ctx.tries);
   const sayNow = ctx.practiced ? practiceFor(spot, learn) : spot.say; // what the record button scores
-  const lineText = lessonText(stage, spot, ctx.practiced, practiceFor(spot, learn)) ?? (file ? LINES[file] : null);
+  const lineText = lessonText(stage, spot, ctx.practiced, practiceFor(spot, learn)) ?? (file && LINES[file] ? localFlair(LINES[file], learn) : null);
   const caption = lineText ? (speechCaption ?? lineText)
     : flash ? flash
     : stage === "listening" ? (hearing ? "🗣️ I'm listening…" : `🎤 ${askedText(spot)}`)
