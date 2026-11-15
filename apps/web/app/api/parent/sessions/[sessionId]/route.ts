@@ -1,5 +1,5 @@
 import { hasParentAccess } from "../../../../../lib/parent/access";
-import { getDemoAdmin } from "../../../../../server/storage";
+import { getDemoAdmin, getPlayStore } from "../../../../../server/storage";
 import { SAMPLE_SESSION_ID } from "../../../../../lib/parent/sample-id";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +16,7 @@ export async function DELETE(
   if (sessionId === SAMPLE_SESSION_ID) {
     return Response.json({ error: "sample_is_read_only" }, { status: 403 });
   }
+  if (await getPlayStore().delete(sessionId)) return new Response(null, { status: 204 }); // a Play-mode trace
   const admin = getDemoAdmin();
   if (!admin) return Response.json({ error: "no_database" }, { status: 503 });
   const deleted = await admin.deleteSession(sessionId);

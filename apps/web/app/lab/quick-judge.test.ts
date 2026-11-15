@@ -21,3 +21,10 @@ test("short answers must match exactly", () => {
   assert.equal(clearlyCorrect("the map!", ["map"]), true);
   assert.equal(clearlyCorrect("the mop", ["map"]), false);
 });
+
+test("Dora's catchphrases follow the language being learned", async () => {
+  const { localFlair } = await import("./flair.ts");
+  assert.equal(localFlair("Great job, amigo!", "fr"), "Great job, mon ami!");
+  assert.equal(localFlair("Great job, amigo!", ""), "Great job, friend!");
+  assert.equal(localFlair("Great job, amigo!", "es"), "Great job, amigo!");
+});

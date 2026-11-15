@@ -18,13 +18,14 @@
     "eval:pipeline": "tsx evals/pipeline/run.ts",
     "test:judge": "tsx --test server/judge/judge.test.ts",
     "test:pipeline": "tsx --test lib/contracts/contracts.test.ts server/pipeline/pipeline.test.ts server/pipeline/providers.test.ts evals/pipeline/eval.test.ts server/pipeline/http.test.ts",
-    "test:storage": "vitest run server/storage/postgres.test.ts lib/parent"
+    "test:storage": "vitest run server/storage/postgres.test.ts server/storage/play.test.ts lib/parent lib/play server/parent-chat"
   },
   "dependencies": {
     "@repo/ui": "*",
     "@tailwindcss/postcss": "^4.3.5",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
+    "convex": "^1.50.0",
     "drizzle-orm": "^0.45.4",
     "next": "^16.4.6",
     "openai": "^7.57.0",

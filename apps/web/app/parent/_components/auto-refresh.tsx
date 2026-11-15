@@ -3,14 +3,19 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+// The parent view is one page made of several sections, more than one of which asks for a refresh:
+// only the first mounted timer runs, so the page refreshes once per interval, not once per section.
+let running = 0;
+
 /** Re-renders the server page on an interval while the tab is visible. */
 export function AutoRefresh({ seconds }: { seconds: number }) {
   const router = useRouter();
   useEffect(() => {
+    if (running++ > 0) return () => { running--; };
     const id = window.setInterval(() => {
       if (document.visibilityState === "visible") router.refresh();
     }, seconds * 1000);
-    return () => window.clearInterval(id);
+    return () => { running--; window.clearInterval(id); };
   }, [router, seconds]);
   return null;
 }

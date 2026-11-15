@@ -1,241 +1,222 @@
-import { cn } from "cn";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia } from "@/components/ui/empty";
 import { childName } from "../../lib/parent/child";
+import { groupByShow } from "../../lib/parent/group";
 import { getParentViewReader } from "../../lib/parent/reader";
-import { showFor } from "../../lib/parent/shows";
 import { parentStats } from "../../lib/parent/stats";
-import type { ParentView } from "../../lib/parent/types";
-import { AFTER_HELP_CHIP, SNAPSHOT_NOTE, statsLabels, statusChip } from "../../lib/parent/wording";
+import { SNAPSHOT_NOTE, statsLabels, statusChip } from "../../lib/parent/wording";
+import { showFor } from "../../lib/parent/shows";
+import { getPlayStore, getPreferencesStore } from "../../server/storage";
+import { topicRows } from "../../server/storage/play";
 import { AutoRefresh } from "./_components/auto-refresh";
-import { TAB_HEIGHT, TAB_WIDTH, TabPanelOutline } from "./_components/tab-panel-outline";
-import { ChartIcon, EpisodesIcon, HelpIcon, QuestionsIcon } from "./_components/tv-icons";
+import { Chip } from "./_components/chip";
+import { FocusControls } from "./_components/focus-controls";
+import { STAT_TILES } from "./_components/stat-icons";
+import { TurnRows } from "./_components/turn-rows";
+import { WeekGauge } from "./_components/week-gauge";
+import { demoToolsEnabled } from "../../lib/parent/demo";
+import InsightsPage from "./insights/page";
+import TopicsPage from "./topics/page";
+import PreviewPage from "./preview/page";
+import SettingsPage from "./settings/page";
 
 export const dynamic = "force-dynamic";
 
-// "Watched 1 day ago", as on the show cards.
-function watchedAgo(iso: string): string {
-  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  if (mins < 2) return "Watching now";
-  if (mins < 60) return `Watched ${mins} minutes ago`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `Watched ${hours} ${hours === 1 ? "hour" : "hours"} ago`;
-  const days = Math.round(hours / 24);
-  return `Watched ${days} ${days === 1 ? "day" : "days"} ago`;
-}
+const when = (iso: string) =>
+  new Date(iso).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" });
 
-const sentence = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
-const statIcons = { sessions: EpisodesIcon, answered: QuestionsIcon, correctAfterHelp: HelpIcon } as const;
-
-// Parent home in the Tellavision look: pick a show card and it joins up with the insights panel.
-export default async function ParentHome({
-  searchParams,
-}: {
-  searchParams: Promise<{ show?: string }>;
-}) {
-  const { show: selectedId } = await searchParams;
+// Compact parent home: counts, learning focus, then one collapsed row per show. Click a show to
+// see its sessions; click a session to see what was asked and answered.
+export default async function ParentHome() {
   const name = childName();
-  const views = await getParentViewReader().listParentViews(20);
-  const selected = views.find((v) => v.progress.sessionId === selectedId) ?? null;
-  const others = views.filter((v) => v !== selected);
+  const [views, prefs] = await Promise.all([
+    getParentViewReader().listParentViews(50),
+    getPreferencesStore().get(),
+  ]);
+  // Same rule as the counts: once real sessions exist, the seeded sample stays out of the list.
+  const real = views.filter((v) => !v.isSample);
+  const listed = real.length > 0 ? real : views;
+  const stats = parentStats(views);
+  const labels = statsLabels(stats);
+  const shows = groupByShow(listed);
+
+  // This week, across the same sessions as the tiles (real ones once any exist).
+  const weekAgo = Date.now() - 7 * 86_400_000;
+  const weekTurns = listed.filter((v) => Date.parse(v.startedAt) >= weekAgo).flatMap((v) => v.progress.interactions);
+  const week = {
+    firstTry: weekTurns.filter((t) => t.assessment.answerStatus === "correct" && !t.assessment.assistanceBeforeAnswer).length,
+    afterHelp: weekTurns.filter((t) => t.assessment.answerStatus === "correct" && t.assessment.assistanceBeforeAnswer).length,
+    missed: weekTurns.filter((t) => t.assessment.answerStatus !== "correct").length,
+  };
+  // Headline: the topic answered first-try most this week (play trace), else the latest summary.
+  const top = topicRows(
+    (await getPlayStore().list(100)).flatMap((r) => r.turns).filter((t) => t.endedAt >= weekAgo),
+  ).sort((x, y) => y.firstTry - x.firstTry)[0];
+  const headline =
+    top && top.firstTry > 0
+      ? `${name} answered ${top.firstTry} of ${top.questions} ${top.topic.toLowerCase()} question${top.questions === 1 ? "" : "s"} on the first try this week.`
+      : (listed.find((v) => v.progress.episode.parentSummary)?.progress.episode.parentSummary ??
+        `${name} hasn't answered a question yet. Open Play mode to start.`);
 
   return (
-    <div className="tv-home flex flex-col min-h-0 flex-1 lg:min-h-[520px]">
+    <>
       <AutoRefresh seconds={5} />
-
-      <h1 className="font-display text-4xl font-bold">{name}&apos;s Learning Moments</h1>
-      <p className="mt-4 text-muted-foreground">Previously watched</p>
-
-      {selected ? (
-        // One shape: the selected show's tab and the insights panel share the outline behind them.
-        <section className="relative mt-3.5 flex min-h-0 flex-1 flex-col">
-          <TabPanelOutline art={showFor(selected.sceneId).art} />
-          <div className="relative flex flex-wrap items-start gap-[30px]">
-            <ShowTab view={selected} />
-            {others.map((v) => (
-              <ShowCard key={v.progress.sessionId} view={v} compact />
+      <section id="home" aria-label="Home" className="scroll-mt-10 space-y-8">
+      <div className="grid items-start gap-8 lg:grid-cols-[1fr_400px]">
+        <header className="space-y-6">
+          <h1 className="text-[44px] leading-tight tracking-tight">{name}&apos;s Learning Moments</h1>
+          <p className="max-w-[600px] text-[24px] leading-snug text-foreground/60">{headline}</p>
+          <div className="flex flex-wrap gap-3">
+            {STAT_TILES.map(({ key, icon }, i) => (
+              <div
+                key={key}
+                className={`flex w-[200px] items-center gap-3 rounded-2xl border p-4 ${
+                  i === 0
+                    ? "border-[#f3e9b0] bg-gradient-to-br from-[#fdf3b8] via-[#fbf8e6] to-[#eef1ff] shadow-[0_2px_10px_rgba(253,230,120,0.35)]"
+                    : "border-[#f1ecd0] bg-gradient-to-br from-[#f4f6ff] to-[#fbf9ea]"
+                }`}
+              >
+                <span className="shrink-0 scale-125">{icon}</span>
+                <div className="grid">
+                  <b className="text-[28px] font-bold leading-none tabular-nums">{stats[key]}</b>
+                  <span className="mt-1 text-[13px] leading-tight text-foreground/55 first-letter:uppercase">{labels[key]}</span>
+                </div>
+              </div>
             ))}
           </div>
-          <Insights view={selected} name={name} />
-        </section>
-      ) : (
-        <>
-          <section className="mt-3.5 flex flex-wrap items-start gap-[30px]">
-            {views.map((v, idx) => (
-              <ShowCard key={v.progress.sessionId} view={v} featured={idx === 0} />
-            ))}
-            {views.length === 0 && <p className="py-10 text-muted-foreground">Nothing watched yet.</p>}
-          </section>
-          <Empty className="mt-[18px] min-h-[160px] gap-[21px] p-10 md:p-10">
-            <EmptyHeader>
-              <EmptyMedia className="mb-0">
-                <ChartIcon />
-              </EmptyMedia>
-              <EmptyDescription className="text-sm/[1.35] text-muted-foreground/70">
-                Select a show to view insights
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        </>
-      )}
-
-      <p className="mt-4 shrink-0 text-xs text-muted-foreground">{SNAPSHOT_NOTE}</p>
-    </div>
-  );
-}
-
-function ShowTitle({ view }: { view: ParentView }) {
-  return (
-    <div>
-      <h2 className="font-display text-[32px] font-bold">{showFor(view.sceneId).show}</h2>
-      <p className="flex flex-wrap items-center gap-2">
-        {watchedAgo(view.startedAt)}
-        {view.isSample && <Badge variant="outline">Sample data</Badge>}
-      </p>
-    </div>
-  );
-}
-
-function PlayButton({ raised = false }: { raised?: boolean }) {
-  return (
-    <Button
-      asChild
-      className={cn("pointer-events-auto h-auto px-[34px] py-2.5", raised && "border border-border shadow-tv-button")}
-    >
-      <Link href="/">Play</Link>
-    </Button>
-  );
-}
-
-/** A show that isn't selected: a plain grey card. The grey stands in until the show has artwork. */
-function ShowCard({
-  view,
-  featured = false,
-  compact = false,
-}: {
-  view: ParentView;
-  featured?: boolean;
-  compact?: boolean;
-}) {
-  const show = showFor(view.sceneId);
-  return (
-    <article
-      className={cn(
-        "sq relative flex flex-col bg-muted pr-[37px] pl-7 shadow-tv-halo [--r:48px]",
-        compact ? "h-[141px] justify-center" : "h-[283px] justify-end pb-[35px]",
-        featured ? "w-full max-w-[427px]" : "w-[283px]",
-      )}
-    >
-      <Link
-        aria-label={`View insights for ${show.show}`}
-        className="sq absolute inset-0 [--r:48px]"
-        href={`/parent?show=${view.progress.sessionId}`}
-        scroll={false}
-      />
-      <div className="pointer-events-none relative flex items-end justify-between gap-4">
-        <ShowTitle view={view} />
-        {featured && <PlayButton />}
+        </header>
+        <WeekGauge firstTry={week.firstTry} afterHelp={week.afterHelp} missed={week.missed} />
       </div>
-    </article>
-  );
-}
 
-/** The selected show: the tab on top of the insights panel. Its background is TabPanelOutline. */
-function ShowTab({ view }: { view: ParentView }) {
-  const show = showFor(view.sceneId);
-  return (
-    <article
-      className="relative flex w-full shrink-0 items-start pt-9 pr-7 pl-[37px]"
-      style={{ maxWidth: TAB_WIDTH, height: TAB_HEIGHT }}
-    >
-      <Link aria-label={`Hide insights for ${show.show}`} className="absolute inset-0" href="/parent" scroll={false} />
-      <div className="pointer-events-none relative flex w-full items-end justify-between gap-4">
-        <ShowTitle view={view} />
-        <PlayButton raised />
-      </div>
-    </article>
-  );
-}
-
-function Insights({ view, name }: { view: ParentView; name: string }) {
-  const stats = parentStats([view]);
-  const labels = statsLabels();
-  const show = showFor(view.sceneId);
-  const { interactions, activeQuestion, episode, sessionId } = view.progress;
-
-  return (
-    <div className="relative grid min-h-0 flex-1 gap-x-10 gap-y-3 px-[34px] pt-4 pb-5 lg:grid-cols-[160px_1fr] lg:grid-rows-[auto_minmax(0,1fr)]">
-      <h2 className="font-display text-2xl font-bold lg:col-span-2">{name}&apos;s Learning Moments</h2>
-
-      <ul className="grid content-start gap-2 sm:grid-cols-3 lg:grid-cols-1">
-        {(Object.keys(labels) as (keyof typeof labels)[]).map((k) => {
-          const Icon = statIcons[k];
-          return (
-            <li key={k}>
-              <Card className="h-[82px] flex-row items-center gap-[18px] px-4 py-2">
-                <Icon />
-                <CardHeader className="min-w-0 flex-1 gap-0 px-0">
-                  <CardTitle className="text-2xl leading-[1.35] tabular-nums">{stats[k]}</CardTitle>
-                  <CardDescription className="text-xs">{sentence(labels[k])}</CardDescription>
-                </CardHeader>
-              </Card>
-            </li>
-          );
-        })}
-      </ul>
-
-      <div className="flex min-h-0 flex-col gap-2">
-        <p className="text-muted-foreground">
-          {[show.episode, episode.parentSummary ?? "No answer was heard in this session yet."]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
-        <ol className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
-          {interactions.map((i) => {
-            const chip = statusChip(i.assessment.answerStatus);
+      <section className="space-y-5 rounded-[40px] bg-[#f9f9fb] p-8 md:mt-16" aria-labelledby="recent-title">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 id="recent-title" className="text-[28px] tracking-tight">
+            Recently watched
+          </h2>
+          <span className="flex gap-4 text-sm">
+            <Link className="underline" href="/parent/live">
+              Live now
+            </Link>
+            <Link className="underline" href="/">
+              Open Play mode ↗
+            </Link>
+          </span>
+        </div>
+        {listed.length === 0 && <p className="text-sm text-foreground/60">Nothing watched yet.</p>}
+        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {listed.slice(0, 6).map((v) => {
+            const show = showFor(v.sceneId);
             return (
-              <li key={i.interactionId}>
-                <Card className="gap-1 px-4 py-3">
-                  <CardHeader className="gap-0 px-0">
-                    <CardDescription className="text-xs">{show.show} asked</CardDescription>
-                    <CardTitle className="font-lexend text-sm leading-[1.35] font-medium">
-                      {i.questionText}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex flex-wrap items-center gap-2 px-0">
-                    <span className="font-display text-base font-bold">
-                      {i.transcript ? `“${i.transcript}”` : "Nothing heard"}
+              <li key={v.progress.sessionId}>
+                <Link href={`/parent/${v.progress.sessionId}`} className="group block space-y-2">
+                  <div
+                    className="flex h-[170px] flex-col justify-between rounded-2xl p-4 text-white transition-transform group-hover:-translate-y-0.5"
+                    style={{ background: `linear-gradient(135deg, ${show.color}, ${show.color}99 60%, #d9d9d9)` }}
+                  >
+                    <span className="text-xs font-semibold uppercase tracking-wide opacity-90">
+                      {when(v.startedAt)}
+                      {v.isSample ? " · sample" : ""}
                     </span>
-                    <Badge variant={chip.tone === "good" ? "default" : "outline"}>{chip.label}</Badge>
-                    {i.assessment.assistanceBeforeAnswer && (
-                      <Badge variant="outline">{sentence(AFTER_HELP_CHIP)}</Badge>
-                    )}
-                  </CardContent>
-                  <CardFooter className="px-0 text-xs text-muted-foreground">
-                    {show.show} replied: {i.responseText}
-                  </CardFooter>
-                </Card>
+                    <span>
+                      <b className="block text-[22px] font-semibold leading-tight">{show.show}</b>
+                      <span className="text-sm opacity-90">{show.episode}</span>
+                    </span>
+                  </div>
+                  <p className="line-clamp-2 px-1 text-sm text-foreground/70">
+                    {v.progress.episode.parentSummary ?? "No answer heard yet."}
+                  </p>
+                </Link>
               </li>
             );
           })}
-          {activeQuestion && (
-            <li>
-              <Card className="px-4 py-3 text-muted-foreground">
-                <CardContent className="px-0">
-                  {show.show} is asking: “{activeQuestion.text}” · waiting for the answer
-                </CardContent>
-              </Card>
-            </li>
-          )}
-        </ol>
-        <Badge asChild variant="outline" className="mt-1 self-end">
-          <Link href={`/parent/${sessionId}`}>Open this session</Link>
-        </Badge>
-      </div>
-    </div>
+        </ul>
+      </section>
+
+      <FocusControls initial={prefs} />
+
+      <section className="space-y-2" aria-labelledby="shows-title">
+        <h2 id="shows-title" className="text-sm font-semibold text-foreground/60">
+          Shows
+        </h2>
+        {shows.length === 0 && <p className="text-sm text-foreground/60">No sessions yet.</p>}
+        {shows.map((g) => (
+          <details
+            key={g.show}
+            className="group rounded-2xl border border-l-[6px] border-line bg-card"
+            style={{ borderLeftColor: g.color }}
+          >
+            <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+              <span className="font-bold" style={{ color: g.color }}>
+                {g.show}
+              </span>
+              <span className="text-sm text-foreground/60">
+                {g.sessions.length} session{g.sessions.length === 1 ? "" : "s"} · {g.answered} answered · last{" "}
+                {when(g.sessions[0]!.startedAt)}
+              </span>
+              <span aria-hidden className="ml-auto text-foreground/40 transition-transform group-open:rotate-90">
+                ›
+              </span>
+            </summary>
+            <ul className="space-y-2 px-4 pb-4">
+              {g.sessions.map((v) => {
+                const last = v.progress.interactions.at(-1);
+                const chip = last ? statusChip(last.assessment.answerStatus) : null;
+                return (
+                  <li key={v.progress.sessionId}>
+                    <details className="group/s rounded-xl border border-line">
+                      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 text-sm [&::-webkit-details-marker]:hidden">
+                        <span className="text-foreground/60">{when(v.startedAt)}</span>
+                        {v.isSample && (
+                          <span className="rounded border border-foreground/30 px-1 text-[10px] uppercase">Sample</span>
+                        )}
+                        <span className="min-w-0 flex-1 truncate">
+                          {v.progress.episode.parentSummary ?? "No answer heard yet."}
+                        </span>
+                        {chip && <Chip tone={chip.tone}>{chip.label}</Chip>}
+                        <span aria-hidden className="text-foreground/40 transition-transform group-open/s:rotate-90">
+                          ›
+                        </span>
+                      </summary>
+                      <div className="space-y-2 px-3 pb-3">
+                        <TurnRows view={v} childName={name} />
+                        <Link className="inline-block text-sm underline" href={`/parent/${v.progress.sessionId}`}>
+                          Open this session
+                        </Link>
+                      </div>
+                    </details>
+                  </li>
+                );
+              })}
+            </ul>
+          </details>
+        ))}
+      </section>
+
+      <p className="text-xs text-foreground/60">{SNAPSHOT_NOTE}</p>
+      </section>
+
+      {/* One scrolling page: every tab is a section, and the side nav scrolls between them. */}
+      {demoToolsEnabled() && (
+        <Section id="insights" label="Insights">
+          <InsightsPage searchParams={Promise.resolve({})} />
+        </Section>
+      )}
+      <Section id="mastery" label="Mastery">
+        <TopicsPage />
+      </Section>
+      <Section id="roadmap" label="Roadmap">
+        <PreviewPage />
+      </Section>
+      <Section id="settings" label="Settings">
+        <SettingsPage />
+      </Section>
+    </>
+  );
+}
+
+function Section({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
+  return (
+    <section id={id} aria-label={label} className="scroll-mt-10 space-y-8 border-t border-foreground/10 pt-14">
+      {children}
+    </section>
   );
 }

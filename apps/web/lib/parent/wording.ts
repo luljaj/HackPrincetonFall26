@@ -68,10 +68,11 @@ export const AFTER_HELP_CHIP = "after help";
 
 export type ParentStats = { sessions: number; answered: number; correctAfterHelp: number };
 
-export function statsLabels(): Record<keyof ParentStats, string> {
+export function statsLabels(stats?: ParentStats): Record<keyof ParentStats, string> {
+  const one = (k: keyof ParentStats) => stats?.[k] === 1;
   return {
-    sessions: "episodes watched",
-    answered: "questions answered",
+    sessions: one("sessions") ? "episode watched" : "episodes watched",
+    answered: one("answered") ? "question answered" : "questions answered",
     correctAfterHelp: "answered after help",
   };
 }

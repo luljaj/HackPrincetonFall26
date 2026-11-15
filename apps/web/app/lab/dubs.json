@@ -1,0 +1,362 @@
+[
+ {
+  "start": 46.68,
+  "end": 48.2,
+  "original": "Hola, soy Dora.",
+  "fr": "Bonjour, je suis Dora.",
+  "de": "Hallo, ich bin Dora.",
+  "zh": "你好，我是Dora。",
+  "hi": "नमस्ते, मैं डोरा हूँ।",
+  "ja": "こんにちは、ドーラです。",
+  "bed": [
+   46.08,
+   50.2
+  ],
+  "nextSpeechAt": 48.48
+ },
+ {
+  "start": 107.02,
+  "end": 108.18,
+  "original": "Hola, Mommy!",
+  "fr": "Bonjour, Mommy!",
+  "de": "Hallo, Mommy!",
+  "zh": "你好，Mommy！",
+  "hi": "नमस्ते, Mommy!",
+  "ja": "こんにちは、Mommy！",
+  "bed": [
+   106.42,
+   110.18
+  ],
+  "nextSpeechAt": 109.06
+ },
+ {
+  "start": 147.82,
+  "end": 149.82,
+  "original": "Quiero ayudarte, Mommy!",
+  "fr": "Je veux t’aider, Mommy!",
+  "de": "Ich möchte dir helfen, Mommy!",
+  "zh": "我想帮你，Mommy！",
+  "hi": "मैं आपकी मदद करना चाहती हूँ, Mommy!",
+  "ja": "お手伝いしたいよ、Mommy！",
+  "bed": [
+   147.22,
+   151.82
+  ],
+  "nextSpeechAt": 150.74
+ },
+ {
+  "start": 385.9,
+  "end": 388.84,
+  "original": "And there's Tico and his mamá.",
+  "fr": "And there's Tico and his maman.",
+  "de": "And there's Tico and his Mama.",
+  "zh": "And there’s Tico and his 妈妈.",
+  "hi": "And there’s Tico and his माँ.",
+  "ja": "And there’s Tico and his お母さん.",
+  "bed": [
+   385.3,
+   390.84
+  ],
+  "nextSpeechAt": 388.84
+ },
+ {
+  "start": 435.52,
+  "end": 436.06,
+  "original": "Vamos!",
+  "fr": "Allons-y !",
+  "de": "Los geht’s!",
+  "zh": "走吧！",
+  "hi": "चलो!",
+  "ja": "行こう！",
+  "bed": [
+   434.92,
+   438.06
+  ],
+  "nextSpeechAt": 439.12
+ },
+ {
+  "start": 482.92,
+  "end": 486.7,
+  "original": "To get the ladder up, we say, Arriba.",
+  "fr": "To get the ladder up, we say, En haut.",
+  "de": "To get the ladder up, we say, Hoch.",
+  "zh": "To get the ladder up, we say, 上.",
+  "hi": "To get the ladder up, we say, ऊपर.",
+  "ja": "To get the ladder up, we say, うえ.",
+  "bed": [
+   482.32,
+   494.7
+  ],
+  "nextSpeechAt": 486.96
+ },
+ {
+  "start": 486.96,
+  "end": 488.8,
+  "original": "Can you say Arriba?",
+  "fr": "Can you say En haut?",
+  "de": "Can you say Nach oben?",
+  "zh": "Can you say 上?",
+  "hi": "Can you say ऊपर?",
+  "ja": "Can you say うえ?",
+  "bed": [
+   482.32,
+   494.7
+  ],
+  "nextSpeechAt": 490.92
+ },
+ {
+  "start": 490.92,
+  "end": 492.7,
+  "original": "Say, Arriba!",
+  "fr": "Say, En haut!",
+  "de": "Say, Hoch!",
+  "zh": "Say, 上!",
+  "hi": "Say, ऊपर!",
+  "ja": "Say, うえ!",
+  "bed": [
+   482.32,
+   494.7
+  ],
+  "nextSpeechAt": 495.56
+ },
+ {
+  "start": 498.32,
+  "end": 499.04,
+  "original": "Arriba!",
+  "fr": "En haut !",
+  "de": "Hoch!",
+  "zh": "上！",
+  "hi": "ऊपर!",
+  "ja": "うえ！",
+  "bed": [
+   497.72,
+   501.04
+  ],
+  "nextSpeechAt": 501.74
+ },
+ {
+  "start": 504.6,
+  "end": 505.36,
+  "original": "Arriba!",
+  "fr": "En haut !",
+  "de": "Hoch!",
+  "zh": "上！",
+  "hi": "ऊपर!",
+  "ja": "うえ！",
+  "bed": [
+   504.0,
+   507.36
+  ],
+  "nextSpeechAt": 506.76
+ },
+ {
+  "start": 518.46,
+  "end": 519.42,
+  "original": "De nada, Benny.",
+  "fr": "De rien, Benny.",
+  "de": "Gern geschehen, Benny.",
+  "zh": "不客气，Benny。",
+  "hi": "कोई बात नहीं, Benny.",
+  "ja": "どういたしまして、Benny。",
+  "bed": [
+   517.86,
+   521.42
+  ],
+  "nextSpeechAt": 520.54
+ },
+ {
+  "start": 523.64,
+  "end": 526.66,
+  "original": "To get the ladder down, we say, abajo.",
+  "fr": "To get the ladder down, we say, en bas.",
+  "de": "To get the ladder down, we say, runter.",
+  "zh": "To get the ladder down, we say, 下.",
+  "hi": "To get the ladder down, we say, नीचे.",
+  "ja": "To get the ladder down, we say, した.",
+  "bed": [
+   523.04,
+   530.7
+  ],
+  "nextSpeechAt": 527.28
+ },
+ {
+  "start": 527.28,
+  "end": 528.7,
+  "original": "Can you say, abajo?",
+  "fr": "Can you say, en bas?",
+  "de": "Can you say, nach unten?",
+  "zh": "Can you say, 下?",
+  "hi": "Can you say, नीचे?",
+  "ja": "Can you say, した?",
+  "bed": [
+   523.04,
+   530.7
+  ],
+  "nextSpeechAt": 531.74
+ },
+ {
+  "start": 531.74,
+  "end": 532.64,
+  "original": "Say, abajo!",
+  "fr": "Say, en bas !",
+  "de": "Say, nach unten!",
+  "zh": "Say, 下!",
+  "hi": "Say, नीचे!",
+  "ja": "Say, した!",
+  "bed": [
+   531.14,
+   534.64
+  ],
+  "nextSpeechAt": 537.12
+ },
+ {
+  "start": 539.52,
+  "end": 540.48,
+  "original": "Abajo!",
+  "fr": "En bas !",
+  "de": "Runter!",
+  "zh": "下！",
+  "hi": "नीचे!",
+  "ja": "した！",
+  "bed": [
+   538.92,
+   542.48
+  ],
+  "nextSpeechAt": 546.26
+ },
+ {
+  "start": 597.56,
+  "end": 599.38,
+  "original": "¿Dónde está? Where is the bridge?",
+  "fr": "Où est le pont ? Where is the bridge?",
+  "de": "Wo ist die Brücke? Where is the bridge?",
+  "zh": "在哪里？ Where is the bridge?",
+  "hi": "कहाँ है? Where is the bridge?",
+  "ja": "どこ？ Where is the bridge?",
+  "bed": [
+   596.96,
+   601.38
+  ],
+  "nextSpeechAt": 604.14
+ },
+ {
+  "start": 606.46,
+  "end": 607.78,
+  "original": "Si! Allí está!",
+  "fr": "Oui ! Elle est là !",
+  "de": "Ja! Da ist sie!",
+  "zh": "对！在那里！",
+  "hi": "हाँ! वहाँ है!",
+  "ja": "はい！そこにあるよ！",
+  "bed": [
+   605.86,
+   609.78
+  ],
+  "nextSpeechAt": 607.78
+ },
+ {
+  "start": 979.12,
+  "end": 980.7,
+  "original": "¿Dónde está the pyramid?",
+  "fr": "Où est the pyramid?",
+  "de": "Wo ist the pyramid?",
+  "zh": "the pyramid 在哪里？",
+  "hi": "the pyramid कहाँ है?",
+  "ja": "the pyramid はどこ？",
+  "bed": [
+   978.52,
+   982.7
+  ],
+  "nextSpeechAt": 984.5
+ },
+ {
+  "start": 984.5,
+  "end": 986.02,
+  "original": "Sí, ahí está.",
+  "fr": "Oui, la voilà.",
+  "de": "Ja, da ist sie.",
+  "zh": "对，在那里。",
+  "hi": "हाँ, वहाँ है।",
+  "ja": "うん、そこにあるよ。",
+  "bed": [
+   983.9,
+   988.02
+  ],
+  "nextSpeechAt": 986.82
+ },
+ {
+  "start": 1000.9,
+  "end": 1002.74,
+  "original": "Let's call policía.",
+  "fr": "Let's call la police.",
+  "de": "Let's call die Polizei.",
+  "zh": "Let’s call 警察.",
+  "hi": "Let’s call पुलिस.",
+  "ja": "Let’s call 警察.",
+  "bed": [
+   1000.3,
+   1004.74
+  ],
+  "nextSpeechAt": 1002.74
+ },
+ {
+  "start": 1041.46,
+  "end": 1043.76,
+  "original": "Hola, mommy! Ya llegamos!",
+  "fr": "Bonjour, mommy! Nous sommes arrivés!",
+  "de": "Hallo, mommy! Wir sind da!",
+  "zh": "你好，mommy！我们到了！",
+  "hi": "नमस्ते, mommy! हम पहुँच गए!",
+  "ja": "こんにちは、mommy！着いたよ！",
+  "bed": [
+   1040.86,
+   1045.76
+  ],
+  "nextSpeechAt": 1044.66
+ },
+ {
+  "start": 1348.04,
+  "end": 1351.78,
+  "original": "To call the stars, seis estrellas.",
+  "fr": "To call the stars, six étoiles.",
+  "de": "To call the stars, sechs Sterne.",
+  "zh": "To call the stars, 六颗星星.",
+  "hi": "To call the stars, छह तारे.",
+  "ja": "To call the stars, 六つの星.",
+  "bed": [
+   1347.44,
+   1353.78
+  ],
+  "nextSpeechAt": 1355.3
+ },
+ {
+  "start": 1358.54,
+  "end": 1367.52,
+  "original": "Una, dos, tres, cuatro, cinco, seis.",
+  "fr": "Un, deux, trois, quatre, cinq, six.",
+  "de": "Eins, zwei, drei, vier, fünf, sechs.",
+  "zh": "一，二，三，四，五，六。",
+  "hi": "एक, दो, तीन, चार, पाँच, छह।",
+  "ja": "一、二、三、四、五、六。",
+  "bed": [
+   1357.94,
+   1372.3
+  ],
+  "nextSpeechAt": 1368.36
+ },
+ {
+  "start": 1368.36,
+  "end": 1370.3,
+  "original": "Seis estrellas.",
+  "fr": "Six étoiles.",
+  "de": "Sechs Sterne.",
+  "zh": "六颗星星。",
+  "hi": "छह तारे।",
+  "ja": "六つの星。",
+  "bed": [
+   1357.94,
+   1372.3
+  ],
+  "nextSpeechAt": 1370.3
+ }
+]

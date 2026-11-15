@@ -3,8 +3,15 @@
   "reference": "reference.wav",
   "language": "en",
   "source": "Local episode 1, 00:42.08\u201300:54.00; Dora solo introduction",
-  "method": "Chatterbox Turbo MLX LoRA fine-tune, rank 8, final 8 T3 layers",
-  "processing": "Demucs htdemucs vocal separation, mono 24 kHz, loudness normalization",
+  "method": "Native-source reference conditioning; pilot LoRA retained but disabled after audio comparison",
+  "processing": "48 kHz episode source, Demucs vocal separation, mono 24 kHz normalized reference; continuous output filtering and 5 ms endpoint fades",
   "watermark": "Perth; enabled by Chatterbox",
-  "lora_adapter": "checkpoints/adapter.safetensors"
+  "lora_adapter": "checkpoints/adapter.safetensors",
+  "adapter_strength": 0.0,
+  "temperature": 0.7,
+  "postprocess": {
+    "highpass_hz": 65,
+    "lowpass_hz": 7800,
+    "gain_db": 6
+  }
 }

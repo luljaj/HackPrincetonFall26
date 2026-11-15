@@ -1,16 +1,17 @@
 # /// script
 # requires-python = ">=3.11,<3.13"
-# dependencies = ["chatterbox-mlx==1.3.1", "mlx-whisper"]
+# dependencies = ["chatterbox-mlx==1.3.1", "mlx-whisper", "scipy"]
 # ///
-"""Generate the lab's lines using the local voice profile and its fine-tuned weights.
+"""Generate the lab's lines using the local multilingual voice profile.
 
 uv run tools/gen-voice-lines.py
-uv run tools/gen-voice-lines.py --engine original --ref voice.wav --pitch-hz 320
+uv run tools/gen-voice-lines.py --engine turbo --ref voice.wav
 """
 import argparse,json,subprocess,tempfile,time
 from pathlib import Path
-from voice_runtime import ROOT,PROFILE,load_voice
+from voice_runtime import ROOT,PROFILE,load_voice,generation_options
 from voice_text import word_error
+from voice_audio import polish_audio
 
 
 def main():
@@ -19,7 +20,8 @@ def main():
     p.add_argument('--ref',type=Path,help='Override the profile reference recording')
     p.add_argument('--verify',action='store_true',help='Try several seeds and select the clearest ASR-checked speech')
     p.add_argument('--base',action='store_true',help='Use the base model without the trained adapter')
-    p.add_argument('--engine',choices=['original','turbo','nano'],default='turbo')
+    p.add_argument('--adapter-strength',type=float,help='Override the profile adapter strength (0–1)')
+    p.add_argument('--engine',choices=['original','turbo','nano','multilingual'],default='multilingual')
     p.add_argument('--exaggeration',type=float,default=.7)
     p.add_argument('--only',nargs='*')
     p.add_argument('--pitch-hz',type=float)
@@ -30,23 +32,24 @@ def main():
     if args.pitch_hz is not None and not 80<=args.pitch_hz<=600:p.error('Pitch must be 80–600 Hz')
     import numpy as np
     import soundfile as sf
-    model,_=load_voice(args.profile,args.engine,args.exaggeration,use_adapter=not args.base,reference_override=args.ref)
+    model,profile=load_voice(args.profile,args.engine,args.exaggeration,use_adapter=not args.base,reference_override=args.ref,adapter_strength=args.adapter_strength)
     args.out.mkdir(parents=True,exist_ok=True)
     timings=[]
     for key,text in lines.items():
         if args.only and key not in args.only:continue
         start=time.perf_counter()
-        kwargs={'exaggeration':args.exaggeration,'cfg_weight':.5} if args.engine=='original' else {'seed':42}
+        kwargs=generation_options(profile,args.engine)
+        if args.engine=='original':kwargs['exaggeration']=args.exaggeration
         wav=model.generate(text,**kwargs)
         if hasattr(wav,'numpy'):wav=wav.numpy()
-        wav=np.asarray(wav).reshape(-1)
+        wav=polish_audio(np.asarray(wav).reshape(-1),model.sr,profile)
         checked=None
         if args.verify:
             import mlx_whisper
             best=None
             for attempt in range(4):
                 if attempt and args.engine!='original':
-                    wav=np.asarray(model.generate(text,seed=attempt-1,temperature=.7)).reshape(-1)
+                    wav=polish_audio(np.asarray(model.generate(text,**{**kwargs,'seed':attempt-1})).reshape(-1),model.sr,profile)
                 with tempfile.NamedTemporaryFile(suffix='.wav') as tmp:
                     sf.write(tmp.name,wav,model.sr)
                     heard=mlx_whisper.transcribe(tmp.name,path_or_hf_repo='mlx-community/whisper-large-v3-turbo',language='en',condition_on_previous_text=False,temperature=0)['text'].strip()
@@ -66,8 +69,8 @@ def main():
             wav=librosa.effects.pitch_shift(wav,sr=model.sr,n_steps=12*np.log2(args.pitch_hz/pitch))
         with tempfile.TemporaryDirectory() as temp:
             source=Path(temp)/'speech.wav';encoded=Path(temp)/'speech.m4a'
-            sf.write(source,wav,model.sr)
-            subprocess.run(['ffmpeg','-v','error','-y','-i',str(source),'-c:a','aac','-b:a','96k',str(encoded)],check=True)
+            sf.write(source,wav,model.sr,subtype='PCM_24')
+            subprocess.run(['ffmpeg','-v','error','-y','-i',str(source),'-c:a','aac','-b:a','160k',str(encoded)],check=True)
             (args.out/f'{key}.m4a').write_bytes(encoded.read_bytes())
         elapsed=time.perf_counter()-start
         timings.append({'id':key,'text':text,'duration':len(wav)/model.sr,'generation_seconds':elapsed,'verification':checked})

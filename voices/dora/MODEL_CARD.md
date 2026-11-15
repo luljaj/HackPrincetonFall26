@@ -1,5 +1,7 @@
 # Dora voice adaptation — local pilot
 
+**Quality update:** The pilot adapter is retained, but the current profile sets its strength to zero after an audio comparison exposed pitch/wording instability. The default is native-source reference conditioning plus continuous postprocessing. The following describes the historical fine-tuning run, not a claim that its weights are currently active. `reference-training.wav` preserves that run's reference; `reference.wav` is the newer native-source reference.
+
 - Base: `ResembleAI/chatterbox-turbo`, loaded through `chatterbox-mlx==1.3.1`.
 - Actual training: rank-8 LoRA on attention and MLP projections in the final eight T3 layers; 1,048,576 learned parameters.
 - Data: 74 automatically selected Dora speech excerpts (roughly 4.2 minutes) from the four local episodes. Demucs removed background accompaniment; Whisper re-transcribed the resulting vocals. Speaker labels have not been manually audited.

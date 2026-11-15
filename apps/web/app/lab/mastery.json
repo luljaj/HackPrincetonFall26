@@ -1,0 +1,203 @@
+{
+ "categories": [
+  {
+   "id": "numbers",
+   "name": "Numbers",
+   "skills": [
+    {
+     "id": "count-to-5",
+     "name": "Counts up to 5"
+    },
+    {
+     "id": "count-to-10",
+     "name": "Counts up to 10"
+    },
+    {
+     "id": "how-many",
+     "name": "Says how many there are"
+    }
+   ]
+  },
+  {
+   "id": "shapes",
+   "name": "Shapes",
+   "skills": [
+    {
+     "id": "name-shapes",
+     "name": "Names shapes"
+    },
+    {
+     "id": "match-shapes",
+     "name": "Matches a shape to where it fits"
+    }
+   ]
+  },
+  {
+   "id": "remembering",
+   "name": "Remembering",
+   "skills": [
+    {
+     "id": "recall-places",
+     "name": "Remembers the places on the map, in order"
+    },
+    {
+     "id": "recall-events",
+     "name": "Remembers what just happened"
+    },
+    {
+     "id": "recall-objects",
+     "name": "Remembers a thing from earlier"
+    }
+   ]
+  },
+  {
+   "id": "choosing",
+   "name": "Choosing",
+   "skills": [
+    {
+     "id": "pick-place",
+     "name": "Picks the right path or place"
+    },
+    {
+     "id": "pick-object",
+     "name": "Picks the right thing"
+    },
+    {
+     "id": "explain-choice",
+     "name": "Says why"
+    }
+   ]
+  },
+  {
+   "id": "words",
+   "name": "Words",
+   "skills": [
+    {
+     "id": "name-things",
+     "name": "Names things"
+    },
+    {
+     "id": "action-words",
+     "name": "Uses action words (up, down, across)"
+    },
+    {
+     "id": "describe-things",
+     "name": "Describes things (colours, sizes, how they look)"
+    }
+   ]
+  },
+  {
+   "id": "stories",
+   "name": "Stories & imagination",
+   "skills": [
+    {
+     "id": "what-next",
+     "name": "Guesses what happens next"
+    },
+    {
+     "id": "feelings",
+     "name": "Understands how characters feel"
+    },
+    {
+     "id": "imagine",
+     "name": "Imagines and describes"
+    }
+   ]
+  },
+  {
+   "id": "joining-in",
+   "name": "Joining in",
+   "skills": [
+    {
+     "id": "answer-aloud",
+     "name": "Answers out loud"
+    },
+    {
+     "id": "chant",
+     "name": "Says the chant with Dora"
+    },
+    {
+     "id": "do-action",
+     "name": "Does the action"
+    }
+   ]
+  },
+  {
+   "id": "show-spanish",
+   "name": "The show's Spanish",
+   "skills": [
+    {
+     "id": "spanish-words",
+     "name": "Says the Spanish words Dora teaches"
+    }
+   ]
+  }
+ ],
+ "lessons": {
+  "ep3-01": "imagine",
+  "ep3-02": "imagine",
+  "ep3-03": "imagine",
+  "ep3-04": "imagine",
+  "ep3-05": "what-next",
+  "ep3-06": "recall-places",
+  "ep3-07": "recall-objects",
+  "ep3-08": "name-things",
+  "ep3-09": "pick-place",
+  "ep3-10": "recall-places",
+  "ep3-11": "recall-places",
+  "ep3-12": "pick-place",
+  "ep3-13": "recall-places",
+  "ep3-14": "imagine",
+  "ep3-15": "answer-aloud",
+  "ep3-16": "answer-aloud",
+  "ep3-17": "imagine",
+  "ep3-18": "pick-place",
+  "ep3-19": "answer-aloud",
+  "ep3-21": "recall-objects",
+  "ep3-22": "spanish-words",
+  "ep3-23": "spanish-words",
+  "ep3-24": "spanish-words",
+  "ep3-25": "recall-places",
+  "ep3-26": "recall-places",
+  "ep3-27": "pick-place",
+  "ep3-28": "recall-places",
+  "ep3-29": "pick-object",
+  "ep3-30": "recall-events",
+  "ep3-31": "name-things",
+  "ep3-32": "imagine",
+  "ep3-33": "name-things",
+  "ep3-34": "pick-object",
+  "ep3-35": "pick-object",
+  "ep3-36": "do-action",
+  "ep3-37": "recall-events",
+  "ep3-39": "match-shapes",
+  "ep3-40": "match-shapes",
+  "ep3-41": "match-shapes",
+  "ep3-42": "recall-objects",
+  "ep3-43": "recall-places",
+  "ep3-44": "recall-places",
+  "ep3-45": "pick-place",
+  "ep3-46": "pick-place",
+  "ep3-47": "spanish-words",
+  "ep3-48": "spanish-words",
+  "ep3-49": "name-shapes",
+  "ep3-50": "imagine",
+  "ep3-51": "pick-place",
+  "ep3-52": "pick-place",
+  "ep3-53": "pick-place",
+  "ep3-54": "count-to-5",
+  "ep3-55": "count-to-10",
+  "ep3-56": "imagine",
+  "ep3-57": "name-things",
+  "ep3-58": "name-things",
+  "ep3-59": "pick-object",
+  "ep3-60": "chant",
+  "ep3-61": "imagine",
+  "ep3-62": "imagine",
+  "ep3-63": "how-many",
+  "ep3-64": "spanish-words",
+  "ep3-65": "pick-place",
+  "ep3-66": "pick-place",
+  "ep3-67": "pick-place"
+ }
+}

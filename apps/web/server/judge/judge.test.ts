@@ -21,6 +21,16 @@ test("the tool name becomes the event and its arguments the line", async () => {
   assert.equal(f.sent().tool_choice, "required");
 });
 
+test("Luna is told the learning language, or that there is none", async () => {
+  const f = fake([{ type: "function_call", name: "correct", arguments: '{"say":"Très bien!","skill":"objects"}' }]);
+  await judgeTurn(f.client, "m", JudgeRequestSchema.parse({ ...req, language: { code: "fr", name: "French" } }));
+  const input = f.sent().input as Array<{ content: string }>;
+  assert.equal(JSON.parse(input[1]!.content).learningLanguage, "French");
+  const g = fake([{ type: "function_call", name: "correct", arguments: '{"say":"Great job!","skill":"objects"}' }]);
+  await judgeTurn(g.client, "m", req);
+  assert.equal(JSON.parse((g.sent().input as Array<{ content: string }>)[1]!.content).learningLanguage, null);
+});
+
 test("no tool call, an unknown tool, or bad arguments are rejected", async () => {
   await assert.rejects(judgeTurn(fake([{ type: "message" }]).client, "m", req));
   await assert.rejects(judgeTurn(fake([{ type: "function_call", name: "skip", arguments: '{"say":"x","skill":"words"}' }]).client, "m", req));

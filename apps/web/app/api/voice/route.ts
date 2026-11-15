@@ -1,4 +1,13 @@
+import { z } from "zod";
+
 export const runtime = "nodejs";
+
+const speechRequest = z.object({
+  text: z.string().trim().min(1).max(600),
+  language: z.enum(["en", "es", "fr", "de", "zh", "hi", "ja"]).default("en"),
+  learningLanguage: z.enum(["en", "es", "fr", "de", "zh", "hi", "ja"]).optional(),
+  durationSeconds: z.number().positive().max(60).optional(),
+});
 
 export async function POST(request: Request): Promise<Response> {
   let body: unknown;
@@ -7,17 +16,13 @@ export async function POST(request: Request): Promise<Response> {
   } catch {
     return Response.json({ error: "Invalid JSON." }, { status: 400 });
   }
-  if (
-    typeof body !== "object" || body === null || !("text" in body) ||
-    typeof body.text !== "string" || !body.text.trim() || body.text.trim().length > 600
-  ) {
-    return Response.json({ error: "Text must contain 1–600 characters." }, { status: 400 });
-  }
+  const parsed = speechRequest.safeParse(body);
+  if (!parsed.success) return Response.json({ error: "Provide 1–600 characters, a supported language and a valid dub duration." }, { status: 400 });
   try {
     const upstream = await fetch("http://127.0.0.1:8766/speech", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: body.text.trim() }),
+      body: JSON.stringify(parsed.data),
       signal: AbortSignal.any([request.signal, AbortSignal.timeout(120_000)]),
       cache: "no-store",
     });

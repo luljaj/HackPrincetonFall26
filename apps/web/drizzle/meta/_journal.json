@@ -22,6 +22,27 @@
       "when": 1794687870660,
       "tag": "0002_learning_events_hypertable",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794694036967,
+      "tag": "0003_parent_preferences",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794711924558,
+      "tag": "0004_play_trace",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794711924991,
+      "tag": "0005_play_events_hypertable",
+      "breakpoints": true
     }
   ]
 }
