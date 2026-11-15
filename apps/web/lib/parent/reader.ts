@@ -2,6 +2,8 @@ import "server-only";
 import { SessionProgressSchema } from "../contracts";
 import { getDb } from "../../server/storage/db";
 import { createPostgresStore } from "../../server/storage/postgres";
+import { getPlayStore } from "../../server/storage";
+import { playToParentView } from "../play/view";
 import { sampleView } from "./fixtures";
 import type { ParentViewReader } from "./reader-contract";
 import type { ParentView } from "./types";
@@ -42,8 +44,27 @@ function checked(view: ParentView): ParentView {
   return { ...view, progress: SessionProgressSchema.parse(view.progress) };
 }
 
+// Real Play-mode sessions (session trace) come first; pipeline/sample sessions follow.
+// Sessions where no pause was reached yet are left out.
+function withPlay(reader: ParentViewReader): ParentViewReader {
+  const play = getPlayStore();
+  return {
+    async getParentView(sessionId) {
+      const record = await play.get(sessionId);
+      if (record?.turns.some(t => t.outcome)) return playToParentView(record.session, record.turns);
+      return (await reader.getParentView(sessionId)) ?? (record ? playToParentView(record.session, record.turns) : null);
+    },
+    async listParentViews(limit) {
+      const [records, rest] = await Promise.all([play.list(limit), reader.listParentViews(limit)]);
+      const played = records.filter((r) => r.turns.length > 0).map((r) => playToParentView(r.session, r.turns));
+      const playIds = new Set(played.map(v => v.progress.sessionId));
+      return [...played, ...rest.filter(v => !playIds.has(v.progress.sessionId))].sort((a, b) => b.startedAt.localeCompare(a.startedAt)).slice(0, limit);
+    },
+  };
+}
+
 export function getParentViewReader(): ParentViewReader {
-  const reader = baseReader();
+  const reader = withPlay(baseReader());
   return {
     async getParentView(sessionId): Promise<ParentView | null> {
       const view = await reader.getParentView(sessionId);

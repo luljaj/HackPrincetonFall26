@@ -8,3 +8,4 @@ evaluation/
 !dora/checkpoints/adapter.safetensors
 !dora/checkpoints/adapter.json
 !dora/checkpoints/training-history.json
+!dora/reference-training.wav

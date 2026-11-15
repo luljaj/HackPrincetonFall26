@@ -26,6 +26,7 @@ export function TurnRows({ view, childName }: { view: ParentView; childName: str
               <span className="text-xs text-foreground/60">Dora replied</span>
               {i.responseText}
             </p>
+            {i.assessment.evidence && <p className="pl-[96px] text-xs text-foreground/50">{i.assessment.evidence}</p>}
           </li>
         );
       })}

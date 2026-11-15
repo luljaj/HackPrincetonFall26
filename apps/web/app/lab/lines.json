@@ -17,5 +17,14 @@
   "g_give": "That was a tricky one! Let's see what happens!",
   "g_welcome": "Ayyy, you're back! I missed you! Let's try again!",
   "g_model": "Listen closely and say it with me! Your turn!",
-  "hmm": "Hmm!"
+  "hmm": "Hmm!",
+  "addition1": "Let's add! Two stars and one more star. How many stars is that?",
+  "addition2": "Let's add! Three stars and one more star. How many stars is that?",
+  "addition3": "Let's add! Three stars and two more stars. How many stars is that?",
+  "practiceHindiThree": "In Hindi, three is तीन! Can you say तीन?",
+  "practiceSpanishThree": "In Spanish, three is tres! Can you say tres?",
+  "demoCountKeys": "How many keys do we have altogether?",
+  "demoKeysAddition1": "Let's add! Two keys and one more key. How many keys is that?",
+  "demoKeysAddition2": "Let's add! Three keys and one more key. How many keys is that?",
+  "demoKeysAddition3": "Let's add! Three keys and two more keys. How many keys is that?"
 }

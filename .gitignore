@@ -39,3 +39,8 @@ yarn-error.log*
 
 # Local pipeline evaluation output (includes synthetic transcripts/private guides)
 apps/web/evals/pipeline/results/
+
+# Local Remotion projects, configuration, and renders
+remotion/
+.remotion/
+remotion.config.*

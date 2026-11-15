@@ -1,0 +1,29 @@
+{
+  "demo-addition-1": {
+    "english": "three",
+    "es": { "word": "tres", "romanized": "tres", "ipa": "t ɾ e s" },
+    "fr": { "word": "trois", "romanized": "trois", "ipa": "t ʁ w a" },
+    "de": { "word": "drei", "romanized": "drei", "ipa": "d ʁ aɪ" },
+    "zh": { "word": "三", "romanized": "sān", "ipa": "s a n" },
+    "hi": { "word": "तीन", "romanized": "tīn", "ipa": "t̪ iː n" },
+    "ja": { "word": "三", "romanized": "san", "ipa": "s a ɴ" }
+  },
+  "demo-addition-2": {
+    "english": "four",
+    "es": { "word": "cuatro", "romanized": "cuatro", "ipa": "k w a t ɾ o" },
+    "fr": { "word": "quatre", "romanized": "quatre", "ipa": "k a t ʁ" },
+    "de": { "word": "vier", "romanized": "vier", "ipa": "f iː ɐ" },
+    "zh": { "word": "四", "romanized": "sì", "ipa": "s ɹ̩" },
+    "hi": { "word": "चार", "romanized": "chār", "ipa": "tʃ aː ɾ" },
+    "ja": { "word": "四", "romanized": "yon", "ipa": "j o ɴ" }
+  },
+  "demo-addition-3": {
+    "english": "five",
+    "es": { "word": "cinco", "romanized": "cinco", "ipa": "s i ŋ k o" },
+    "fr": { "word": "cinq", "romanized": "cinq", "ipa": "s ɛ̃ k" },
+    "de": { "word": "fünf", "romanized": "fünf", "ipa": "f ʏ n f" },
+    "zh": { "word": "五", "romanized": "wǔ", "ipa": "u" },
+    "hi": { "word": "पाँच", "romanized": "pā̃ch", "ipa": "p aː̃ tʃ" },
+    "ja": { "word": "五", "romanized": "go", "ipa": "ɡ o" }
+  }
+}

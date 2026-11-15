@@ -7,9 +7,10 @@ export const VAD = {
   calibrateMs: 300, // first stretch sets the noise floor
   minRms: 0.012, // never trigger below this, however quiet the room
   floorFactor: 3, // speech = louder than 3x the noise floor
-  startMs: 90, // this much speech in a row counts as the kid starting
-  endSilenceMs: 500, // this much quiet after speech ends the answer (people take turns within a few hundred ms)
-  noSpeechMs: 6000, // nobody spoke: let the stage machine nudge
+  startMs: 200, // this much speech counts as the kid starting (a word, not a click or a voice tail)
+  gapMs: 150, // quiet shorter than this between syllables keeps adding up toward startMs
+  endSilenceMs: 400, // this much quiet after speech ends the answer (people take turns within a few hundred ms)
+  noSpeechMs: 7500, // nobody spoke: let the stage machine nudge (kids, and presenters, need a moment)
   maxMs: 8000, // hard cap on one answer
 };
 
@@ -33,8 +34,8 @@ export function vadStep(s: VadState, rms: number, dt: number = VAD.frameMs): { s
   // Noise floor = the quietest calibration frame, so a kid who answers instantly doesn't become the "floor".
   if (s.elapsed < VAD.calibrateMs) n.floor = Math.min(n.floor, rms); // any frame that starts inside the window
   const loud = rms > Math.max(VAD.minRms, n.floor * VAD.floorFactor);
-  n.loudFor = loud ? n.loudFor + dt : 0;
   n.quietFor = loud ? 0 : n.quietFor + dt;
+  n.loudFor = loud ? n.loudFor + dt : n.quietFor > VAD.gapMs ? 0 : n.loudFor; // syllable gaps don't reset it
   if (!n.started && n.loudFor >= VAD.startMs) n.started = true;
   const done: "spoke" | "silent" | null = n.started && n.quietFor >= VAD.endSilenceMs ? "spoke"
     : !n.started && n.elapsed >= VAD.noSpeechMs ? "silent"

@@ -1,0 +1,49 @@
+{
+  "id": "pitch",
+  "title": "Dora: When I Grow Up (demo pauses)",
+  "note": "The real episode plays uncut. In demo mode only these moments pause, and Skip jumps over the non-interactive parts to `from`: a shot change a few seconds before the question, so its setup still plays. Times come from a Whisper transcript and ffmpeg shot detection of dora-ep3.mp4. `holdAt` moves a moment's pause a little later when the show's own pause frame hides what the kid must find.",
+  "exercises": [
+    {
+      "pauseId": "ep3-07",
+      "from": 166.07,
+      "label": "Who helps when we're lost?"
+    },
+    {
+      "pauseId": "ep3-26",
+      "from": 565.36,
+      "label": "Where do we go next?"
+    },
+    {
+      "pauseId": "ep3-27",
+      "from": 589.59,
+      "label": "Find the bridge",
+      "holdAt": 601.0,
+      "why": "At the show's own pause (599.4 s) the painting bird stands in front of the bridge; by 600.9 s it has walked off, and the show's pointer only appears after 602 s."
+    },
+    {
+      "pauseId": "ep3-39",
+      "from": 867.33,
+      "label": "Which shape fits?"
+    },
+    {
+      "pauseId": "ep3-55",
+      "from": 1129.23,
+      "label": "Count the keys"
+    },
+    {
+      "pauseId": "ep3-57",
+      "from": 1183.65,
+      "label": "Find the jewel"
+    },
+    {
+      "pauseId": "ep3-60",
+      "from": 1238.27,
+      "label": "Swiper, no swiping!"
+    }
+  ],
+  "finale": {
+    "from": 1274.41,
+    "label": "The end"
+  },
+  "additionAfter": 1150
+}

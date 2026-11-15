@@ -1,7 +1,7 @@
 // Run: node --test apps/web/app/lab/machine.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { INITIAL, next, type Ctx, type Event } from "./machine.ts";
+import { INITIAL, next, type Ctx, type Event, type Stage } from "./machine.ts";
 
 const run = (events: Event[], c: Ctx = INITIAL) => events.reduce(next, c);
 const ask: Event[] = ["PAUSE_POINT", "TRANSITION_DONE", "LINE_DONE"]; // -> listening
@@ -42,15 +42,21 @@ test("mumbling can't loop forever; errors exit gracefully", () => {
   assert.equal(run([...ask, "SPEECH_END", "ERROR", "LINE_DONE"]).stage, "exiting");
 });
 
-test("language practice: after the answer, learn the word in the new language, one try", () => {
+test("language practice models a missed word again, then ends after a second attempt", () => {
   const learning: Ctx = { ...INITIAL, known: true, practice: true };
   const celebrated = run([...ask, "SPEECH_END", "CORRECT"], learning);
   assert.equal(run(["LINE_DONE"], celebrated).stage, "practicing");
   const listening = run(["LINE_DONE", "LINE_DONE"], celebrated);
   assert.deepEqual([listening.stage, listening.practiced], ["listening", true]);
   assert.equal(run(["SPEECH_END", "CORRECT", "LINE_DONE"], listening).stage, "exiting"); // said it: praise, then the show
-  assert.equal(run(["SPEECH_END", "WRONG", "LINE_DONE"], listening).stage, "exiting"); // missed: Dora says it, then the show
-  assert.equal(run(["SILENCE", "LINE_DONE"], listening).stage, "exiting"); // shy: no nagging
+  const retry = run(["SPEECH_END", "WRONG", "LINE_DONE"], listening);
+  assert.equal(retry.stage, "listening");
+  assert.equal(retry.nudges, 1);
+  assert.equal(run(["SPEECH_END", "WRONG", "LINE_DONE"], retry).stage, "exiting");
+  assert.equal(run(["SPEECH_END", "CORRECT", "LINE_DONE"], retry).stage, "exiting");
+  const nudged = run(["SILENCE"], listening);
+  assert.equal(nudged.stage, "nudging"); // shy: one "Your turn!", then Dora says it
+  assert.equal(run(["LINE_DONE", "SILENCE", "LINE_DONE"], nudged).stage, "exiting");
 });
 
 test("the word is taught even when Dora had to give the answer, and only when learning", () => {
@@ -67,4 +73,24 @@ test("leaving mid-question gets a welcome back; leaving while watching doesn't",
 
 test("events that don't apply are ignored", () => {
   assert.equal(next(INITIAL, "CORRECT"), INITIAL);
+});
+
+test("a parent-requested language lesson enters practice directly, then resumes the show", () => {
+  const listening = run(["PAUSE_POINT", "TRANSITION_DONE", "LINE_DONE"], { ...INITIAL, practiceOnly: true });
+  assert.equal(listening.stage, "listening");
+  assert.equal(listening.practiced, true);
+  assert.equal(run(["SPEECH_END", "CORRECT", "LINE_DONE", "TRANSITION_DONE"], listening).stage, "watching");
+});
+
+test("pause freezes the episode and teaching ladder; resuming never awards an answer or leaves thinking stuck", () => {
+  const phases: Stage[] = ["watching","entering","asking","listening","thinking","teaching","practicing","celebrating","exiting"];
+  for (const stage of phases) {
+    const original = { ...INITIAL, stage, tries: 1, nudges: 1, practiced: true };
+    const paused = next(original,"PAUSE");
+    assert.equal(paused.stage,"paused");
+    for (const event of ["LINE_DONE","CORRECT","SILENCE","PAUSE_POINT","PAUSE"] satisfies Event[]) assert.equal(next(paused,event),paused);
+    const resumed = next(paused,"RESUME");
+    assert.equal(resumed.stage,stage === "thinking" ? "listening" : stage);
+    assert.deepEqual([resumed.tries,resumed.nudges,resumed.practiced],[1,1,true]);
+  }
 });

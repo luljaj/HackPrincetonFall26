@@ -75,7 +75,8 @@ def main():
         answer = spot.get('answer') or (None if lesson['type'] == 'open' else lesson['answer'])
         if answer: todo.append((sid, answer, lesson['question'] if not spot.get('custom') else 'What do we put on to stay safe?'))
     out_path = LAB / 'translations.json'
-    result = json.loads(out_path.read_text()) if out_path.exists() else {}
+    # A full run starts fresh, so spots whose question no longer has a concrete answer don't keep an old word.
+    result = json.loads(out_path.read_text()) if args.only and out_path.exists() else {}
     key = api_key()
     def one(item):
         sid, answer, question = item

@@ -15,7 +15,7 @@ export default async function TopicPage({ params }: { params: Promise<{ topic: s
   const { topic: id } = await params;
   const t = topicById(id);
   if (!t) notFound();
-  const name = childName();
+  const name = await childName();
 
   return (
     <>

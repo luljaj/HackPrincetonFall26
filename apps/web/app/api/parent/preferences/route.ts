@@ -1,5 +1,6 @@
 import { hasParentAccess } from "../../../../lib/parent/access";
 import { FocusSchema } from "../../../../lib/parent/preferences";
+import { setPlan } from "../../../../lib/live/plan";
 import { getPreferencesStore } from "../../../../server/storage";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export async function GET() {
   });
 }
 
-// PUT { focus: { math, english, science } }: parent changes the focus. Any time, any number of times.
+// PUT { focus: { <mastery category>: less | usual | more, … } }: parent changes the focus. Any time, any number of times.
 export async function PUT(request: Request) {
   if (!(await hasParentAccess())) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
@@ -21,5 +22,7 @@ export async function PUT(request: Request) {
   if (!parsed.success) {
     return Response.json({ error: "invalid_focus" }, { status: 400 });
   }
-  return Response.json(await getPreferencesStore().set(parsed.data));
+  const saved = await getPreferencesStore().set(parsed.data);
+  await setPlan({ focus: parsed.data }).catch(() => false); // live copy for the kid view; Postgres is the record
+  return Response.json(saved);
 }

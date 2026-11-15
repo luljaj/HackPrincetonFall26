@@ -30,6 +30,10 @@ test("nobody speaks: silent after the no-speech timeout", () => {
   assert.deepEqual(run(frames(VAD.noSpeechMs + 100, 0.002)), { done: "silent", at: VAD.noSpeechMs });
 });
 
+test("a short blip (Dora's voice tail, a tap) doesn't start an answer", () => {
+  assert.equal(run([...frames(300, 0.002), ...frames(150, 0.1), ...frames(VAD.noSpeechMs, 0.002)]).done, "silent");
+});
+
 test("a steady noisy room isn't speech, a click isn't either", () => {
   assert.equal(run([...frames(300, 0.03), ...frames(VAD.noSpeechMs, 0.035)]).done, "silent");
   assert.equal(run([...frames(300, 0.002), 0.5, ...frames(VAD.noSpeechMs, 0.002)]).done, "silent");

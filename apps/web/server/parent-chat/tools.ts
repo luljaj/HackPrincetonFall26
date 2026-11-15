@@ -1,0 +1,227 @@
+// Read-only tools for the parent chat (ai-chat-plan.md §4). Pure functions over the parent
+// views, so they share the dashboard's privacy boundary: views already passed
+// SessionProgressSchema, which carries no answer guides or Luna drafts.
+import { nextStepFor } from "../../lib/parent/next-steps";
+import { SUBJECTS } from "../../lib/parent/preferences";
+import curriculum from "../../app/lab/mastery.json";
+import lessons from "../../app/lab/lessons.json";
+import { ADDITION_LESSONS } from "../../app/lab/focus-lessons";
+import { CATEGORIES, type Mastery } from "../../lib/play/mastery";
+import { PLAN_LANGUAGES } from "../../lib/parent/preferences";
+import { showFor } from "../../lib/parent/shows";
+import type { ParentView } from "../../lib/parent/types";
+import type { PracticeRow, TopicRow } from "../storage/play";
+
+export type PlayStats = { topics: readonly TopicRow[]; practice: readonly PracticeRow[]; mastery?: Mastery };
+const LANGUAGE: Record<string, string> = { es: "Spanish", fr: "French", de: "German", zh: "Chinese", hi: "Hindi", ja: "Japanese" };
+
+type Args = Record<string, unknown>;
+export type ToolResult = { data: unknown; sessionIds: string[] };
+
+// Same rule as parentStats: sample sessions only count when no real session exists.
+function counted(views: readonly ParentView[]): ParentView[] {
+  const real = views.filter((v) => !v.isSample);
+  return real.length > 0 ? real : [...views];
+}
+
+function summary(v: ParentView) {
+  const { show, episode } = showFor(v.sceneId);
+  return {
+    sessionId: v.progress.sessionId,
+    show,
+    episode,
+    objective: v.progress.objective,
+    startedAt: v.startedAt,
+    questionsAnswered: v.progress.episode.turns,
+    latestStatus: v.progress.episode.finalStatus,
+    parentSummary: v.progress.episode.parentSummary,
+    stillWatching: v.progress.activeQuestion !== null,
+    isSample: v.isSample,
+  };
+}
+
+function tally(views: readonly ParentView[]) {
+  const turns = views.flatMap((v) => v.progress.interactions);
+  const n = (pred: (t: (typeof turns)[number]) => boolean) => turns.filter(pred).length;
+  return {
+    questions: turns.length,
+    correctBeforeHelp: n((t) => t.assessment.answerStatus === "correct" && !t.assessment.assistanceBeforeAnswer),
+    correctAfterHelp: n((t) => t.assessment.answerStatus === "correct" && t.assessment.assistanceBeforeAnswer),
+    incorrect: n((t) => t.assessment.answerStatus === "incorrect"),
+    unclearOrNotAssessed: n((t) => !["correct", "incorrect"].includes(t.assessment.answerStatus)),
+  };
+}
+
+const ids = (views: readonly ParentView[]) => views.map((v) => v.progress.sessionId);
+const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim().toLowerCase() : null);
+
+const queryFor = (query: string | null) => query?.replace(/\b(math|maths|arithmetic|counting)\b/g, "numbers").replace(/\b(addition|adding|add)\b/g, "add-small-numbers").replace(/\b(memory|recall)\b/g, "remembering");
+const PRACTICE: Record<string,string> = {
+  "count-to-5": "Put out three toys and touch each one as you count together. Then ask how many there are.",
+  "count-to-10": "Count six objects, touching each once. Ask the child to say the total before helping.",
+  "how-many": "Count a small group together, then ask how many there are without moving the objects.",
+  "add-small-numbers": "Put down two objects, add one more, and ask how many there are altogether.",
+  "name-shapes": "Find a circle and a triangle nearby and ask the child to name one.",
+  "recall-places": "Name two places from the story and ask which came first.",
+};
+
+export function runTool(name: string, args: Args, views: readonly ParentView[], now = new Date(), play: PlayStats = { topics: [], practice: [] }): ToolResult {
+  const pool = counted(views);
+  switch (name) {
+    case "list_sessions": {
+      const limit = typeof args.limit === "number" ? Math.min(Math.max(1, args.limit), 20) : 10;
+      const picked = pool.slice(0, limit);
+      return { data: picked.map(summary), sessionIds: ids(picked) };
+    }
+    case "get_session": {
+      const v = views.find((x) => x.progress.sessionId === args.sessionId);
+      if (!v) return { data: { error: "No session with that ID." }, sessionIds: [] };
+      return {
+        data: {
+          ...summary(v),
+          responsesWithAssistance: v.progress.episode.responsesWithAssistance,
+          turns: v.progress.interactions.map((t) => ({
+            question: t.questionText,
+            childSaid: t.transcript,
+            doraReplied: t.responseText,
+            status: t.assessment.answerStatus,
+            helpBeforeAnswer: t.assessment.assistanceBeforeAnswer,
+            evidence: t.assessment.evidence,
+            possibleMisconception: t.assessment.possibleMisconception,
+          })),
+        },
+        sessionIds: [v.progress.sessionId],
+      };
+    }
+    case "get_today": {
+      const day = now.toDateString();
+      const today = pool.filter((v) => new Date(v.startedAt).toDateString() === day);
+      return { data: { date: day, sessions: today.map(summary), totals: tally(today) }, sessionIds: ids(today) };
+    }
+    case "get_skill_progress": {
+      const q = str(args.skill);
+      if (play.mastery) {
+        const query = queryFor(q);
+        return { data: {
+          note: "Current levels and counts are since each skill's latest reset; session history is unchanged.",
+          categories: play.mastery.categories.filter(c => !query || `${c.id} ${c.name} ${c.skills.map(s => `${s.id} ${s.name}`).join(" ")}`.toLowerCase().includes(query)),
+          languages: play.mastery.languages.filter(l => !q || (LANGUAGE[l.language] ?? l.language).toLowerCase().includes(q)),
+        }, sessionIds: [] };
+      }
+      if (play.topics.length > 0 || play.practice.length > 0) {
+        // Real play: per-topic and per-language counts straight from play_turns (SQL group-bys).
+        const topics = play.topics
+          .filter((t) => !q || `${t.topic} ${t.subject}`.toLowerCase().includes(q))
+          .map(({ lastSeen, noAnswer, gave, ...r }) => ({ ...r, shownByDora: gave, noAnswerHeard: noAnswer, lastSeen: new Date(lastSeen).toISOString() }));
+        const practice = play.practice
+          .map((p) => ({ language: LANGUAGE[p.language] ?? p.language, words: p.words, tried: p.tried, saidIt: p.saidIt, lastSeen: new Date(p.lastSeen).toISOString() }))
+          .filter((p) => !q || `${p.language} language practice`.toLowerCase().includes(q));
+        return {
+          data: topics.length || practice.length
+            ? { topics, languagePractice: practice }
+            : { note: "Nothing on that yet.", topicsWithData: play.topics.map((t) => t.topic), languagesPractised: play.practice.map((p) => LANGUAGE[p.language] ?? p.language) },
+          sessionIds: [],
+        };
+      }
+      const groups = new Map<string, ParentView[]>();
+      for (const v of pool) {
+        if (q && !`${v.objectiveId} ${v.progress.objective}`.toLowerCase().includes(q)) continue;
+        groups.set(v.objectiveId, [...(groups.get(v.objectiveId) ?? []), v]);
+      }
+      const skills = [...groups.values()].map((vs) => ({
+        objective: vs[0]!.progress.objective,
+        sessions: vs.length,
+        lastSeen: vs[0]!.startedAt,
+        ...tally(vs),
+        tryAtHome: nextStepFor(vs[0]!.objectiveId),
+      }));
+      return { data: skills.length ? skills : { note: "No sessions on that skill yet." }, sessionIds: ids([...groups.values()].flat()) };
+    }
+    case "suggest_next_step": {
+      const query = queryFor(str(args.skill));
+      const candidates = (play.mastery?.categories ?? []).flatMap(category => {
+        const categoryMatches = !query || `${category.id} ${category.name}`.toLowerCase().includes(query);
+        return category.skills.filter(skill => categoryMatches || `${skill.id} ${skill.name}`.toLowerCase().includes(query ?? ""));
+      });
+      const practised = candidates.filter(skill => skill.asked > 0 && skill.level !== "got_it");
+      const picked = practised.sort((a,b) => a.firstTry/a.asked - b.firstTry/b.asked || (b.lastSeen ?? 0)-(a.lastSeen ?? 0))[0]
+        ?? candidates.find(skill => skill.level !== "got_it") ?? candidates[0];
+      if (!picked) return { data: { note: "No saved curriculum skill matches that request. Ask about Numbers, Shapes, Remembering, or a prepared language lesson." }, sessionIds: [] };
+      const lessonId = Object.entries(curriculum.lessons).find(([, skill]) => skill === picked.id)?.[0];
+      const authored: Record<string,{ question: string }> = lessons;
+      const question = lessonId ? authored[lessonId]?.question ?? ADDITION_LESSONS.find(l => l.id === lessonId)?.question : undefined;
+      return { data: { skillId: picked.id, skill: picked.name, evidence: { asked: picked.asked, independentCorrect: picked.firstTry, level: picked.level },
+        basis: picked.asked ? "Saved answers; this is a practice suggestion, not a diagnosis." : "A starter activity; there are no saved assessed answers for this skill.",
+        tryAtHome: PRACTICE[picked.id] ?? "Revisit this skill in the prepared Dora episode and let the child try before offering help.",
+        preparedQuestion: question ? { lessonId, question } : null }, sessionIds: [] };
+    }
+    case "get_misconceptions": {
+      const hits = pool.flatMap((v) =>
+        v.progress.interactions
+          .filter((t) => t.assessment.possibleMisconception)
+          .map((t) => ({ sessionId: v.progress.sessionId, objective: v.progress.objective, question: t.questionText, childSaid: t.transcript, note: t.assessment.possibleMisconception })),
+      );
+      return { data: hits.length ? hits : { note: "No possible misconceptions recorded." }, sessionIds: [...new Set(hits.map((h) => h.sessionId))] };
+    }
+    default:
+      return { data: { error: `Unknown tool ${name}.` }, sessionIds: [] };
+  }
+}
+
+const fn = (name: string, description: string, properties: Record<string, unknown> = {}) => ({
+  type: "function" as const,
+  name,
+  description,
+  strict: true,
+  parameters: { type: "object", properties, required: Object.keys(properties), additionalProperties: false },
+});
+
+export const chatTools = [
+  fn("list_sessions", "Recent watching sessions, newest first: show, objective, date, questions answered, latest status.", {
+    limit: { type: ["number", "null"], description: "Max sessions, default 10." },
+  }),
+  fn("get_session", "One session in full: each question, what the child said, Dora's reply, and the assessment.", {
+    sessionId: { type: "string" },
+  }),
+  fn("get_today", "Today's sessions, totals, and whether the child is watching right now (stillWatching)."),
+  fn("get_skill_progress", "Counts per topic (Numbers, Shapes, Words, Objects, Places...) across all sessions: first try, after help, shown by Dora. Also words practised in other languages (French, Spanish...) and whether the child said them. Use for progress, 'how is X going', language practice, and what to practice next.", {
+    skill: { type: ["string", "null"], description: "Topic, subject or language filter, e.g. 'numbers', 'math', 'french'. Null for all." },
+  }),
+  fn("suggest_next_step", "Choose one concrete next practice activity using saved skill evidence. Returns the actual counts, an authored activity and a prepared Dora question. Use for what to practise, how to help, and recommended next steps. No saved attempts means starter practice, never evidence of a weakness.", {
+    skill: { type: ["string", "null"], description: "Subject or skill, e.g. addition, counting, shapes. Null recommends from current saved progress." },
+  }),
+  fn("get_misconceptions", "Possible misconceptions the judge noted, with the question and what the child said."),
+];
+
+const level = (subject: string) => ({
+  type: ["string", "null"],
+  enum: ["less", "usual", "more", null],
+  description: `New ${subject} weight. Null keeps it as it is.`,
+});
+
+// The one write tool: changes how often each mastery category comes up in Play mode.
+export const setFocusTool = fn(
+  "set_focus",
+  "Change the learning focus (how much each category comes up while watching). Use whenever the parent asks for more, less, or the usual amount of something. Only pass categories the parent asked to change.",
+  Object.fromEntries(SUBJECTS.map((s) => [s.id, level(s.name)])),
+);
+
+export const resetSkillTool = fn("reset_skill", "Start a skill or category over from now, keeping saved history. Counting means the Numbers category. For the topic the child is on, set current=true. Choose exactly one target; other fields must be null.", {
+  skill: { type: ["string", "null"], enum: [...CATEGORIES.flatMap(c => c.skills.map(s => s.id)), null] },
+  category: { type: ["string", "null"], enum: [...CATEGORIES.map(c => c.id), null] },
+  current: { type: ["boolean", "null"], enum: [true, null] },
+});
+
+export const setLanguageTool = fn("set_language", "Change the actual learning language on the TV, effective at Dora's next line. Use this for 'switch to Spanish', never set_focus. Empty string means English only.", {
+  language: { type: "string", enum: [...PLAN_LANGUAGES] },
+});
+
+export const listLanguageLessonsTool = fn("list_language_lessons", "Read saved lesson levels for one language. Returns prepared lesson ids, native words, English meanings, levels (0 New, 1 Heard, 2 Said, 3 Remembered), active state and whether the parent set the level. Use before editing a lesson by its English meaning.", {
+  language: { type: "string", enum: ["es", "fr", "de", "zh", "hi", "ja"] },
+});
+export const changeLessonTool = fn("change_lesson", "Only on an explicit parent request: set a prepared lesson's level (including lowering it), remove it from practice, restore it, or discard the parent's override and use recorded progress. Earlier viewing evidence is preserved. Read list_language_lessons to resolve the lesson id. level must be null except for set_level.", {
+  language: { type: "string", enum: ["es", "fr", "de", "zh", "hi", "ja"] },
+  lessonId: { type: "string" },
+  action: { type: "string", enum: ["set_level", "remove", "restore", "use_recorded"] },
+  level: { type: ["integer", "null"], enum: [0, 1, 2, 3, null] },
+});

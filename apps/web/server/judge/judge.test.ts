@@ -21,6 +21,16 @@ test("the tool name becomes the event and its arguments the line", async () => {
   assert.equal(f.sent().tool_choice, "required");
 });
 
+test("Luna is told the learning language, or that there is none", async () => {
+  const f = fake([{ type: "function_call", name: "correct", arguments: '{"say":"Très bien!","skill":"objects"}' }]);
+  await judgeTurn(f.client, "m", JudgeRequestSchema.parse({ ...req, language: { code: "fr", name: "French" } }));
+  const input = f.sent().input as Array<{ content: string }>;
+  assert.equal(JSON.parse(input[1]!.content).learningLanguage, "French");
+  const g = fake([{ type: "function_call", name: "correct", arguments: '{"say":"Great job!","skill":"objects"}' }]);
+  await judgeTurn(g.client, "m", req);
+  assert.equal(JSON.parse((g.sent().input as Array<{ content: string }>)[1]!.content).learningLanguage, null);
+});
+
 test("no tool call, an unknown tool, or bad arguments are rejected", async () => {
   await assert.rejects(judgeTurn(fake([{ type: "message" }]).client, "m", req));
   await assert.rejects(judgeTurn(fake([{ type: "function_call", name: "skip", arguments: '{"say":"x","skill":"words"}' }]).client, "m", req));
@@ -29,9 +39,16 @@ test("no tool call, an unknown tool, or bad arguments are rejected", async () =>
 
 test("a pronunciation verdict forces the tool, so Luna only writes the line", async () => {
   const pron = JudgeRequestSchema.parse({ ...req, said: "aliba", pronunciation: { verdict: "close", expected: "r" } });
-  const f = fake([{ type: "function_call", name: "correct", arguments: '{"say":"¡Sí! Now roll it: arrrriba!","skill":"spanish"}' }]);
-  assert.equal((await judgeTurn(f.client, "m", pron)).event, "correct");
-  assert.deepEqual(f.sent().tool_choice, { type: "function", name: "correct" });
+  const f = fake([{ type: "function_call", name: "wrong", arguments: '{"say":"Good try! Listen: arriba! Try it once more!","skill":"spanish"}' }]);
+  assert.equal((await judgeTurn(f.client, "m", pron)).event, "wrong");
+  assert.deepEqual(f.sent().tool_choice, { type: "function", name: "wrong" });
   const retry = JudgeRequestSchema.parse({ ...req, pronunciation: { verdict: "retry", expected: null } });
   await assert.rejects(judgeTurn(fake([{ type: "function_call", name: "correct", arguments: '{"say":"x","skill":"words"}' }]).client, "m", retry));
+});
+
+test("remember questions use naming strictness while other questions stay generous", async () => {
+  const f = fake([{ type: "function_call", name: "wrong", arguments: '{"say":"Can you remember its name?","skill":"places"}' }]);
+  await judgeTurn(f.client, "m", JudgeRequestSchema.parse({ ...req, strictness: "recall", said: "that place" }));
+  assert.match(JSON.stringify(f.sent().input), /require the expected name/);
+  assert.equal(req.strictness, "gentle");
 });

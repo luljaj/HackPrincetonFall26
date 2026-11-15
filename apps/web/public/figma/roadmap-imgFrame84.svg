@@ -1,0 +1,45 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="159" height="191.321" viewBox="0 0 159 191.321" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<foreignObject x="0" y="0" width="159" height="191.321" overflow="visible" data-figma-3d="true">
+<div xmlns="http://www.w3.org/1999/xhtml" style="position:relative;width:159px;height:191.3208px">
+<div style="position:absolute;left:0;top:0;margin:0;width:159px;height:191.3208px;transform-origin:0 0;transform:matrix(1, 0, 0, 1, 0, 0);transform-style:preserve-3d">
+<svg xmlns="http://www.w3.org/2000/svg" width="159" height="191.321" overflow="visible" style="position:absolute;left:0;top:0;overflow:visible">
+<g id="Frame 84">
+</g>
+</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="159" height="191.321" overflow="visible" style="position:absolute;left:0;top:0;overflow:visible">
+<g id="Polygon 1">
+<use xlink:href="#stroke0_0_60" fill="url(#paint0_linear_0_60)"/>
+<mask id="stroke1_0_60" fill="white">
+<use xlink:href="#stroke0_0_60"/>
+</mask>
+<path d="M10.651 48.4103V110.59C10.651 115.949 13.51 120.901 18.151 123.58L72 154.67C76.641 157.349 82.359 157.349 87 154.67L140.849 123.58C145.49 120.901 148.349 115.949 148.349 110.59V48.4103C148.349 43.0513 145.49 38.0994 140.849 35.4199L87 4.33013C82.359 1.65063 76.641 1.65064 72 4.33013L18.151 35.4199C13.51 38.0994 10.651 43.0513 10.651 48.4103Z" stroke-width="2" stroke="url(#paint1_linear_0_60)" mask="url(#stroke1_0_60)"/>
+</g>
+<path id="Rectangle 24" d="M18.5653 122.945C12.6227 119.973 12.6834 111.471 18.6677 108.584L76.1844 80.8373C78.3806 79.7778 80.9402 79.7778 83.1364 80.8373L140.653 108.584C146.637 111.471 146.698 119.973 140.756 122.945L83.2388 151.71C80.9862 152.837 78.3346 152.837 76.082 151.71L18.5653 122.945Z" fill="#FFDE36"/>
+</svg>
+<div style="position:absolute;left:0;top:0;margin:0;width:63px;height:63px;transform-origin:0 0;transform:matrix(1, 0, 0, 1, 44, 56) translate(50%, 50%) translateZ(903px) rotateX(-19deg) rotateY(-42.9908deg) translate(-50%, -50%)">
+<svg xmlns="http://www.w3.org/2000/svg" width="63" height="63" overflow="visible" style="position:absolute;left:0;top:0;overflow:visible">
+<g id="math 1">
+<path id="Vector" d="M31.5 2.25C53.46 2.25 60.75 9.54 60.75 31.5C60.75 53.46 53.46 60.75 31.5 60.75C9.54 60.75 2.25 53.46 2.25 31.5C2.25 9.54 9.54 2.25 31.5 2.25Z" fill="url(#paint2_linear_0_60)"/>
+<path id="Vector_2" d="M14.4 20.25H20.25M20.25 20.25H26.1M20.25 20.25V14.4M20.25 20.25V26.1M36.9 20.25H48.6M16.2 38.7L20.25 42.75M20.25 42.75L24.3 46.8M20.25 42.75L24.3 38.7M20.25 42.75L16.2 46.8M36.9 39.6H48.6M36.9 45.9H48.6" stroke-width="1.88571" stroke-linecap="round" stroke-linejoin="round" stroke="#262626"/>
+</g>
+</svg>
+</div>
+</div>
+</div>
+</foreignObject>
+<defs>
+<linearGradient id="paint0_linear_0_60" x1="79.5" y1="0" x2="79.5" y2="118.5" gradientUnits="userSpaceOnUse">
+<stop stop-color="#E6E8F0" stop-opacity="0"/>
+<stop offset="1" stop-color="#FFDE36"/>
+</linearGradient>
+<linearGradient id="paint1_linear_0_60" x1="96.5" y1="40.5" x2="79.5" y2="159" gradientUnits="userSpaceOnUse">
+<stop stop-color="white"/>
+<stop offset="1" stop-color="#E6E8F0"/>
+</linearGradient>
+<linearGradient id="paint2_linear_0_60" x1="48.5" y1="14" x2="7" y2="-5" gradientUnits="userSpaceOnUse">
+<stop stop-color="white"/>
+<stop offset="1" stop-color="#FFF1AD"/>
+</linearGradient>
+<path id="stroke0_0_60" d="M72 4.33013C76.641 1.65064 82.359 1.65063 87 4.33013L140.849 35.4199C145.49 38.0994 148.349 43.0513 148.349 48.4103V110.59C148.349 115.949 145.49 120.901 140.849 123.58L87 154.67C82.359 157.349 76.641 157.349 72 154.67L18.151 123.58C13.51 120.901 10.651 115.949 10.651 110.59V48.4103C10.651 43.0513 13.51 38.0994 18.151 35.4199L72 4.33013Z"/>
+</defs>
+</svg>

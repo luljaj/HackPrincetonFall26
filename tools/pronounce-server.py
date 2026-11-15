@@ -124,8 +124,10 @@ def main():
         language = max(req['languages'], key=lambda code: float(first[base.to_language_token(code)]))
         # The short window is fine for scoring a known word but loops on free decoding, so use the library's
         # full 30 s transcribe (KV cache, repetition fallbacks) on the already-loaded model.
+        # The 0.4 retry stays for repetition loops (compression ratio), but a merely unsure decode isn't redone
+        # (logprob_threshold=None): a mumbled kid answer used to cost a second full pass, ~3.4 s instead of ~0.8 s.
         out = mlx_transcribe(wav, path_or_hf_repo=args.whisper, language=language, initial_prompt=req['hint'] or None,
-                             condition_on_previous_text=False, temperature=(0.0, 0.4), verbose=None)
+                             condition_on_previous_text=False, temperature=(0.0, 0.4), logprob_threshold=None, verbose=None)
         if is_silent(peak, heard_future.result()): return silent()
         return {'text': out['text'].strip(), 'language': language, 'silent': False, 'ms': round((time.perf_counter() - started) * 1000)}
 

@@ -1,26 +1,26 @@
 import { z } from "zod";
 
-// Parent learning focus: per subject, less / usual / more. Changeable at any time from /parent.
-// Saved today; the kid side (Play mode) can read it from GET /api/parent/preferences to pick
-// more moments in a subject. Nothing in the pipeline depends on it.
+import { CATEGORIES } from "../play/mastery";
 
-export const SUBJECTS = [
-  { id: "math", name: "Math", color: "#2f9e5b" },
-  { id: "english", name: "English", color: "#7b61ff" },
-  { id: "science", name: "Science", color: "#e08a00" },
-] as const;
+// Parent learning focus: less / usual / more per mastery category (app/lab/mastery.json). Changeable at any
+// time from /parent; saved in Postgres and mirrored to the live learning plan (lib/live/plan.ts).
 
-export type SubjectId = (typeof SUBJECTS)[number]["id"];
+const COLORS = ["#2f9e5b", "#e08a00", "#7b61ff", "#d6336c", "#1c7ed6", "#0ca678", "#f76707", "#ae3ec9"];
+export const SUBJECTS = CATEGORIES.map((c, i) => ({ id: c.id, name: c.name, color: COLORS[i % COLORS.length]! }));
+
+export type SubjectId = string;
 export const FOCUS_LEVELS = ["less", "usual", "more"] as const;
+export const PLAN_LANGUAGES = ["", "es", "fr", "de", "zh", "hi", "ja"] as const;
 export type FocusLevel = (typeof FOCUS_LEVELS)[number];
 
 export const FOCUS_LABEL: Record<FocusLevel, string> = { less: "Less", usual: "Usual", more: "More" };
 
 const Level = z.enum(FOCUS_LEVELS);
-export const FocusSchema = z.strictObject({ math: Level, english: Level, science: Level });
-export type Focus = z.infer<typeof FocusSchema>;
+const ids = SUBJECTS.map((x) => x.id) as [string, ...string[]];
+export const FocusSchema = z.record(z.enum(ids), Level); // every category, nothing else
+export type Focus = Record<SubjectId, FocusLevel>;
 
-export const DEFAULT_FOCUS: Focus = { math: "usual", english: "usual", science: "usual" };
+export const DEFAULT_FOCUS: Focus = Object.fromEntries(ids.map((id) => [id, "usual"]));
 
 export type ParentPreferences = { focus: Focus; updatedAt: string | null };
 
@@ -35,3 +35,7 @@ export function focusSummary(focus: Focus): string {
   const text = parts.join(", ");
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}.`;
 }
+
+/** Fired on window when the focus changes, so the companion and the Learning focus card stay in step. */
+export const FOCUS_EVENT = "parent-focus-changed";
+export type FocusEventDetail = { focus: Focus; from: "companion" | "card" };

@@ -21,8 +21,18 @@ export const liveEvent = {
   turnNumber: v.optional(v.number()),
 };
 
+const level = v.union(v.literal("less"), v.literal("usual"), v.literal("more"));
+export const planFields = {
+  lesson: v.optional(v.object({ id: v.string(), language: v.string(), requestedAt: v.number() })),
+  language: v.optional(v.string()), // language being practised: "" = off, else es | fr | de | zh | hi | ja
+  focus: v.optional(v.record(v.string(), level)), // mastery category id → level
+};
+
 export default defineSchema({
   live: defineTable({ ...liveEvent, at: v.number() })
     .index("by_session", ["sessionId", "at"])
     .index("by_time", ["at"]),
+  // The learning plan: what the parent wants right now. The kid view subscribes and applies a change
+  // mid-run (language switches at the next line). One row per learner; only the server writes it.
+  plan: defineTable({ learnerKey: v.string(), ...planFields, updatedAt: v.number() }).index("by_learner", ["learnerKey"]),
 });

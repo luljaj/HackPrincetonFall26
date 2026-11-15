@@ -1,4 +1,5 @@
 import "server-only";
+import { createMemoryLanguageLessonStore, createPostgresLanguageLessonStore, type LanguageLessonStore } from "./language-lessons";
 import type { ProgressReader } from "../../lib/contracts";
 import type { PipelineStore } from "./contract";
 import { createDemoAdmin, type DemoAdmin } from "./admin";
@@ -9,6 +10,8 @@ import {
   type PreferencesStore,
 } from "./preferences";
 import { MemoryPipelineStore } from "./memory";
+import { createMemoryPlayStore, createPostgresPlayStore, type PlayStore } from "./play";
+export { TRANSCRIPT_DAYS } from "./play";
 import { createPostgresStore } from "./postgres";
 
 export * from "./contract";
@@ -42,4 +45,20 @@ const prefsShared = globalThis as typeof globalThis & { [prefsKey]?: Preferences
 export function getPreferencesStore(): PreferencesStore {
   if (process.env.PIPELINE_STORE === "postgres") return createPreferencesStore(getDb());
   return (prefsShared[prefsKey] ??= createMemoryPreferencesStore());
+}
+
+const playKey = Symbol.for("hackprinceton.play.memory.v1");
+const playShared = globalThis as typeof globalThis & { [playKey]?: PlayStore };
+
+/** Play-mode session trace: Postgres when configured, otherwise in memory. */
+export function getPlayStore(): PlayStore {
+  if (process.env.PIPELINE_STORE === "postgres") return createPostgresPlayStore(getDb());
+  return (playShared[playKey] ??= createMemoryPlayStore());
+}
+
+const languageKey = Symbol.for("hackprinceton.language-lessons.memory.v1");
+const languageShared = globalThis as typeof globalThis & { [languageKey]?: LanguageLessonStore };
+export function getLanguageLessonStore(): LanguageLessonStore {
+  if (process.env.PIPELINE_STORE === "postgres") return createPostgresLanguageLessonStore(getDb());
+  return languageShared[languageKey] ??= createMemoryLanguageLessonStore(async () => (await getPlayStore().list(10000)).flatMap(r => r.turns.map(t => ({ ...t, sessionId: r.session.sessionId }))));
 }
