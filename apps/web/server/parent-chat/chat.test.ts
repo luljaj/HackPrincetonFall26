@@ -38,6 +38,14 @@ describe("parent chat tools", () => {
     expect(sessionIds).toEqual([id]);
   });
 
+  it("finds addition and math by the parent's words and gives an actionable next lesson", async () => {
+    const { store } = await learningFixture();
+    const play = { topics: [], practice: [], mastery: await store.mastery() };
+    expect(runTool("get_skill_progress", { skill: "addition" }, [], new Date(), play).data).toMatchObject({ categories: [{ id: "numbers" }] });
+    expect(runTool("get_skill_progress", { skill: "math" }, [], new Date(), play).data).toMatchObject({ categories: [{ id: "numbers" }] });
+    expect(runTool("suggest_next_step", { skill: "addition" }, [], new Date(), play).data).toMatchObject({ skillId: "add-small-numbers", evidence: { asked: 0 }, preparedQuestion: { lessonId: "demo-addition-1" } });
+  });
+
   it("filters skills and says when there is no data", () => {
     expect(runTool("get_skill_progress", { skill: "spanish verbs" }, [sampleView]).data).toEqual({ note: "No sessions on that skill yet." });
   });
@@ -193,7 +201,8 @@ describe("runChat", () => {
     const result = await runChat(client, "m", [{ role: "user", content: "more addition" }], [sampleView], "Sam", new Date(), undefined, focus as never);
     expect(saved).toEqual([{ ...current, numbers: "more" }]);
     expect(result.focusChange).toEqual({ before: current, after: { ...current, numbers: "more" } });
-    expect(result.visual).toMatchObject({ headline: "More Math from now on", kind: "none" });
-    expect(result.reply).toBe("Done, more Math.");
+    expect(result.visual).toMatchObject({ headline: "Learning updated", kind: "none" });
+    expect(result.reply).toContain("Numbers: more");
+    expect(result.reply).toContain("after the current question");
   });
 });

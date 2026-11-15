@@ -124,7 +124,11 @@ Use list_language_lessons to read per-lesson levels; change_lesson allows explic
 set_language changes the TV's learning language; set_focus only changes how often categories appear. The show's Spanish category is not a language setting. Never claim a switch or reset succeeded unless its tool says saved=true. reset_skill keeps history but starts the chosen skill/category at Not yet; current=true resolves the skill of the newest saved pause and the reply must name it. After resetting, get_skill_progress uses current reset-aware mastery; session details remain historical. If a write tool isn't available, say that action is unavailable.
 Wording rules: never say "mastered", "score", a percentage, or that the show caused learning. Say "answered correctly before help", "answered correctly after help", "assessed as incorrect", or "unclear". Plain counts are fine. Say so when there is only a little data. If sessions are marked isSample, mention it's sample data.
 ${steer}
-Keep answers short and warm. Plain text only, no markdown (no ** or #).
+Make the answer useful immediately: lead with the answer or saved change, give one specific piece of evidence, then ONE concrete next action when useful. Do not dump every subject or repeat widget rows in prose.
+For "how is he doing?", use get_skill_progress, and read a relevant session when describing an answer. For "what should we practise?" or "how can I help?", call suggest_next_step and give its concrete activity. With no data, say "not assessed yet" and suggest starter practice; never call that a struggle. For Hindi/Spanish progress, also read list_language_lessons so parent-set levels are distinguished from observed pronunciation.
+If a parent explicitly asks for an available change, do it and explain when Dora will apply it. Do not ask whether to do the thing they just requested. If the request could refer to several different lessons, ask one short question naming the choices rather than editing all of them.
+An empty transcript means speech wasn't saved. It does not prove the child was silent. A wrong answer alone does not prove why they were wrong. Refer to Mastery as the app's saved skill label only, not a broad claim about the child's ability.
+Keep answers to 2 or 3 short sentences, usually under 70 words. Plain text only, no markdown (no ** or #).
 Your answer is drawn as a small visual, not printed: give a headline, a 1 to 3 sentence reply, and lay the facts out as items. Tone: good = answered correctly before help, help = correct after help, miss = assessed as incorrect, neutral = everything else. Items repeat no sentence from the reply.`;
 }
 
@@ -149,6 +153,7 @@ export async function runChat(
   const masteryReset: MasteryChange[] = [];
   let languageChange: string | undefined;
   const receipts: string[] = [];
+  const lessonItems: ChatVisual["items"] = [];
   const failures: string[] = [];
   for (let round = 0; round <= MAX_ROUNDS; round++) {
     const result: { output?: OutputItem[] } = direct ? { output: round === 0
@@ -177,6 +182,7 @@ export async function runChat(
       const extra = { ...(lessonChanged ? { lessonChanged: true } : {}), ...(focusChange ? { focusChange } : {}), ...(masteryReset.length ? { masteryReset } : {}), ...(languageChange !== undefined ? { languageChange } : {}) };
       if (receipts.length || failures.length) {
         const items: ChatVisual["items"] = [
+          ...lessonItems.slice(-6),
           ...masteryReset.map(r => ({ label: r.target, value: "Not yet", detail: "Earlier answers remain in history.", tone: "neutral" as const })),
           ...(languageChange !== undefined ? [{ label: "Learning language", value: LANGUAGE_NAMES[languageChange] ?? languageChange, detail: "Updates live; practice follows the current question.", tone: "neutral" as const }] : []),
         ];
@@ -205,6 +211,7 @@ export async function runChat(
             const lesson = (await learning.lessons.list(change.language)).find(row => row.lessonId === change.lessonId);
             if (!lesson) throw new Error("Unknown lesson");
             lessonChanged = true;
+            lessonItems.push({ label: `${LANGUAGE_NAMES[change.language]} · ${lesson.english}`, value: lesson.active ? `${lesson.level} · ${LESSON_LEVELS[lesson.level]}` : "Removed", detail: change.action === "remove" ? "Hidden from practice; its level and earlier evidence are saved." : lesson.source === "parent" ? "Parent-set level; earlier evidence is unchanged." : "Uses saved practice evidence.", tone: "neutral" });
             receipts.push(change.action === "remove" ? `${lesson.word} was removed from practice; its progress is saved`
               : change.action === "restore" ? `${lesson.word} is back in practice at level ${lesson.level}`
               : change.action === "use_recorded" ? `${lesson.word} now uses recorded progress`
@@ -259,6 +266,9 @@ export async function runChat(
         try {
           const saved = await focus.set(next);
           focusChange = { before, after: saved.focus };
+          const changed = SUBJECTS.filter(subject => before[subject.id] !== saved.focus[subject.id]);
+          receipts.push(changed.length ? `${changed.map(subject => `${subject.name}: ${saved.focus[subject.id]}`).join(", ")}; Dora applies the new focus after the current question`
+            : "The requested focus is already set; Dora will continue using it");
           data = { saved: true, focus: saved.focus };
         } catch {
           const error = "Couldn't apply the focus to the TV; please try again";
