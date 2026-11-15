@@ -5,5 +5,8 @@ export const ADDITION_LESSONS = [
   { id: "demo-addition-3", line: "addition3", question: "Let's add! Three stars and two more stars. How many stars is that?", answer: "five", accept: ["five", "5", "five stars"] },
 ] as const;
 
-export const additionLesson = (index: number) => ADDITION_LESSONS[index % ADDITION_LESSONS.length] ?? ADDITION_LESSONS[0];
+export const additionLesson = (index: number, context: "stars" | "keys" = "stars") => {
+  const lesson = ADDITION_LESSONS[index % ADDITION_LESSONS.length] ?? ADDITION_LESSONS[0];
+  return context === "keys" ? { ...lesson, line: `demoKeysAddition${index % ADDITION_LESSONS.length + 1}`, question: lesson.question.replaceAll("stars", "keys").replaceAll("star", "key"), accept: [...lesson.accept, lesson.answer + " keys"] } : lesson;
+};
 export const wantsAddition = (before: string | undefined, after: string | undefined) => before !== "more" && after === "more";

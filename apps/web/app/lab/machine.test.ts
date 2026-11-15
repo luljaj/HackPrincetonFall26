@@ -1,7 +1,7 @@
 // Run: node --test apps/web/app/lab/machine.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { INITIAL, next, type Ctx, type Event } from "./machine.ts";
+import { INITIAL, next, type Ctx, type Event, type Stage } from "./machine.ts";
 
 const run = (events: Event[], c: Ctx = INITIAL) => events.reduce(next, c);
 const ask: Event[] = ["PAUSE_POINT", "TRANSITION_DONE", "LINE_DONE"]; // -> listening
@@ -78,4 +78,17 @@ test("a parent-requested language lesson enters practice directly, then resumes 
   assert.equal(listening.stage, "listening");
   assert.equal(listening.practiced, true);
   assert.equal(run(["SPEECH_END", "CORRECT", "LINE_DONE", "TRANSITION_DONE"], listening).stage, "watching");
+});
+
+test("pause freezes the episode and teaching ladder; resuming never awards an answer or leaves thinking stuck", () => {
+  const phases: Stage[] = ["watching","entering","asking","listening","thinking","teaching","practicing","celebrating","exiting"];
+  for (const stage of phases) {
+    const original = { ...INITIAL, stage, tries: 1, nudges: 1, practiced: true };
+    const paused = next(original,"PAUSE");
+    assert.equal(paused.stage,"paused");
+    for (const event of ["LINE_DONE","CORRECT","SILENCE","PAUSE_POINT","PAUSE"] satisfies Event[]) assert.equal(next(paused,event),paused);
+    const resumed = next(paused,"RESUME");
+    assert.equal(resumed.stage,stage === "thinking" ? "listening" : stage);
+    assert.deepEqual([resumed.tries,resumed.nudges,resumed.practiced],[1,1,true]);
+  }
 });

@@ -5,6 +5,7 @@ import { EVENTS, INITIAL, MAX_NUDGES, MAX_TRIES, STAGES, next, type Ctx, type Ev
 // Hand layout (viewBox 680 x 470). Assistant mode on the right, episode on the left.
 const POS: Record<Stage, [number, number]> = {
   watching: [70, 40],
+  paused: [610, 40],
   entering: [70, 130],
   asking: [70, 220],
   welcome: [70, 310],
@@ -41,6 +42,7 @@ const EDGES: Edge[] = (() => {
   for (const from of Object.keys(STAGES) as Stage[])
     for (const p of probes)
       for (const event of EVENTS) {
+        if (event === "PAUSE" && from !== "watching" && from !== "listening") continue;
         if (event === "AWAY" && from !== "listening" && from !== "watching") continue;
         const to = next({ ...p, stage: from }, event).stage;
         if (to !== from) seen.set(`${from}>${to}>${event}`, { from, to, event });

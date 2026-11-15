@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CHANNELS } from "./channels";
 import { DoraPlayer } from "./lab/player";
+import { nextDemoExercise, type DemoExercise, type ExerciseRequest } from "./lab/demo-edit";
 import { type RequestedLesson, subscribeToPlan } from "../lib/parent/subscribe";
 import s from "./play.module.css";
 
@@ -26,7 +27,14 @@ const channelOsd = (i: number) =>
   `CH ${String(i + 1).padStart(2, "0")}  ${CHANNELS[i]!.name.toUpperCase()}`;
 
 export default function Play() {
+  const [seenExercises, setSeenExercises] = useState<DemoExercise[]>([]);
+  const nextExercise = nextDemoExercise(seenExercises);
+  const [exerciseRequest, setExerciseRequest] = useState<ExerciseRequest>();
+  const [demo, setDemo] = useState(false);
+  useEffect(() => { setDemo(new URLSearchParams(location.search).get("demo") === "treasure"); }, []);
   const [on, setOn] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [remoteCollapsed, setRemoteCollapsed] = useState(false);
   const [ch, setCh] = useState(0);
   const [tuning, setTuning] = useState(false);
   const [osd, setOsd] = useState<string | null>(null); // on-screen display text (channel or language)
@@ -91,6 +99,7 @@ export default function Play() {
 
   function tune(next: number) {
     if (!on) return;
+    setPaused(false);
     setCh((next + CHANNELS.length) % CHANNELS.length);
     setTuning(true);
     setOsd(channelOsd((next + CHANNELS.length) % CHANNELS.length));
@@ -98,6 +107,8 @@ export default function Play() {
   }
 
   function power() {
+    setPaused(false);
+    if (on) { setExerciseRequest(undefined); setSeenExercises([]); }
     setOn(!on);
     setOsd(on ? null : channelOsd(ch));
   }
@@ -105,6 +116,12 @@ export default function Play() {
   function pickLanguage(code: string) {
     setLearn(code);
     if (on) setLearningNotice({ code, status: "queued" });
+  }
+
+  function advanceExercise() {
+    setPaused(false);
+    if (nextExercise === "translation" && !learn) pickLanguage("hi");
+    setExerciseRequest(previous => ({ exercise: nextExercise, sequence: (previous?.sequence ?? 0) + 1 }));
   }
 
   // The parent's learning plan (learning-plan.md): a language change lands mid-episode, at Dora's next line.
@@ -166,7 +183,7 @@ export default function Play() {
   });
 
   return (
-    <main className={s.room} data-learning-language={learn}>
+    <main className={s.room} data-learning-language={learn} data-episode-edit={demo ? "treasure" : "full"} data-remote-collapsed={remoteCollapsed}>
       <div className={s.tv}>
         <div className={s.cabinet}>
           <div
@@ -178,6 +195,10 @@ export default function Play() {
               <div className={s.player}>
                 <DoraPlayer
                   kid
+                  demo={demo}
+                  paused={paused}
+                  exerciseRequest={exerciseRequest}
+                  onDemoExercise={exercise => setSeenExercises(seen => seen.includes(exercise) ? seen : [...seen, exercise])}
                   learn={learn}
                   onLearnChange={setLearn}
                   controlsTarget={playerControls}
@@ -188,6 +209,8 @@ export default function Play() {
                 />
               </div>
             )}
+            {on && channel.id === "dora" && <button className={s.playPause} aria-label={paused ? "Play" : "Pause"} title={paused ? "Play" : "Pause"} onClick={() => setPaused(value => !value)}>{paused ? "▶" : "Ⅱ"}</button>}
+            {remoteCollapsed && demo && on && channel.id === "dora" && <button className={s.screenNext} onClick={advanceExercise}>{nextExercise === "story" ? "Continue story" : "Next exercise"} →</button>}
             {on && learningNotice && <div className={s.learningNotice} role="status" aria-live="polite" data-language={learningNotice.code}>
               <span aria-hidden="true">{LANGUAGES.find(l => l.code === learningNotice.code)?.flag}</span>
               <div><b>{learningNotice.status === "queued" ? `${LANGUAGES.find(l => l.code === learningNotice.code)?.name} is next` : `Let's learn ${LANGUAGES.find(l => l.code === learningNotice.code)?.name}!`}</b>
@@ -254,8 +277,9 @@ export default function Play() {
         </div>
       </div>
 
-      <aside className={s.sidebar} aria-label="TV controls">
-        <p className={s.brand}>tellavision</p>
+      {remoteCollapsed && <button className={s.restoreRemote} onClick={() => setRemoteCollapsed(false)}>Show remote</button>}
+      <aside className={s.sidebar} aria-label="TV controls" aria-hidden={remoteCollapsed} inert={remoteCollapsed}>
+        <div className={s.remoteHeader}><p className={s.brand}>tellavision</p><button aria-label="Hide remote" title="Hide remote" onClick={() => setRemoteCollapsed(true)}>›</button></div>
         <button className={s.power} onClick={power} aria-pressed={on}>
           <span aria-hidden>⏻</span> Turn TV {on ? "off" : "on"}
         </button>
@@ -307,6 +331,11 @@ export default function Play() {
             </button>
           ))}
         </nav>
+        {demo && <div className={s.demoExercises}>
+          <button disabled={!on || channel.id !== "dora"} onClick={advanceExercise}>{nextExercise === "story" ? "Continue story" : "Next exercise"}
+            {nextExercise !== "story" && <small>{({ count: "Count keys", addition: "Add keys", translation: "Translate three" })[nextExercise]} →</small>}
+          </button>
+        </div>}
         <div className={s.playbackControls}>
           <button
             className={s.cc}

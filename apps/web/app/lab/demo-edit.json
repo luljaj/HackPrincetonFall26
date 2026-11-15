@@ -1,0 +1,40 @@
+{
+  "id": "treasure",
+  "title": "Dora and the lost jewel",
+  "clips": [
+    {
+      "label": "Mommy needs help finding a lost jewel",
+      "in": 127.02,
+      "out": 146.3
+    },
+    {
+      "label": "The pyramid is locked and needs six keys",
+      "in": 1053.12,
+      "out": 1071.6
+    },
+    {
+      "label": "Dora and Boots dig up the keys and count them",
+      "in": 1117.6,
+      "out": 1152.0
+    },
+    {
+      "label": "The pyramid opens and reveals the treasure",
+      "in": 1167.0,
+      "out": 1175.5
+    },
+    {
+      "label": "Find the red diamond-shaped jewel",
+      "in": 1191.42,
+      "out": 1210.6
+    },
+    {
+      "label": "Mommy thanks the team and they celebrate",
+      "in": 1304.3,
+      "out": 1315.5
+    }
+  ],
+  "pauseIds": [
+    "ep3-55"
+  ],
+  "additionAfter": 1138.58
+}
