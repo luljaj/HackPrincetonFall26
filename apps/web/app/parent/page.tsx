@@ -8,7 +8,6 @@ import { showFor } from "../../lib/parent/shows";
 import { getPlayStore, getPreferencesStore } from "../../server/storage";
 import { topicRows } from "../../server/storage/play";
 import { AutoRefresh } from "./_components/auto-refresh";
-import { ChatPanel } from "./_components/chat-panel";
 import { Chip } from "./_components/chip";
 import { FocusControls } from "./_components/focus-controls";
 import { STAT_TILES } from "./_components/stat-icons";
@@ -131,10 +130,6 @@ export default async function ParentHome() {
           })}
         </ul>
       </section>
-
-      <div className="mx-auto w-full max-w-[780px]">
-        <ChatPanel child={name} />
-      </div>
 
       <FocusControls initial={prefs} />
 

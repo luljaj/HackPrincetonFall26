@@ -4,6 +4,7 @@ import { showFor } from "../../../lib/parent/shows";
 import { summarize } from "../../../lib/play/view";
 import { getPlayStore, TRANSCRIPT_DAYS } from "../../../server/storage";
 import { DeleteTrace } from "./delete-trace";
+import { DemoModeToggle } from "./demo-mode-toggle";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,8 @@ export default async function SettingsPage() {
           {name} said is kept for {TRANSCRIPT_DAYS} days, then removed. You can delete any trace here.
         </p>
       </header>
+
+      <DemoModeToggle child={name} />
 
       <section className="space-y-4 rounded-[32px] bg-[#f9f9fb] p-6" aria-labelledby="traces-title">
         <div className="flex flex-wrap items-center justify-between gap-3">

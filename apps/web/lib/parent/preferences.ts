@@ -35,3 +35,7 @@ export function focusSummary(focus: Focus): string {
   const text = parts.join(", ");
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}.`;
 }
+
+/** Fired on window when the focus changes, so the companion and the Learning focus card stay in step. */
+export const FOCUS_EVENT = "parent-focus-changed";
+export type FocusEventDetail = { focus: Focus; from: "companion" | "card" };
