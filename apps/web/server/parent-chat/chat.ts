@@ -1,4 +1,5 @@
 // Parent chat loop: model → read tools → model, at most MAX_ROUNDS tool rounds (ai-chat-plan.md §3).
+import { lunaServiceTier } from "../pipeline/config";
 import { z } from "zod";
 import type { ParentView } from "../../lib/parent/types";
 import type { PlayStats } from "./tools";
@@ -160,6 +161,7 @@ export async function runChat(
       ? [{ type: "function_call", name: direct.name, arguments: direct.arguments, call_id: "demo-action" }]
       : [{ type: "message", content: [{ type: "output_text", text: "Done." }] }] } : await client.responses.create({
       model,
+      service_tier: lunaServiceTier(),
       store: false,
       include: ["reasoning.encrypted_content"], // store:false needs reasoning items passed back between rounds
       max_output_tokens: 1200,

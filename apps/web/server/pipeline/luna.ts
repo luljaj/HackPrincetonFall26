@@ -1,3 +1,4 @@
+import { lunaServiceTier } from "./config";
 import { zodTextFormat } from "openai/helpers/zod";
 import type { ResponseCreateParamsNonStreaming } from "openai/resources/responses/responses";
 import { ZodError } from "zod";
@@ -31,7 +32,7 @@ export function createLunaAdapter(client: LunaClient, model: string): LunaAdapte
     let result: Awaited<ReturnType<LunaClient["responses"]["parse"]>>;
     try {
       result = await client.responses.parse({
-        model, reasoning: { effort: "low" }, max_output_tokens: 1200,
+        model, service_tier: lunaServiceTier(), reasoning: { effort: "low" }, max_output_tokens: 1200,
         store: false,
         input: [{ role: "system", content: lunaInstructions }, { role: "user", content: JSON.stringify(context) }],
         text: { format: zodTextFormat(LunaDraftSchema, "teaching_draft") },

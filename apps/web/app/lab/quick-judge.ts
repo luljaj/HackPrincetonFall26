@@ -25,10 +25,14 @@ export function clearlyCorrect(transcript: string, accepted: readonly string[], 
   const heard = squash(transcript);
   if (!heard || NEGATION.test(transcript)) return false;
   if (strictness === "recall") {
-    const named = squash(transcript.replace(/\b(um|uh|the|a|an|it is|it's|i think|next is|we go to)\b/gi, " "));
+    const filler = /\b(um|uh|the|a|an|it is|it's|i think|next is|we go to)\b/gi;
+    const named = squash(transcript.replace(filler, " "));
     return accepted.some(answer => {
-      const want = squash(answer);
-      return !!want && editDistance(named, want) <= Math.floor(want.length / policy.recall.editDivisor);
+      // Strip the same words from the stored answer: "The map" must compare as "map", not "themap".
+      const want = squash(answer.replace(filler, " "));
+      if (!want) return false;
+      const allowed = Math.floor(want.length / policy.recall.editDivisor);
+      return editDistance(named, want) <= allowed || editDistance(named.replace(/s$/, ""), want) <= allowed; // "maps"
     });
   }
   return accepted.some((answer) => {

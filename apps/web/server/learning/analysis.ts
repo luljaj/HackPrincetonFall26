@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getPlayStore, getLanguageLessonStore } from "../storage";
 import { skillOf } from "../../lib/play/mastery";
 import { LanguageCodeSchema } from "../../lib/play/language-lessons";
-import { readProviderConfig } from "../pipeline/config";
+import { lunaServiceTier, readProviderConfig } from "../pipeline/config";
 
 const Analysis = z.object({ summary: z.string().max(350), pattern: z.string().max(300), nextStep: z.string().max(300), uncertainty: z.string().max(200), evidenceIds: z.array(z.string()).max(4) });
 const cache = new Map<string, Promise<z.infer<typeof Analysis>>>();
@@ -27,7 +27,7 @@ export async function learningAnalysis(subject: string) {
     pending = (async () => {
       const config = readProviderConfig();
       client ??= new OpenAI({ apiKey: config.apiKey, timeout: 30_000, maxRetries: 1 });
-      const response = await client.responses.create({ model: config.lunaModel, store: false, max_output_tokens: 1200, reasoning: { effort: "low" },
+      const response = await client.responses.create({ model: config.lunaModel, service_tier: lunaServiceTier(), store: false, max_output_tokens: 1200, reasoning: { effort: "low" },
         instructions: "Analyze this child's saved learning evidence for the parent. Use ONLY the provided facts. Quote reasoning only if the transcript says it. Distinguish correct independent answers, help and no answer. childSaid is ONLY the recorded child transcript, never Dora speech or the correct answer. Do not claim Dora said a transcript or claim the correct answer unless supplied. Use each assessment as authoritative: a transcript alone does not establish correctness. Never describe a gave outcome as independent success. Only language lessons explicitly tagged source=parent are parent-set edits. Category skill levels are always computed from saved answers, never call those parent-set. outcome=gave means Dora gave the answer, not that the child was silent. An empty transcript means speech was not saved, not necessarily silence. Do not diagnose attention, ability or motivation, or claim grade placement. Say when the sample is small or unclear. Recommend ONE concrete next teaching step addressing the observed response. Never invent counts, quotes, skills or causes. evidenceIds must refer only to input ids. Return concise, plain language.",
         input: JSON.stringify(source), text: { format: { type: "json_schema", name: "learning_analysis", strict: true, schema: {
           type: "object", additionalProperties: false, required: ["summary","pattern","nextStep","uncertainty","evidenceIds"], properties: {

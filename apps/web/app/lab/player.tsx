@@ -14,7 +14,7 @@ import trialEpisode from "./episode.json";
 import { DEMO_EDIT, DEMO_PAUSE_IDS, demoPauseAt, skipTarget } from "./demo-edit";
 import s from "./lab.module.css";
 import { afterRelease, canTake, type SoundOwner } from "./sound";
-import { fetchVoice, captionFallback, streamVoice } from "./voice";
+import { fetchLine, fetchVoice, captionFallback, streamVoice } from "./voice";
 import dubsData from "./dubs.json";
 import { listenOnce, openMic, recorderOptions } from "./listen";
 import { localFlair } from "./flair";
@@ -143,8 +143,9 @@ function lessonText(stage: Stage, sp: Spot, practiced = false, practice: Practic
   const target = (swap?.word ?? sp.say?.word ?? sp.answer)?.replace(/^(The|A|An) /, (a) => a.toLowerCase());
   switch (stage) {
     case "asking": return q;
-    case "nudging": return `Take your time! ${q}`;
-    case "clarifying": return `Oops, I didn't hear you. ${q}`;
+    // Nudge and "didn't hear you" use Dora's recorded lines (instant): they need nothing from the question.
+    case "nudging": return swap ? `Take your time! ${q}` : null;
+    case "clarifying": return swap ? `Oops, I didn't hear you. ${q}` : null;
     case "welcome": return `Ayyy, you're back! ${q}`;
     case "modeling": return target && !sp.open ? (sp.say ? `Listen: ${target}! Now you say it!` : `It's ${target}! Can you say ${target}?`) : null;
     case "giving": return target && !sp.open ? `It's ${target}! Let's see what happens!` : "Great thinking! Let's see what happens!";
@@ -454,6 +455,39 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     backToListening("Heard nothing yet: still listening");
     return true;
   }
+  // Dora's predictable lines (the word to practise, her praise for it, "let's try once more") are generated in the
+  // background while the kid is still answering, then start the instant she needs them: no silent wait for
+  // voice generation between her lines. Lines that depend on the answer (Luna's hints) still stream live.
+  const readyLines = useRef(new Map<string, AudioBuffer>());
+  const pendingLines = useRef(new Set<string>());
+  const lineId = (text: string) => `${learnRef.current}|${text}`;
+  function prepareLine(text: string | null) {
+    const a = audio.current;
+    if (!text || !a) return;
+    const id = lineId(text);
+    if (readyLines.current.has(id) || pendingLines.current.has(id)) return;
+    pendingLines.current.add(id);
+    fetchLine({ text, learningLanguage: learnRef.current || undefined, context: a.ctx })
+      .then((buffer) => { readyLines.current.set(id, buffer); })
+      .catch(() => undefined) // not ready in time: the line just streams live as before
+      .finally(() => pendingLines.current.delete(id));
+  }
+  /** Play a prepared line through Dora's mouth analyser; resolves when it ends (or is cut off). */
+  function playPrepared(buffer: AudioBuffer, signal: AbortSignal, onStart: () => void): Promise<void> {
+    const a = audio.current!;
+    return new Promise((resolve) => {
+      const source = a.ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(a.analyser);
+      const stop = () => { try { source.stop(); } catch { /* not started */ } };
+      signal.addEventListener("abort", stop, { once: true });
+      source.onended = () => { signal.removeEventListener("abort", stop); source.disconnect(); liveSpeaking.current = false; resolve(); };
+      liveSpeaking.current = true;
+      onStart();
+      source.start();
+    });
+  }
+
   // Each judging request (transcribe, pronounce, Luna) takes a ticket. Its reply counts only while its ticket
   // is the newest and Dora is still waiting for an answer; jumps and forced stages take a ticket too.
   const ticket = () => ++turn.current;
@@ -562,8 +596,12 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
       if (!stillMine(mine) || ctxRef.current.stage !== "thinking") return; // kid left, or a newer turn started
       setJudgeInfo(`Luna: ${out.event} · ${out.skill} · ${out.ms} ms model / ${Math.round(performance.now() - started)} ms total`);
       rec({ type: "judged", verdict: out.event, say: String(out.say).slice(0, 400), source: "luna", ms: Math.round(performance.now() - started) });
-      liveText.current = out.say;
-      setSpeechCaption(out.say); // so the saved generic line never flashes first
+      // Right answers get Dora's saved celebration (instant audio); a tailored line is worth its ~1 s of voice
+      // generation only when it helps: a hint after a wrong answer, a clarification.
+      if (out.event !== "correct") {
+        liveText.current = out.say;
+        setSpeechCaption(out.say); // so the saved generic line never flashes first
+      }
       send(ev[out.event as keyof typeof ev]);
     } catch (error) {
       if (!stillMine(mine)) return;
@@ -592,12 +630,12 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
       // Good or silent needs no tailored line: answer instantly. Close or retry gets Luna's coaching.
       if (out.verdict === "silent" && heardNothing()) return;
       if (out.verdict !== "silent") emptyClips.current = 0;
-      if (out.verdict === "good" || out.verdict === "silent") {
-        setJudgeInfo(`Instant: pronunciation ${out.verdict}, no Luna call`);
-        send("SPEECH_END");
-        return send(out.verdict === "good" ? "CORRECT" : "UNCLEAR");
-      }
-      void askLuna(`(sounded like: ${out.heard})`, out);
+      // Saying a word needs no tailored line, so it never waits for Luna: good or close is a success (a 3-6 year
+      // old who gets close did it), retry hears Dora say it again, silent is "I didn't hear you". All instant.
+      const instant = { good: "CORRECT", close: "CORRECT", retry: "WRONG", silent: "UNCLEAR" } as const;
+      setJudgeInfo(`Instant: pronunciation ${out.verdict}, no Luna call`);
+      send("SPEECH_END");
+      send(instant[out.verdict as keyof typeof instant] ?? "UNCLEAR");
     } catch (error) {
       if (!stillMine(mine)) return;
       backToListening(error instanceof Error ? error.message : "Scoring failed.");
@@ -829,6 +867,23 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     const speechAbort = new AbortController();
     setSpeechCaption(null);
     const lineKey = `${stage}:${speechVersion}`;
+    // Get Dora's next predictable lines ready while this stage runs, in the order they're likely to be needed
+    // (the voice server makes one at a time; a ~3 s Hindi line is ready long before the kid finishes answering).
+    {
+      const c = ctxRef.current;
+      const p = practiceFor(sp, learnRef.current);
+      if (stage === "entering" && c.practice && p) prepareLine(lessonText("practicing", sp, false, p)); // after a right answer
+      if (stage === "teaching") { // a miss: the later rungs of the ladder become likely
+        prepareLine(lessonText("modeling", sp, c.practiced, null));
+        prepareLine(lessonText("giving", sp, c.practiced, null));
+      }
+      if (stage === "practicing" && p) {
+        prepareLine(lessonText("celebrating", sp, true, p)); // "Yes! …! You said it in Hindi!"
+        prepareLine(lessonText("nudging", sp, true, p)); // "Your turn! Can you say …?"
+        prepareLine(lessonText("practicing", sp, true, p)); // "Listen: …! Let's try … one more time!"
+        prepareLine(lessonText("giving", sp, true, p));
+      }
+    }
     if (stage === "entering" || stage === "practicing") emptyClips.current = 0;
 
     if (stage === "paused") {
@@ -1007,7 +1062,11 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
         setSpeechCaption(text ?? null);
         setVoiceError("");
         // Live when the text differs from the saved recording (custom, lesson, or a swapped catchphrase).
-        if ((voiceMode.current || customText !== null || text !== saved) && text) {
+        const prepared = text && customText === null ? readyLines.current.get(lineId(text)) : undefined;
+        if (prepared) {
+          void playPrepared(prepared, speechAbort.signal, () => { doraStartedSpeaking(); setVoiceFor(lineKey); })
+            .then(() => { if (!speechAbort.signal.aborted) send("LINE_DONE"); });
+        } else if ((voiceMode.current || customText !== null || text !== saved) && text) {
           const a = audio.current!;
           void streamVoice({
             text, learningLanguage: learnRef.current || undefined,

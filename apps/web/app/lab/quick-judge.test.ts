@@ -10,6 +10,11 @@ test("recall requires an accepted name rather than a fuzzy substring", () => {
   assert.equal(clearlyCorrect("fridge", ["bridge"], "recall"), false);
   assert.equal(clearlyCorrect("not the bridge", ["bridge"], "recall"), false);
   assert.equal(clearlyCorrect("bridge or pyramid", ["bridge"], "recall"), false);
+  // stored answers often carry an article ("The map"): it must not make the instant path impossible
+  assert.equal(clearlyCorrect("map", ["The map"], "recall"), true);
+  assert.equal(clearlyCorrect("the map!", ["The map"], "recall"), true);
+  assert.equal(clearlyCorrect("maps", ["The map"], "recall"), true);
+  assert.equal(clearlyCorrect("mop", ["The map"], "recall"), false);
 });
 
 test("clear answers take the instant path, including Whisper's near-misses and other languages", () => {

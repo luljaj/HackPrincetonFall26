@@ -1,5 +1,6 @@
 // Fast turn judge: Luna picks the stage-machine event AND Dora's next line in one tool call.
 // Separate from the full teaching draft (luna.ts) so the switch isn't waiting on a long reply.
+import { lunaServiceTier } from "../pipeline/config";
 import { z } from "zod";
 
 export const JUDGE_EVENTS = ["correct", "wrong", "unclear"] as const;
@@ -60,7 +61,8 @@ export async function judgeTurn(client: JudgeClient, model: string, req: JudgeRe
   const result = await client.responses.create({
     model,
     store: false,
-    reasoning: { effort: "low" }, // ponytail: same effort as luna.ts; drop it lower if the model allows and accuracy holds
+    service_tier: lunaServiceTier(),
+    reasoning: { effort: "none" }, // judging a few words needs no deliberation; same verdicts as "low" on right/wrong/unclear/synonym checks, a few hundred ms faster
     max_output_tokens: 300,
     tool_choice: req.pronunciation ? { type: "function", name: PRONUNCIATION_EVENT[req.pronunciation.verdict] } : "required",
     parallel_tool_calls: false,

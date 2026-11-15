@@ -9,7 +9,7 @@ export const VAD = {
   floorFactor: 3, // speech = louder than 3x the noise floor
   startMs: 200, // this much speech counts as the kid starting (a word, not a click or a voice tail)
   gapMs: 150, // quiet shorter than this between syllables keeps adding up toward startMs
-  endSilenceMs: 500, // this much quiet after speech ends the answer (people take turns within a few hundred ms)
+  endSilenceMs: 400, // this much quiet after speech ends the answer (people take turns within a few hundred ms)
   noSpeechMs: 7500, // nobody spoke: let the stage machine nudge (kids, and presenters, need a moment)
   maxMs: 8000, // hard cap on one answer
 };
