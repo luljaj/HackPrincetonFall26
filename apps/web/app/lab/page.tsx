@@ -32,10 +32,11 @@ type Spot = {
   open?: boolean; // opinion/imagination question: any sensible answer is right
   visual?: boolean; // the kid needs to see the scene to answer: keep it on screen instead of Dora's close-up
   keep?: boolean;
+  skill?: string;
 };
 type Lesson = {
   keep: boolean; visual: boolean; question: string; type: "answer" | "say" | "open" | "choice" | "count"; answer: string; accept: string[];
-  say_word: string | null; say_language: string | null; say_ipa: string | null;
+  say_word: string | null; say_language: string | null; say_ipa: string | null; skill: string;
 };
 type Pronunciation = { verdict: "good" | "close" | "retry" | "silent"; heard: string; target: string; coach: { expected: string; heard: string } | null; ms: number };
 const RECORD_MS = 4000; // the scorer's window
@@ -49,6 +50,7 @@ const SPOTS = (spotsData as Spot[]).map((sp): Spot => {
     ...sp,
     question: sp.custom ? undefined : l.question,
     keep: l.keep,
+    skill: l.skill,
     visual: l.visual,
     open,
     answer: sp.answer ?? (open ? undefined : l.answer),
@@ -163,6 +165,9 @@ export default function Lab() {
   const [kidText, setKidText] = useState("");
   const [judgeInfo, setJudgeInfo] = useState("");
   const [pron, setPron] = useState<Pronunciation | null>(null);
+  const pronRef = useRef<Pronunciation | null>(null);
+  pronRef.current = pron;
+  const labSession = useRef(`lab-${crypto.randomUUID()}`); // live-event channel for this viewing
   const [recording, setRecording] = useState(false);
   const recorder = useRef<MediaRecorder | null>(null);
   const [handsFree, setHandsFree] = useState(false);
@@ -187,9 +192,30 @@ export default function Lab() {
   const meta = STAGES[stage];
   autoRef.current = autoPause;
 
+  // Tell the parent's live view what's happening (Convex, via /api/lab/turn). Never what the child said.
+  function publishTurn(n: Ctx) {
+    // "giving" has no outcome: Dora showing the answer can follow a wrong answer or just silence.
+    const outcome = ({ celebrating: "correct", teaching: "wrong", clarifying: "unclear", nudging: "silent" } as const)[n.stage as string];
+    if (!outcome && !["asking", "giving", "practicing", "watching"].includes(n.stage)) return;
+    const sp = spotRef.current;
+    const practising = n.stage === "practicing" || (n.practiced && (n.stage === "celebrating" || n.stage === "giving"));
+    const practice = practising ? practiceFor(sp, learnRef.current) : null;
+    void fetch("/api/lab/turn", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: labSession.current, spotId: sp.id, stage: n.stage, question: askedText(sp).slice(0, 200),
+        outcome, verdict: outcome && pronRef.current ? pronRef.current.verdict : undefined, skill: sp.skill,
+        language: practice?.language, practiceWord: practice?.word,
+      }),
+    }).catch(() => undefined); // live view is best-effort; the show never waits on it
+  }
+
   function commit(n: Ctx, label: string) {
+    const changed = n.stage !== ctxRef.current.stage;
     ctxRef.current = n;
     setCtx(n);
+    if (changed) publishTurn(n);
     const t = episode.current ? fmt(episode.current.currentTime) : "00:00.0";
     setLog((l) => [`${t}  ${label} → ${n.stage}`, ...l].slice(0, 40));
   }

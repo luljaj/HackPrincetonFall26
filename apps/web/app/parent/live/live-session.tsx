@@ -8,6 +8,7 @@ import type { ParentView } from "../../../lib/parent/types";
 import { ResetDemoButton } from "../_components/reset-demo-button";
 import { SessionView } from "../_components/session-view";
 import { ErrorState, LoadingState } from "../_components/states";
+import { RightNow } from "./right-now";
 
 type Live = { view: ParentView | null };
 
@@ -39,6 +40,7 @@ export function LiveSession({ demoTools, childName }: { demoTools: boolean; chil
 
   return (
     <div className="space-y-6">
+      <RightNow />
       {demoTools && <ResetDemoButton onReset={() => void refetch()} />}
       {error && <ErrorState message={error} />}
       {live === undefined ? (

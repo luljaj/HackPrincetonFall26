@@ -74,6 +74,22 @@ After each spot's answer (the kid got it, or Dora gave it), the stage machine ad
 - `python3 tools/build-translations.py [--langs …]` asks Luna for each answer's child-level word, a romanization (pinyin, romaji…) and IPA. It writes `apps/web/app/lab/translations.json` (51 spots; names, "yes" and sentences are skipped). Bad romanizations are dropped.
 - **The cutoffs differ per language,** because the same correct word scores lower in some scripts. These were measured on native macOS voices, right word vs a different word: de 14/14 right praised and 14/14 wrong caught, fr 14/14 and 12/14, ja 12/14 and 14/14, zh 13/14 and 13/14, hi 5/7 and 7/7. Small samples, so retune with real kids.
 
+## Live updates: Convex for live, Postgres for the record
+
+- **Postgres** (Andrea's Tiger Cloud / Timescale tables) is the durable record: sessions, interactions, `learning_events`, insights.
+- **Convex** carries only short-lived live events, pruned after a day. They're what makes `/parent/live` update the instant something happens.
+
+```
+lab stage change ──► /api/lab/turn ──┐
+pipeline saved turn ──► publish hook ─┴─► Convex live:publish (checks LIVE_PUBLISH_SECRET) ──► parent useQuery-style subscription
+```
+
+- **Lab:** every meaningful stage (asking, outcome, practising a word, back to the show) publishes `{stage, question, outcome, verdict, skill, language, practiceWord}`. **Never what the child said.**
+- **Pipeline:** Luka's documented publish hook sends `{sessionId, interactionId, turnNumber}` after each saved turn, and the dashboard refetches its own authorised view.
+- **Transport:** `lib/parent/subscribe.ts` is still the only file that knows it. It uses Convex, resyncs every 15 s as a safety net, and polls every 2 s if Convex isn't configured.
+- **Parent view:** `/parent/live` shows a **Right now** card. Measured: a lab event appears in about 190 ms, with no refresh.
+- **Setup:** run `npx convex dev` in `apps/web` (writes the URL to `.env.local`), then set `LIVE_PUBLISH_SECRET` on the deployment and in `.env.local` (see `.env.example`). Convex reads are unauthenticated, which is why nothing private is ever sent.
+
 ## Turn judging and pronunciation
 
 - **Luna judge** (`/api/judge`, `server/judge/judge.ts`): one tool call picks the stage-machine event (`correct` / `wrong` / `unclear`) and writes Dora's next line, told in advance what the machine will do for each event. 26/26 on the test answers, about 1.2 s.
