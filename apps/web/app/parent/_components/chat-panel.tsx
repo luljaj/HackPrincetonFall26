@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   DEFAULT_FOCUS,
+  FocusSchema,
   FOCUS_EVENT,
   FOCUS_LABEL,
   type FocusEventDetail,
@@ -375,6 +377,7 @@ function Result({ turn, focus, child }: { turn: Turn; focus: Focus; child: strin
 
 // A nonmodal agent region: the dashboard stays usable while it is open.
 export function ChatPanel({ child }: { child: string }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
@@ -448,21 +451,18 @@ export function ChatPanel({ child }: { child: string }) {
       .map((m) => ({ ...m, content: m.content.slice(0, 2000) }));
     try {
       // Demo Mode: the rehearsed prompt skips the model. It saves the real focus
-      // change and holds the skeleton just long enough to read as "working".
+      // change immediately; the result animation supplies its own pacing.
       if (demoMode && isDemoPrompt(prompt)) {
         const before = focusRef.current;
         const answer = demoAnswer(child, before);
-        const [res] = await Promise.all([
-          fetch("/api/parent/preferences", {
+        const res = await fetch("/api/parent/plan", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             signal: controller.signal,
             body: JSON.stringify({ focus: answer.after }),
-          }),
-          new Promise((resolve) => setTimeout(resolve, 900)),
-        ]);
+          });
         if (!res.ok) throw new Error("Couldn't change the focus. Try again.");
-        const saved = (await res.json()) as { focus: Focus };
+        const saved = { focus: FocusSchema.parse((await res.json()).focus) };
         update({
           status: "done",
           reply: answer.reply,
@@ -482,7 +482,7 @@ export function ChatPanel({ child }: { child: string }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
-        body: JSON.stringify({ messages }),
+        body: JSON.stringify({ messages, demo: demoMode }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
@@ -495,6 +495,7 @@ export function ChatPanel({ child }: { child: string }) {
         sessionIds: body.sessionIds,
         focusChange: body.focusChange,
       });
+      if (body.masteryReset?.length || body.languageChange !== undefined) router.refresh();
       if (body.focusChange?.after) {
         setFocus(body.focusChange.after);
         window.dispatchEvent(new CustomEvent<FocusEventDetail>(FOCUS_EVENT, {

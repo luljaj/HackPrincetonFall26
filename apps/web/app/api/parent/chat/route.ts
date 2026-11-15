@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { setPlan } from "../../../../lib/live/plan";
 import { hasParentAccess } from "../../../../lib/parent/access";
 import { childName } from "../../../../lib/parent/child";
+import { demoCommand } from "../../../../lib/parent/demo-mode";
 import { getParentViewReader } from "../../../../lib/parent/reader";
 import { ChatRequestSchema, runChat, type ChatClient } from "../../../../server/parent-chat/chat";
 import { readProviderConfig } from "../../../../server/pipeline/config";
@@ -27,14 +28,17 @@ export async function POST(request: Request): Promise<Response> {
     // ponytail: loads the 50 newest sessions per message; query per tool once history grows past that
     const play = getPlayStore();
     const prefs = getPreferencesStore();
-    const [views, topics, practice, current] = await Promise.all([getParentViewReader().listParentViews(50), play.topics(), play.practice(), prefs.get()]);
+    const [views, topics, practice, current, mastery] = await Promise.all([getParentViewReader().listParentViews(50), play.topics(), play.practice(), prefs.get(), play.mastery()]);
     const focus = { current: current.focus, set: async (next: typeof current.focus) => {
       const saved = await prefs.set(next);
-      await setPlan({ focus: saved.focus }).catch(() => false); // live copy for the kid view
+      if (!(await setPlan({ focus: saved.focus }))) throw new Error("Live updates unavailable");
       return saved;
     } };
     const model = process.env.PARENT_CHAT_MODEL?.trim() || config.lunaModel;
-    const result = await runChat(client as unknown as ChatClient, model, parsed.data.messages, views, childName(), new Date(), { topics, practice }, focus);
+    const result = await runChat(client as unknown as ChatClient, model, parsed.data.messages, views, childName(), new Date(), { topics, practice, mastery }, focus, {
+      currentSkill: () => play.currentSkill(), resetSkills: ids => play.resetSkills(ids), mastery: () => play.mastery(),
+      setLanguage: language => setPlan({ language }),
+    }, parsed.data.demo ? demoCommand(parsed.data.messages.at(-1)!.content) : undefined);
     return Response.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return Response.json({ error: "The chat couldn't answer that. Try again." }, { status: 502 });

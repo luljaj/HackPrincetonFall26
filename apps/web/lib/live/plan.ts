@@ -2,12 +2,12 @@ import "server-only";
 import { ConvexHttpClient } from "convex/browser";
 import { z } from "zod";
 import { api } from "../../convex/_generated/api";
-import { FocusSchema } from "../parent/preferences";
+import { FocusSchema, PLAN_LANGUAGES } from "../parent/preferences";
+export { PLAN_LANGUAGES } from "../parent/preferences";
 
 // The learning plan: what the parent wants the kid learning right now (learning-plan.md). Convex holds the
 // live copy that the kid view subscribes to. setPlan is the one write path (API today, parent chat later).
 
-export const PLAN_LANGUAGES = ["", "es", "fr", "de", "zh", "hi", "ja"] as const;
 export const PlanPatchSchema = z
   .strictObject({ language: z.enum(PLAN_LANGUAGES).optional(), focus: FocusSchema.optional() })
   .refine((p) => p.language !== undefined || p.focus !== undefined, "Nothing to change.");

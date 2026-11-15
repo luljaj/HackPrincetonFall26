@@ -9,6 +9,16 @@ const turn = (o: Partial<MasteryTurn>): MasteryTurn => ({
 });
 
 describe("mastery", () => {
+  it("starts a reset skill afresh without changing other skills or deleting history", () => {
+    const history = [turn({}), turn({ sessionId: "b" }), turn({ spotId: "ep3-27", practiceLanguage: "fr", practiceWord: "pont", practiceOutcome: "good" })];
+    const reset = [{ skillId: "match-shapes", resetAt: now }];
+    const m = masteryFrom(history, now, reset);
+    expect(m.categories.flatMap(c => c.skills).find(s => s.id === "match-shapes")).toMatchObject({ level: "new", asked: 0, lastSeen: null });
+    expect(m.languages[0]?.words[0]?.word).toBe("pont");
+    expect(history).toHaveLength(3);
+    const later = masteryFrom([...history, turn({ endedAt: now + 1 })], now + 1, reset);
+    expect(later.categories.flatMap(c => c.skills).find(s => s.id === "match-shapes")).toMatchObject({ level: "practising", asked: 1 });
+  });
   it("levels a skill: new → practising → got it → rusty", () => {
     expect(skillLevel([], now)).toBe("new");
     expect(skillLevel([turn({}), turn({})], now)).toBe("practising"); // two right, but one viewing

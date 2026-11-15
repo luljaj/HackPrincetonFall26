@@ -7,6 +7,7 @@ Two signals, measured on 198 synthetic clips (see ux.md):
 import json
 import re
 import unicodedata
+from pathlib import Path
 
 # Sounds treated as the same for a 3-6 year old learner: allophones, regional variants, and any r
 # (native Spanish kids master the trill around age 6-7).
@@ -14,18 +15,9 @@ import unicodedata
 FREE = [set('rɾɹʁʀ'), set('bβv'), set('dð'), set('gɣɡ'), set('sθz'), set('xhχ'), set('ʝjʎɟ'), set('iɪ'), set('uʊ'), set('aɑɐəæʌ'), set('ɛe'), set('ɔo'), set('nŋ')]  # n→ŋ before k/g is natural blending
 HALF = [set('rɾɹlw'), set('mnŋɲ'), set('pb'), set('td'), set('kgɡ'), set('ʧʃs'), set('fθ'), set('ie'), set('ou')]  # vowel slips are coached, cheaply
 
-# Whisper target log-likelihood bands (word tokens + end-of-text, 4 s window). Tuned on 198 synthetic clips,
-# leaning toward praise for young kids: on mic-style recordings (Opus, lead-in silence) -12 praises 88% of real
-# attempts and catches 83% of wrong words (-11: 83% / 86%). Summed, not averaged per token: the per-token mean
-# separated attempts from wrong words worse (AUC 0.86 vs 0.91). Retune on 20-30 real kid recordings.
-GOOD_LP = -6.0
-CLOSE_LP = -12.0
-# Other languages score lower for the same correct word (script and tokenisation differ), so each gets its own
-# "retry" cutoff, measured on native macOS voices saying the right word vs. a different word (7-14 clips each,
-# so treat these as starting points): de 14/14 right praised, 14/14 wrong caught; fr 14/14, 12/14; ja 12/14,
-# 14/14; zh 13/14, 13/14; hi 5/7, 7/7. "good" stays 6 above each cutoff. Unmeasured languages use -15.
-CLOSE_LP_BY_LANGUAGE = {'es': CLOSE_LP, 'en': CLOSE_LP, 'de': -13.5, 'fr': -13.5, 'hi': -15.0, 'ja': -15.5, 'zh': -17.0}
-DEFAULT_CLOSE_LP = -15.0
+# The shared policy raises both bands 1.5 log-prob above the earlier synthetic baseline,
+# retaining language-specific offsets. These are guesses until tested with real children.
+POLICY = json.loads((Path(__file__).resolve().parent.parent / 'apps/web/app/lab/learning-policy.json').read_text())['pronunciation']
 # Clip normalisation the cutoffs above were calibrated with. Change any of these → recalibrate the cutoffs.
 SAMPLE_RATE = 16000
 FRAME = 320  # 20 ms frames for the speech trim
@@ -87,8 +79,8 @@ def is_silent(peak: float, heard_ipa: str) -> bool:
 
 def verdict(target_lp: float, peak: float, heard_ipa: str, language: str = 'es') -> str:
     if is_silent(peak, heard_ipa): return 'silent'
-    close = CLOSE_LP_BY_LANGUAGE.get(language, DEFAULT_CLOSE_LP)
-    good = close + (GOOD_LP - CLOSE_LP)
+    bands = POLICY.get(language, POLICY['default'])
+    close, good = bands['close'], bands['good']
     return 'good' if target_lp > good else 'close' if target_lp > close else 'retry'
 
 

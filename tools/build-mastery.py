@@ -15,7 +15,7 @@ LAB = ROOT / 'apps/web/app/lab'
 
 # id, parent-facing name, skills (id, what the kid can do)
 CATEGORIES = [
-    ('numbers', 'Numbers', [('count-to-5', 'Counts up to 5'), ('count-to-10', 'Counts up to 10'), ('how-many', 'Says how many there are')]),
+    ('numbers', 'Numbers', [('add-small-numbers', 'Adds small numbers'), ('count-to-5', 'Counts up to 5'), ('count-to-10', 'Counts up to 10'), ('how-many', 'Says how many there are')]),
     ('shapes', 'Shapes', [('name-shapes', 'Names shapes'), ('match-shapes', 'Matches a shape to where it fits')]),
     ('remembering', 'Remembering', [('recall-places', 'Remembers the places on the map, in order'),
                                     ('recall-events', 'Remembers what just happened'),
@@ -106,6 +106,7 @@ def main():
         if sid not in lessons or (args.only and sid not in args.only): continue
         if skill: tagged[sid] = skill
         else: tagged.pop(sid, None)
+    tagged.update({f'demo-addition-{n}': 'add-small-numbers' for n in range(1, 4)})
     curriculum = {'categories': [{'id': c, 'name': n, 'skills': [{'id': s, 'name': sn} for s, sn in skills]} for c, n, skills in CATEGORIES],
                   'lessons': dict(sorted(tagged.items()))}
     out_path.write_text(json.dumps(curriculum, indent=1, ensure_ascii=False) + '\n')

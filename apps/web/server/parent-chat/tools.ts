@@ -3,11 +3,13 @@
 // SessionProgressSchema, which carries no answer guides or Luna drafts.
 import { nextStepFor } from "../../lib/parent/next-steps";
 import { SUBJECTS } from "../../lib/parent/preferences";
+import { CATEGORIES, type Mastery } from "../../lib/play/mastery";
+import { PLAN_LANGUAGES } from "../../lib/parent/preferences";
 import { showFor } from "../../lib/parent/shows";
 import type { ParentView } from "../../lib/parent/types";
 import type { PracticeRow, TopicRow } from "../storage/play";
 
-export type PlayStats = { topics: readonly TopicRow[]; practice: readonly PracticeRow[] };
+export type PlayStats = { topics: readonly TopicRow[]; practice: readonly PracticeRow[]; mastery?: Mastery };
 const LANGUAGE: Record<string, string> = { es: "Spanish", fr: "French", de: "German", zh: "Chinese", hi: "Hindi", ja: "Japanese" };
 
 type Args = Record<string, unknown>;
@@ -85,6 +87,14 @@ export function runTool(name: string, args: Args, views: readonly ParentView[], 
     }
     case "get_skill_progress": {
       const q = str(args.skill);
+      if (play.mastery) {
+        const query = q?.replace(/counting/g, "count");
+        return { data: {
+          note: "Current levels and counts are since each skill's latest reset; session history is unchanged.",
+          categories: play.mastery.categories.filter(c => !query || `${c.id} ${c.name} ${c.skills.map(s => `${s.id} ${s.name}`).join(" ")}`.toLowerCase().includes(query)),
+          languages: play.mastery.languages.filter(l => !q || (LANGUAGE[l.language] ?? l.language).toLowerCase().includes(q)),
+        }, sessionIds: [] };
+      }
       if (play.topics.length > 0 || play.practice.length > 0) {
         // Real play: per-topic and per-language counts straight from play_turns (SQL group-bys).
         const topics = play.topics
@@ -161,3 +171,13 @@ export const setFocusTool = fn(
   "Change the learning focus (how much each category comes up while watching). Use whenever the parent asks for more, less, or the usual amount of something. Only pass categories the parent asked to change.",
   Object.fromEntries(SUBJECTS.map((s) => [s.id, level(s.name)])),
 );
+
+export const resetSkillTool = fn("reset_skill", "Start a skill or category over from now, keeping saved history. Counting means the Numbers category. For the topic the child is on, set current=true. Choose exactly one target; other fields must be null.", {
+  skill: { type: ["string", "null"], enum: [...CATEGORIES.flatMap(c => c.skills.map(s => s.id)), null] },
+  category: { type: ["string", "null"], enum: [...CATEGORIES.map(c => c.id), null] },
+  current: { type: ["boolean", "null"], enum: [true, null] },
+});
+
+export const setLanguageTool = fn("set_language", "Change the actual learning language on the TV, effective at Dora's next line. Use this for 'switch to Spanish', never set_focus. Empty string means English only.", {
+  language: { type: "string", enum: [...PLAN_LANGUAGES] },
+});

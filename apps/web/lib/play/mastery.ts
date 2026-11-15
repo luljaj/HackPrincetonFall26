@@ -18,6 +18,7 @@ export type MasteryTurn = {
 };
 export type SkillLevel = "new" | "practising" | "got_it" | "rusty";
 export type WordLevel = "heard" | "said" | "remembered";
+export type MasteryReset = { skillId: string; resetAt: number };
 export type Mastery = {
   categories: Array<{ id: string; name: string; skills: Array<{ id: string; name: string; level: SkillLevel; asked: number; firstTry: number; lastSeen: number | null }> }>;
   languages: Array<{ language: string; words: Array<{ word: string; level: WordLevel; lastSeen: number }> }>;
@@ -50,11 +51,13 @@ export function wordLevel(turns: readonly MasteryTurn[]): WordLevel {
   return good.size >= 2 ? "remembered" : good.size === 1 ? "said" : "heard";
 }
 
-export function masteryFrom(turns: readonly MasteryTurn[], now = Date.now()): Mastery {
+export function masteryFrom(turns: readonly MasteryTurn[], now = Date.now(), resets: readonly MasteryReset[] = []): Mastery {
+  const resetAt = new Map(resets.map(r => [r.skillId, r.resetAt]));
   const bySkill = new Map<string, MasteryTurn[]>();
   const byWord = new Map<string, MasteryTurn[]>(); // "fr\u0000pont"
   for (const t of turns) {
     const skill = skillOf(t.spotId);
+    if (skill && t.endedAt <= (resetAt.get(skill) ?? -Infinity)) continue;
     if (skill) bySkill.set(skill, [...(bySkill.get(skill) ?? []), t]);
     if (t.practiceLanguage && t.practiceWord) {
       const k = `${t.practiceLanguage}\u0000${t.practiceWord}`;

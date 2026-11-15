@@ -31,6 +31,7 @@ export default function Play() {
   const [tuning, setTuning] = useState(false);
   const [osd, setOsd] = useState<string | null>(null); // on-screen display text (channel or language)
   const [learn, setLearn] = useState("");
+  const [focus, setFocus] = useState<Record<string, string>>({});
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
   const [playerControls, setPlayerControls] = useState<HTMLDivElement | null>(
     null,
@@ -79,7 +80,8 @@ export default function Play() {
   // The parent's learning plan (learning-plan.md): a language change lands mid-episode, at Dora's next line.
   useEffect(
     () =>
-      subscribeToPlan(({ language }) => {
+      subscribeToPlan(({ language, focus: nextFocus }) => {
+        if (nextFocus) setFocus(nextFocus);
         const l = LANGUAGES.find((x) => x.code === language);
         if (!l) return; // unset or unknown: keep what the kid picked
         setLearn(l.code);
@@ -148,6 +150,7 @@ export default function Play() {
                   onLearnChange={setLearn}
                   controlsTarget={playerControls}
                   captionsEnabled={captionsEnabled}
+                  learningFocus={focus}
                 />
               </div>
             )}

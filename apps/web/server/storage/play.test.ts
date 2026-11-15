@@ -8,6 +8,7 @@ import { playToParentView } from "../../lib/play/view";
 import { createMemoryPlayStore, createPostgresPlayStore, type PlayStore } from "./play";
 import type { StoreDb } from "./postgres";
 import * as schema from "./schema";
+import { skillOf } from "../../lib/play/mastery";
 
 const S = "11111111-1111-4111-8111-111111111111";
 const T1 = "22222222-2222-4222-8222-222222222222";
@@ -92,6 +93,18 @@ describe.each([
   let store: PlayStore;
   beforeEach(async () => {
     store = await make();
+  });
+
+  it("resets mastery without deleting saved pauses and resolves the latest skill", async () => {
+    await store.ingest(batch(viewing()));
+    const skill = skillOf("ep3-02")!;
+    expect(await store.currentSkill()).toBe(skillOf("ep3-09"));
+    expect((await store.mastery()).categories.flatMap(c => c.skills).find(s => s.id === skill)?.asked).toBe(1);
+    await store.resetSkills([skill], t0 + 60_000);
+    expect((await store.mastery()).categories.flatMap(c => c.skills).find(s => s.id === skill)).toMatchObject({ level: "new", asked: 0 });
+    expect((await store.get(S))?.turns).toHaveLength(3);
+    await store.ingest(batch(viewing()));
+    expect((await store.mastery()).categories.flatMap(c => c.skills).find(s => s.id === skill)?.asked).toBe(0);
   });
 
   it("saves batches, ignores retried events, and groups topics", async () => {

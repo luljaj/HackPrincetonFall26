@@ -5,6 +5,13 @@ import { clearlyCorrect } from "./quick-judge.ts";
 
 const seatbelt = ["seatbelt", "seat belt", "cinturón"];
 
+test("recall requires an accepted name rather than a fuzzy substring", () => {
+  assert.equal(clearlyCorrect("the bridge", ["bridge"], "recall"), true);
+  assert.equal(clearlyCorrect("fridge", ["bridge"], "recall"), false);
+  assert.equal(clearlyCorrect("not the bridge", ["bridge"], "recall"), false);
+  assert.equal(clearlyCorrect("bridge or pyramid", ["bridge"], "recall"), false);
+});
+
 test("clear answers take the instant path, including Whisper's near-misses and other languages", () => {
   for (const said of ["a seatbelt", "Seedbelt", "A SEAT BELT!", "um, the seatbelt?", "cinturon", "Cinturón."]) {
     assert.equal(clearlyCorrect(said, seatbelt), true, said);

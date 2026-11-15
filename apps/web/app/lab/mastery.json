@@ -15,6 +15,10 @@
     {
      "id": "how-many",
      "name": "Says how many there are"
+    },
+    {
+     "id": "add-small-numbers",
+     "name": "Adds small numbers"
     }
    ]
   },
@@ -198,6 +202,9 @@
   "ep3-64": "spanish-words",
   "ep3-65": "pick-place",
   "ep3-66": "pick-place",
-  "ep3-67": "pick-place"
+  "ep3-67": "pick-place",
+  "demo-addition-1": "add-small-numbers",
+  "demo-addition-2": "add-small-numbers",
+  "demo-addition-3": "add-small-numbers"
  }
 }

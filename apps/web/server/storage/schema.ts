@@ -120,6 +120,12 @@ export const parentPreferences = pgTable("parent_preferences", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
 });
 
+export const masteryResets = pgTable("mastery_resets", {
+  learnerKey: text("learner_key").notNull(),
+  skillId: text("skill_id").notNull(),
+  resetAt: timestamp("reset_at", { withTimezone: true }).notNull(),
+}, t => [primaryKey({ columns: [t.learnerKey, t.skillId] })]);
+
 // ---- Play-mode session trace (lib/play/trace.ts). Postgres is the record; Convex only gets pings. ----
 
 // One row per viewing.
