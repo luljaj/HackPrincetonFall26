@@ -147,3 +147,16 @@ export const chatTools = [
   }),
   fn("get_misconceptions", "Possible misconceptions the judge noted, with the question and what the child said."),
 ];
+
+const level = (subject: string) => ({
+  type: ["string", "null"],
+  enum: ["less", "usual", "more", null],
+  description: `New ${subject} weight. Null keeps it as it is.`,
+});
+
+// The one write tool: changes how often each subject comes up in Play mode.
+export const setFocusTool = fn(
+  "set_focus",
+  "Change the learning focus (how much each subject comes up while watching). Use whenever the parent asks for more, less, or the usual amount of a subject. Only pass subjects the parent asked to change.",
+  { math: level("Math"), english: level("English"), science: level("Science") },
+);

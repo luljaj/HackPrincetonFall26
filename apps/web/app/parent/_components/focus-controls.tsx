@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  FOCUS_EVENT,
   FOCUS_LABEL,
+  type FocusEventDetail,
   FOCUS_LEVELS,
   focusSummary,
   SUBJECTS,
@@ -21,6 +23,18 @@ export function FocusControls({ initial }: { initial: ParentPreferences }) {
     initial.updatedAt ? `Saved ${time(initial.updatedAt)}` : null,
   );
 
+  // The companion can change the focus too; follow it.
+  useEffect(() => {
+    const onChange = (event: Event) => {
+      const { focus, from } = (event as CustomEvent<FocusEventDetail>).detail;
+      if (from !== "companion") return;
+      setFocus(focus);
+      setStatus("Changed by your companion");
+    };
+    window.addEventListener(FOCUS_EVENT, onChange);
+    return () => window.removeEventListener(FOCUS_EVENT, onChange);
+  }, []);
+
   const choose = async (subject: SubjectId, level: FocusLevel) => {
     if (focus[subject] === level) return;
     const previous = focus;
@@ -36,6 +50,7 @@ export function FocusControls({ initial }: { initial: ParentPreferences }) {
       if (!res.ok) throw new Error(String(res.status));
       const saved = (await res.json()) as ParentPreferences;
       setStatus(saved.updatedAt ? `Saved ${time(saved.updatedAt)}` : "Saved");
+      window.dispatchEvent(new CustomEvent<FocusEventDetail>(FOCUS_EVENT, { detail: { focus: saved.focus, from: "card" } }));
     } catch {
       setFocus(previous);
       setStatus("Couldn't save. Try again.");
