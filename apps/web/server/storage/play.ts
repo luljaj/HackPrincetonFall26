@@ -27,6 +27,8 @@ export type PlayStore = {
 };
 
 export const TRANSCRIPT_DAYS = 30;
+const SWEEP_MS = 60 * 60 * 1000;
+let lastSweep = 0; // ponytail: per server process; a scheduled job if this ever runs on many servers
 
 /** Same grouping as the SQL in topics(), for the memory store and tests. */
 export function topicRows(turns: readonly PlayTurn[]): TopicRow[] {
@@ -87,8 +89,11 @@ export function createPostgresPlayStore(db: StoreDb): PlayStore {
 
   return {
     async ingest(batch) {
+      // Retention: what the kid said is kept TRANSCRIPT_DAYS, then blanked (turns) and removed (events).
+      // Batches arrive every 2 s; the sweep only needs to run about once an hour per server.
+      const sweep = Date.now() - lastSweep > SWEEP_MS;
       try {
-        return await db.transaction(async (tx) => {
+        const saved = await db.transaction(async (tx) => {
           const first = Math.min(...batch.events.map((e) => e.at));
           await tx
             .insert(playSessions)
@@ -111,12 +116,15 @@ export function createPostgresPlayStore(db: StoreDb): PlayStore {
             const row = { ...t, sessionId: batch.sessionId, startedAt: new Date(t.startedAt), endedAt: new Date(t.endedAt) };
             await tx.insert(playTurns).values(row).onConflictDoUpdate({ target: playTurns.turnId, set: row });
           }
-          // Retention: what the kid said is kept TRANSCRIPT_DAYS, then blanked (turns) and removed (events).
-          const cutoff = new Date(Date.now() - TRANSCRIPT_DAYS * 86_400_000);
-          await tx.update(playTurns).set({ transcript: "" }).where(and(lt(playTurns.endedAt, cutoff), ne(playTurns.transcript, "")));
-          await tx.execute(sql`UPDATE play_events SET payload = payload - 'text' WHERE event_time < ${cutoff.toISOString()} AND payload ? 'text'`);
+          if (sweep) {
+            const cutoff = new Date(Date.now() - TRANSCRIPT_DAYS * 86_400_000);
+            await tx.update(playTurns).set({ transcript: "" }).where(and(lt(playTurns.endedAt, cutoff), ne(playTurns.transcript, "")));
+            await tx.execute(sql`UPDATE play_events SET payload = payload - 'text' WHERE event_time < ${cutoff.toISOString()} AND payload ? 'text'`);
+          }
           return { session, turns };
         });
+        if (sweep) lastSweep = Date.now(); // only once it committed: a rolled-back sweep runs again next batch
+        return saved;
       } catch (e) {
         throw new PersistenceError("Could not save play events", { cause: e });
       }

@@ -45,6 +45,13 @@ export const STAGES: Record<Stage, { assistant: boolean; line?: string; rest: "w
   welcome: { assistant: true, line: "welcome", rest: "wait" },
 };
 
+export const STAGE_NAMES = Object.keys(STAGES) as [Stage, ...Stage[]];
+
+// The kid's answer at a pause is settled once Dora praises it, gives it, or bows out. What follows is
+// language practice or the exit. The session record (lib/play/trace.ts) folds outcomes from these.
+export const SETTLES: ReadonlySet<Stage> = new Set<Stage>(["celebrating", "giving", "graceful"]);
+export const answeredFirstTry = (c: { tries: number; nudges: number; modeled: boolean }) => c.tries === 0 && c.nudges === 0 && !c.modeled;
+
 export function next(c: Ctx, e: Event): Ctx {
   const to = (stage: Stage, extra: Partial<Ctx> = {}): Ctx => ({ ...c, ...extra, stage });
   // Out of hints/patience: show the answer and invite a repeat if we know it, else let the show reveal it.
