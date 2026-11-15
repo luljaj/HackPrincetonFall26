@@ -26,14 +26,11 @@
       "label": "Which shape fits?"
     },
     {
-      "pauseId": "ep3-55",
-      "from": 1129.23,
-      "label": "Count the keys"
-    },
-    {
       "pauseId": "ep3-57",
       "from": 1183.65,
-      "label": "Find the jewel"
+      "label": "Find the jewel",
+      "holdAt": 1196.6,
+      "why": "At the show's own pause (1194.7 s) the camera hasn't reached the jewel yet; by 1196.55 s it has panned onto the jewel on its pedestal, and the show's pointer only appears after 1198.5 s."
     },
     {
       "pauseId": "ep3-60",

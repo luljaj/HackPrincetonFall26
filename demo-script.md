@@ -5,7 +5,7 @@ wrong, and teaches the answer in Spanish. Then a parent opens their view and say
 and the cartoon switches on the spot.
 
 About 4–5 minutes. Every moment below is a real pause in the real episode ("When I Grow Up"). Nothing is
-re-edited. **Skip** on the remote (it shows "1/7 · …") jumps to the next moment from anywhere: over a
+re-edited. **Skip** on the remote (it shows "1/6 · …") jumps to the next moment from anywhere: over a
 cartoon part, or out of a question you want to cut short.
 
 ---
@@ -36,7 +36,7 @@ cartoon part, or out of a question you want to cut short.
 
 **Do:** click **Turn TV on**. The TV starts in Spanish: "Let's learn Español!".
 **Say:** "This is Sam's TV. Dora's on, but this Dora can hear Sam."
-**Do:** press **Skip to: 1/7 · Who helps when we're lost? ⏭** on the remote.
+**Do:** press **Skip to: 1/6 · Who helps when we're lost? ⏭** on the remote.
 
 ### 1. Feedback loop: "Who do we ask for help?" (≈40 s)
 
@@ -56,7 +56,7 @@ And every answer becomes a Spanish word."
 
 ### 2. Remembering: "Where do we go next?" (≈30 s)
 
-**Do:** **Skip to: 2/7 · Where do we go next? ⏭**. It lands at 9:25, after they've rescued Benny at the
+**Do:** **Skip to: 2/6 · Where do we go next? ⏭**. It lands at 9:25, after they've rescued Benny at the
 firehouse. Early on the Map said "firehouse, bridge, pyramid".
 
 - **Dora:** "We went past the firehouse. Where do we go next?"
@@ -76,7 +76,7 @@ firehouse. Early on the Map said "firehouse, bridge, pyramid".
 
 ### 4. The cartoon is now teaching Hindi (≈30 s)
 
-**Do:** **Skip to: 3/7 · Find the bridge ⏭**. It lands at 9:49.
+**Do:** **Skip to: 3/6 · Find the bridge ⏭**. It lands at 9:49.
 
 - **Dora:** "Where is the bridge?" **Kid:** "There!" (or point and say it)
 - **Dora:** "In Hindi, bridge is *पुल* (pul)! Can you say पुल?" **Kid:** "pul".
@@ -89,7 +89,6 @@ only the word Dora teaches changed."
 | Skip to | Moment | Kind |
 |---|---|---|
 | Which shape fits? (14:27) | "What shape piece goes here?" (triangle, then *त्रिभुज*) | Making something |
-| Count the keys (18:49) | "Let's count to see if we have all six keys. Count with me." | Numbers |
 | Find the jewel (19:43) | "If you see the jewel, say jewel!" | Finding something |
 | Swiper, no swiping! (20:38) | "Say it with us: Swiper, no swiping!" | Joining in |
 | The end (21:14) | "We did it!" | Close |
@@ -101,9 +100,10 @@ only the word Dora teaches changed."
 ## How the pauses look
 
 - While Dora waits or listens, the paused frame holds with a slow push-in, so nothing in the background moves.
-- Where Dora is the one on screen talking (moments 1, 2, 5 and 7), her mouth moves while she speaks, using a
+- Where Dora is the one on screen talking (moments 1, 2 and 6), her mouth moves while she speaks, using a
   short loop from that very shot that starts and ends on the paused frame.
-- The other moments hold the frame while she talks. Moment 6 (the jewel) is Mommy on screen, and moment 3
+- The other moments hold the frame while she talks. Moment 5 (the jewel) is Mommy on screen, so it holds once the
+  camera has panned onto the jewel. Moment 3
   has a moving bird, so it holds a second after the show's own pause, once the bird has walked off the
   bridge.
 

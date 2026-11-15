@@ -21,9 +21,9 @@ test("every demo moment is a real, kept pause, in story order, with its skip poi
 });
 
 test("skip goes to the next exercise's setup, then the finale, then nowhere", () => {
-  assert.deepEqual(skipTarget(0, pauseAt), { from: 166.07, label: "1/7 · Who helps when we're lost?" });
-  assert.equal(skipTarget(180, pauseAt)?.label, "2/7 · Where do we go next?"); // past the map question
-  assert.equal(skipTarget(174.3, pauseAt)?.label, "2/7 · Where do we go next?"); // mid-question: skips to the next one
+  assert.deepEqual(skipTarget(0, pauseAt), { from: 166.07, label: "1/6 · Who helps when we're lost?" });
+  assert.equal(skipTarget(180, pauseAt)?.label, "2/6 · Where do we go next?"); // past the map question
+  assert.equal(skipTarget(174.3, pauseAt)?.label, "2/6 · Where do we go next?"); // mid-question: skips to the next one
   assert.equal(skipTarget(590, pauseAt)?.from, 590); // already inside the bridge setup: never jump back
   assert.equal(skipTarget(1250, pauseAt)?.label, "The end");
   assert.equal(skipTarget(1300, pauseAt), null);
@@ -31,4 +31,7 @@ test("skip goes to the next exercise's setup, then the finale, then nowhere", ()
   // the bridge holds after the bird has walked off, still before the show resumes
   const bridge = spots.find((s) => s.id === "ep3-27")!;
   assert.ok(pauseAt("ep3-27") > bridge.pauseAt && pauseAt("ep3-27") < bridge.resumeAt);
+  // the jewel holds once the camera has panned onto it, still before the show resumes
+  const jewel = spots.find((s) => s.id === "ep3-57")!;
+  assert.ok(pauseAt("ep3-57") > jewel.pauseAt && pauseAt("ep3-57") < jewel.resumeAt);
 });
