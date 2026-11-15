@@ -173,10 +173,12 @@ type Loop = "talk" | "wait";
 
 // The interactive Dora player. `/lab` shows it with every debug control; the kid view (`/`) shows only the
 // screen, with the mic always on and the same controls in a hidden dev drawer (press ` or add ?dev).
-export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
+export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, controlsTarget, captionsEnabled = true }: {
   kid?: boolean;
   learn?: string; // language to practise, driven by the kid view's language row
   onLearnChange?: (code: string) => void; // the dev drawer's picker changed it
+  controlsTarget?: HTMLElement | null;
+  captionsEnabled?: boolean;
 }) {
   const [ctx, setCtx] = useState<Ctx>(INITIAL);
   const [started, setStarted] = useState(false);
@@ -913,8 +915,8 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
           </div>
           {stage === "listening" && <div className={s.listenRing} />}
           {stage === "away" && <div className={`${s.layer} ${s.away}`}>📺 Another channel…</div>}
-          {caption && <p className={s.caption}>{caption}</p>}
-          {!started && (
+          {captionsEnabled && caption && <p className={s.caption}>{caption}</p>}
+          {!started && !controlsTarget && (
             <button className={s.start} onClick={start}>
               ▶ Start
             </button>
@@ -1055,8 +1057,13 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
     return (
       <div className={s.kidRoot}>
         {screen}
-        {/* Portaled to <body>: inside the TV screen these would be clipped by its overflow and transforms. */}
-        {createPortal(
+        {controlsTarget ? createPortal(
+          <div className={s.dockedControls}>
+            {!started && <button className={s.dockedStart} onClick={start}>▶ Start episode</button>}
+            <button onClick={() => setDevOpen((o) => !o)} aria-expanded={devOpen} aria-label={devOpen ? "Hide dev tools" : "Show dev tools"}>⚙︎ Tools</button>
+          </div>,
+          controlsTarget,
+        ) : createPortal(
           <button className={s.devToggle} onClick={() => setDevOpen((o) => !o)} aria-label={devOpen ? "Hide dev tools" : "Show dev tools"} title="Dev tools (`)">
             ⚙︎
           </button>,
@@ -1064,7 +1071,10 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
         )}
         {devOpen && createPortal(
           <aside className={s.devDrawer} aria-label="Dev tools">
-            <p className={s.meta}>Dev tools · press ` to hide</p>
+            <div className={s.devHeading}>
+              <p className={s.meta}>Dev tools · press ` to hide</p>
+              <button onClick={() => setDevOpen(false)} aria-label="Close dev tools">Close ×</button>
+            </div>
             {controls}
             <div className={s.panel}>{panel}</div>
           </aside>,
