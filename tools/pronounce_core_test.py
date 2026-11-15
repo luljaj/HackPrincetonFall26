@@ -1,5 +1,5 @@
 import unittest
-from pronounce_core import speech_bounds, align, norm, parse_request, parse_transcribe_request, score, verdict
+from pronounce_core import POLICY, speech_bounds, align, norm, parse_request, parse_transcribe_request, score, verdict
 
 
 class PronounceTest(unittest.TestCase):
@@ -27,22 +27,24 @@ class PronounceTest(unittest.TestCase):
         self.assertEqual(align(norm('b a x o'), norm('a β a x o'))[1], [('a', '')])
 
     def test_verdict_bands(self):
-        self.assertEqual([verdict(lp, 0.5, 'a') for lp in (-1, -7, -14)], ['good', 'close', 'retry'])
+        es = POLICY['es']
+        self.assertEqual([verdict(lp, 0.5, 'a', 'es') for lp in (es['good'] + 1, es['close'] + 1, es['close'] - 1)], ['good', 'close', 'retry'])
         self.assertEqual(verdict(-1, 0.001, 'a'), 'silent')
         self.assertEqual(verdict(-14, 0.5, ''), 'silent')  # loud noise but no speech sounds: re-prompt, not "try again"
 
     def test_each_language_has_its_own_cutoff(self):
-        self.assertEqual(verdict(-14, 0.5, 'a', 'es'), 'retry')
-        self.assertEqual(verdict(-14, 0.5, 'a', 'zh'), 'close')  # Chinese scores lower for the same correct word
-        self.assertEqual(verdict(-10, 0.5, 'a', 'zh'), 'close')
-        self.assertEqual(verdict(-16, 0.5, 'a', 'xx'), 'retry')  # unmeasured language: default -15
-
-    def test_higher_bar_for_every_supported_language(self):
-        old_close = {'en': -12, 'es': -12, 'de': -13.5, 'fr': -13.5, 'hi': -15, 'ja': -15.5, 'zh': -17}
-        for language, close in old_close.items():
+        for language, band in POLICY.items():
+            if language == 'default': continue
             with self.subTest(language=language):
-                self.assertEqual(verdict(close + 6.5, .5, 'a', language), 'close')
-                self.assertEqual(verdict(close + .5, .5, 'a', language), 'retry')
+                self.assertEqual(verdict(band['close'] + .5, .5, 'a', language), 'close')
+                self.assertEqual(verdict(band['close'] - .5, .5, 'a', language), 'retry')
+        self.assertLess(POLICY['zh']['close'], POLICY['es']['close'])  # Chinese scores lower for the same correct word
+        self.assertEqual(verdict(POLICY['default']['close'] - .5, 0.5, 'a', 'xx'), 'retry')  # unmeasured language: default
+
+    def test_forgiving_for_young_children(self):
+        # A Spanish attempt at -11 was "retry" under the old bar (-10.5); it now counts (close = success in the player).
+        self.assertEqual(verdict(-11, .5, 'a', 'es'), 'close')
+        self.assertEqual(verdict(-25, .5, 'a', 'es'), 'retry')  # far off still hears the word modelled again
 
     def test_vowel_slips_are_coached(self):
         self.assertEqual(score('p e s o', 'p i s u', -7.0, 0.5)['coach'], {'expected': 'e', 'heard': 'i'})

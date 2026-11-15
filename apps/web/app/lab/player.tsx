@@ -16,7 +16,7 @@ import s from "./lab.module.css";
 import { afterRelease, canTake, type SoundOwner } from "./sound";
 import { fetchLine, fetchVoice, captionFallback, streamVoice } from "./voice";
 import dubsData from "./dubs.json";
-import { listenOnce, openMic, recorderOptions } from "./listen";
+import { listenOnce, openMic, recorderOptions, VAD } from "./listen";
 import { localFlair } from "./flair";
 import { clearlyCorrect } from "./quick-judge";
 import { createTrace } from "./trace-client";
@@ -124,13 +124,27 @@ const spoken = (p: Practice) => p.word;
 
 // Dora's lines built from the spot's lesson, for spots without hand-written lines. No saved audio exists
 // for these, so they're spoken live by the voice server.
-function lessonText(stage: Stage, sp: Spot, practiced = false, practice: Practice | null = null): string | null {
+// What Dora remembers (GET /api/play/memory, then updated live): the child's name and each practised word's level.
+type Memory = { name: string; words: Record<string, string> };
+const NO_MEMORY: Memory = { name: "", words: {} };
+const knownLevel = (mem: Memory, p: Practice) => mem.words[`${p.language}|${p.word}`]; // heard | said | remembered
+
+function lessonText(stage: Stage, sp: Spot, practiced = false, practice: Practice | null = null, mem: Memory = NO_MEMORY): string | null {
+  const name = mem.name ? `, ${mem.name}` : "";
   if (stage === "asking" && sp.preparedLine?.startsWith("demo")) return LINES[sp.preparedLine] ?? null;
   if (practice) {
+    // Dora remembers: a word the child already said gets "you know this one", one they only heard gets "remember".
+    const known = knownLevel(mem, practice);
     if (stage === "practicing") return practiced
       ? `Listen: ${practice.word}! Let's try ${practice.word} one more time!`
-      : `In ${practice.name}, ${practice.english} is ${spoken(practice)}! Can you say ${practice.word}?`;
-    if (practiced && stage === "celebrating") return `Yes! ${practice.word}! You said it in ${practice.name}!`;
+      : known === "said" || known === "remembered"
+        ? `You know this one${name}! In ${practice.name}, ${practice.english} is ${spoken(practice)}. Say it again!`
+        : known === "heard"
+          ? `Remember this one? In ${practice.name}, ${practice.english} is ${spoken(practice)}! Can you say ${practice.word}?`
+          : `In ${practice.name}, ${practice.english} is ${spoken(practice)}! Can you say ${practice.word}?`;
+    if (practiced && stage === "celebrating") return known === "said" || known === "remembered"
+      ? `You remembered ${practice.word}${name}! Great memory!`
+      : `Yes! ${practice.word}! You said it in ${practice.name}${name}!`;
     if (practiced && stage === "giving") return `${spoken(practice)}! That's ${practice.english} in ${practice.name}. Great try!`;
   }
   if (practiced && practice && stage === "nudging") return `Your turn! Can you say ${practice.word}?`;
@@ -390,6 +404,17 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
         question: askedText(sp).slice(0, 300), skill: sp.skill,
         word: n.stage === "practicing" ? practiceFor(sp, learnRef.current)?.word : undefined,
       });
+      // Dora remembers within the viewing too: the word just taught counts as heard, as said once the kid got it,
+      // and is saved into memory when the exchange ends (so her lines for this exchange stay as she said them).
+      const word = practiceFor(sp, learnRef.current);
+      if (word && n.stage === "practicing" && !learnedNow.current) learnedNow.current = { id: `${word.language}|${word.word}`, level: "heard" };
+      if (word && n.stage === "celebrating" && n.practiced) learnedNow.current = { id: `${word.language}|${word.word}`, level: "said" };
+      if (n.stage === "exiting" && learnedNow.current) {
+        const { id, level } = learnedNow.current;
+        const had = memory.current.words[id];
+        if (!(had === "remembered" || (had === "said" && level === "heard"))) memory.current.words[id] = level;
+        learnedNow.current = null;
+      }
       if (n.stage === "watching") turnId.current = null;
     }
     const t = episode.current ? fmt(episode.current.currentTime) : "00:00.0";
@@ -422,11 +447,20 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
   }
 
   // Hands-free end of turn: think out loud, then judge. Clear answers skip Luna entirely.
+  // The kid's first short pause: Dora's "Hmm!" plays right there, before the answer is even final, the way a
+  // listener says "mm". It's the first thing they hear back, ~0.2 s after they stop.
+  const fillerPlayed = useRef(false);
+  function onKidPause() {
+    if (fillerPlayed.current) return;
+    fillerPlayed.current = true;
+    gap.current = { from: performance.now() - VAD.pauseMs, first: null };
+    playFiller();
+  }
   function onKidDone(clip: Blob, lastSpeechAt: number) {
-    gap.current = { from: lastSpeechAt, first: null };
+    gap.current = { from: lastSpeechAt, first: gap.current?.first ?? null };
     labVerdict.current = null;
     send("SPEECH_END");
-    playFiller();
+    if (!fillerPlayed.current) playFiller();
     if (sayTarget()) void scoreClip(clip);
     else void transcribeAndJudge(clip);
   }
@@ -458,6 +492,13 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
   // Dora's predictable lines (the word to practise, her praise for it, "let's try once more") are generated in the
   // background while the kid is still answering, then start the instant she needs them: no silent wait for
   // voice generation between her lines. Lines that depend on the answer (Luna's hints) still stream live.
+  const memory = useRef<Memory>(NO_MEMORY);
+  const learnedNow = useRef<{ id: string; level: "heard" | "said" } | null>(null); // this exchange's word, saved at its end
+  useEffect(() => {
+    if (!kid) return;
+    fetch("/api/play/memory").then((r) => r.json()).then((m: Memory) => { memory.current = { name: m.name ?? "", words: m.words ?? {} }; })
+      .catch(() => undefined); // no memory: Dora just teaches every word as new
+  }, [kid]);
   const readyLines = useRef(new Map<string, AudioBuffer>());
   const pendingLines = useRef(new Set<string>());
   const lineId = (text: string) => `${learnRef.current}|${text}`;
@@ -486,6 +527,14 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
       onStart();
       source.start();
     });
+  }
+
+  // Listening broke (a service down, a clip it couldn't take): try again a couple of times, then Dora moves on
+  // gracefully ("Let's keep going!") instead of silently looping on "listening" while the kid keeps answering.
+  function listeningFailed(why: string) {
+    if (heardNothing()) return setJudgeInfo(`${why} Listening again.`);
+    setJudgeInfo(why);
+    send("ERROR");
   }
 
   // Each judging request (transcribe, pronounce, Luna) takes a ticket. Its reply counts only while its ticket
@@ -561,7 +610,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
       void askLuna(out.text);
     } catch (error) {
       if (!stillMine(mine)) return;
-      backToListening(error instanceof Error ? error.message : "Transcription failed.");
+      listeningFailed(error instanceof Error ? error.message : "Transcription failed.");
     }
   }
 
@@ -638,7 +687,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
       send(instant[out.verdict as keyof typeof instant] ?? "UNCLEAR");
     } catch (error) {
       if (!stillMine(mine)) return;
-      backToListening(error instanceof Error ? error.message : "Scoring failed.");
+      listeningFailed(error instanceof Error ? error.message : "Scoring failed.");
     }
   }
 
@@ -848,7 +897,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
       const current = ctxRef.current;
       const sp = spotRef.current;
       const file = lineFor(current.stage, sp, current.tries);
-      const standard = lessonText(current.stage, sp, current.practiced, practiceFor(sp, learnRef.current));
+      const standard = lessonText(current.stage, sp, current.practiced, practiceFor(sp, learnRef.current), memory.current);
       if (STAGES[current.stage].line && speechCaption && speechCaption !== standard && speechCaption !== (file ? LINES[file] : undefined)) liveText.current = speechCaption;
       ticket(); send("PAUSE");
     }
@@ -872,16 +921,16 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     {
       const c = ctxRef.current;
       const p = practiceFor(sp, learnRef.current);
-      if (stage === "entering" && c.practice && p) prepareLine(lessonText("practicing", sp, false, p)); // after a right answer
+      if (stage === "entering" && c.practice && p) prepareLine(lessonText("practicing", sp, false, p, memory.current)); // after a right answer
       if (stage === "teaching") { // a miss: the later rungs of the ladder become likely
         prepareLine(lessonText("modeling", sp, c.practiced, null));
         prepareLine(lessonText("giving", sp, c.practiced, null));
       }
       if (stage === "practicing" && p) {
-        prepareLine(lessonText("celebrating", sp, true, p)); // "Yes! …! You said it in Hindi!"
-        prepareLine(lessonText("nudging", sp, true, p)); // "Your turn! Can you say …?"
-        prepareLine(lessonText("practicing", sp, true, p)); // "Listen: …! Let's try … one more time!"
-        prepareLine(lessonText("giving", sp, true, p));
+        prepareLine(lessonText("celebrating", sp, true, p, memory.current)); // "Yes! …! You said it in Hindi!"
+        prepareLine(lessonText("nudging", sp, true, p, memory.current)); // "Your turn! Can you say …?"
+        prepareLine(lessonText("practicing", sp, true, p, memory.current)); // "Listen: …! Let's try … one more time!"
+        prepareLine(lessonText("giving", sp, true, p, memory.current));
       }
     }
     if (stage === "entering" || stage === "practicing") emptyClips.current = 0;
@@ -1052,7 +1101,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     if (meta.line) {
       filler.current!.pause(); // never talk over her own "Hmm!"
       const file = lineFor(stage, sp, ctxRef.current.tries);
-      const fromLesson = lessonText(stage, sp, ctxRef.current.practiced, practiceFor(sp, learnRef.current));
+      const fromLesson = lessonText(stage, sp, ctxRef.current.practiced, practiceFor(sp, learnRef.current), memory.current);
       if (file || fromLesson) {
         const customText = liveText.current;
         liveText.current = null;
@@ -1140,9 +1189,10 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     if (!mic || stage !== "listening") return;
     const abort = new AbortController();
     setHearing(false);
+    fillerPlayed.current = false;
     // Start a beat after Dora stops, so the tail of her own voice in the room can't open the "answer".
     const armed = new Promise((resolve) => setTimeout(resolve, LISTEN_AFTER_LINE_MS));
-    armed.then(() => listenOnce(mic, audio.current!.ctx, abort.signal, () => setHearing(true)))
+    armed.then(() => listenOnce(mic, audio.current!.ctx, abort.signal, () => setHearing(true), onKidPause))
       .then((heard) => {
         if (abort.signal.aborted) return;
         setHearing(false);
@@ -1201,7 +1251,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
   const file = lineFor(stage, spot, ctx.tries);
   const practiceNow = practiceFor(spot, learn);
   const sayNow = practiceNow && (ctx.practiced || swapsSayWord(spot, practiceNow)) ? practiceNow : spot.say; // what the record button scores
-  const lineText = lessonText(stage, spot, ctx.practiced, practiceFor(spot, learn)) ?? (file && LINES[file] ? localFlair(LINES[file], learn) : null);
+  const lineText = lessonText(stage, spot, ctx.practiced, practiceFor(spot, learn), memory.current) ?? (file && LINES[file] ? localFlair(LINES[file], learn) : null);
   const caption = lineText ? (voiceFor === `${stage}:${speechVersion}` ? speechCaption ?? lineText : "") // captioned as she says it, never before
     : flash ? flash
     : stage === "listening" ? (hearing ? "I'm listening…" : ctx.practiced && practiceNow ? `${practiceNow.english} → ${practiceNow.word}${practiceNow.romanized !== practiceNow.word ? ` (${practiceNow.romanized})` : ""}` : "Your turn!")

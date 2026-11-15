@@ -1,7 +1,7 @@
 // Run: node --test apps/web/app/lab/listen.test.ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { VAD, VAD_START, vadStep } from "./listen.ts";
+import { CLIP, VAD, VAD_START, encodeWav, speechWindow, vadStep } from "./listen.ts";
 
 const run = (frames: number[]) => {
   let state = VAD_START;
@@ -49,4 +49,31 @@ test("throttled timers (1 s ticks in a background tab) still end the answer", ()
   let done = null;
   for (const rms of [0.002, 0.1, 0.1, 0.002]) ({ state, done } = vadStep(state, rms, 1000));
   assert.equal(done, "spoke");
+});
+
+test("the clip is the answer only: from just before speech started to just after it stopped", () => {
+  const rate = 48000;
+  // 6 s of waiting, then speech detected at 6.2 s after 200 ms of loudness, then 400 ms of quiet at 8 s.
+  const [from, to] = speechWindow(8 * rate, rate, 6.2 * rate, 200, 400);
+  assert.equal(from, Math.round((6.2 - 0.2 - CLIP.prerollMs / 1000) * rate)); // 0.3 s before the speech began
+  assert.equal(to, 8 * rate - Math.round((0.4 - CLIP.tailMs / 1000) * rate)); // keeps 250 ms of the trailing quiet
+  assert.ok((to - from) / rate < 2.2, "about 2 s instead of 8");
+  assert.deepEqual(speechWindow(1000, rate, 100, 200, 0), [0, 1000]); // never runs past either end
+});
+
+test("a clip is a 16 kHz mono 16-bit WAV, a fraction of the size of the browser recording", () => {
+  const rate = 48000;
+  const tone = Float32Array.from({ length: rate }, (_, i) => Math.sin((2 * Math.PI * 440 * i) / rate) * 0.5); // 1 s
+  const wav = encodeWav(tone, rate);
+  const view = new DataView(wav.buffer);
+  const str = (at: number, n: number) => String.fromCharCode(...wav.slice(at, at + n));
+  assert.equal(str(0, 4), "RIFF");
+  assert.equal(str(8, 4), "WAVE");
+  assert.equal(view.getUint16(22, true), 1); // mono
+  assert.equal(view.getUint32(24, true), 16000);
+  assert.equal(view.getUint16(34, true), 16); // bits
+  assert.equal(view.getUint32(40, true), 16000 * 2); // 1 s of 16-bit samples
+  assert.equal(wav.length, 44 + 32000); // ~32 KB per second (Chrome's PCM recording: ~372 KB)
+  const peak = Math.max(...Array.from({ length: 16000 }, (_, i) => Math.abs(view.getInt16(44 + i * 2, true))));
+  assert.ok(peak > 0.45 * 0x7fff && peak <= 0.5 * 0x7fff + 1, "the signal survives resampling");
 });

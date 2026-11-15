@@ -1,17 +1,54 @@
 {
-  "note": "Starting guesses to tune with real children; thresholds currently have only synthetic and boundary checks.",
+  "note": "Starting guesses to tune with real children. Made more forgiving for 3-6 year olds (close counts as a success in the player); silence is still caught separately.",
   "pronunciation": {
-    "en": { "good": -4.5, "close": -10.5 },
-    "es": { "good": -4.5, "close": -10.5 },
-    "de": { "good": -6, "close": -12 },
-    "fr": { "good": -6, "close": -12 },
-    "hi": { "good": -7.5, "close": -13.5 },
-    "ja": { "good": -8, "close": -14 },
-    "zh": { "good": -9.5, "close": -15.5 },
-    "default": { "good": -7.5, "close": -13.5 }
+    "en": {
+      "good": -6.0,
+      "close": -13.5
+    },
+    "es": {
+      "good": -6.0,
+      "close": -13.5
+    },
+    "de": {
+      "good": -7.5,
+      "close": -15
+    },
+    "fr": {
+      "good": -7.5,
+      "close": -15
+    },
+    "hi": {
+      "good": -9.0,
+      "close": -16.5
+    },
+    "ja": {
+      "good": -9.5,
+      "close": -17
+    },
+    "zh": {
+      "good": -11.0,
+      "close": -18.5
+    },
+    "default": {
+      "good": -9.0,
+      "close": -16.5
+    }
   },
-  "practice": { "maxAttempts": 2 },
-  "recall": { "skills": ["recall-places", "recall-objects", "recall-events"], "editDivisor": 12 },
-  "answers": { "editDivisor": 4 },
-  "playback": { "thinkingDelayMs": 120 }
+  "practice": {
+    "maxAttempts": 2
+  },
+  "recall": {
+    "skills": [
+      "recall-places",
+      "recall-objects",
+      "recall-events"
+    ],
+    "editDivisor": 12
+  },
+  "answers": {
+    "editDivisor": 4
+  },
+  "playback": {
+    "thinkingDelayMs": 120
+  }
 }

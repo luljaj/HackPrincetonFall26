@@ -1,6 +1,8 @@
 export const runtime = "nodejs";
 
-const MAX_AUDIO_BYTES = 2_000_000;
+// Chrome records lossless PCM at ~372 KB/s and a listening window runs up to 8 s (~3 MB): 2 MB rejected any
+// answer given after ~5 s of thinking, and the player just went back to listening, again and again.
+const MAX_AUDIO_BYTES = 6_000_000;
 const LANGUAGE = /^[a-z]{2,3}$/;
 
 // Kid's spoken answer → local Whisper (tools/pronounce-server.py), primed with the expected answers.
@@ -10,7 +12,7 @@ export async function POST(request: Request): Promise<Response> {
   const hint = form?.get("hint") ?? "";
   const languages = (form?.getAll("languages") ?? []).filter((l): l is string => typeof l === "string" && LANGUAGE.test(l));
   if (!(audio instanceof Blob) || audio.size === 0 || audio.size > MAX_AUDIO_BYTES || typeof hint !== "string" || languages.length === 0) {
-    return Response.json({ error: "Send audio (up to 2 MB), a hint and at least one language." }, { status: 400 });
+    return Response.json({ error: "Send audio (up to 6 MB), a hint and at least one language." }, { status: 400 });
   }
   try {
     const upstream = await fetch("http://127.0.0.1:8767/transcribe", {

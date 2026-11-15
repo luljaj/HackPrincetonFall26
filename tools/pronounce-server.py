@@ -158,7 +158,7 @@ def main():
             parse, run = routes[self.path]
             try:
                 size = int(self.headers.get('Content-Length', '0'))
-                if not 0 < size <= 3_100_000: raise ValueError('Invalid request size.')
+                if not 0 < size <= 8_400_000: raise ValueError('Invalid request size.')  # an 8 s PCM clip is ~3 MB, ~4 MB as base64
                 req = parse(self.rfile.read(size))
             except (ValueError, UnicodeError) as exc:
                 return self.reply(400, {'error': str(exc)})

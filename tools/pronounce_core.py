@@ -105,7 +105,7 @@ def parse_request(body: bytes | str) -> dict:
     if not isinstance(word, str) or not 0 < len(word.strip()) <= 40: raise ValueError('word must be 1-40 characters.')
     if not isinstance(language, str) or not LANGUAGE.match(language): raise ValueError('language must be a 2-3 letter code.')
     if not isinstance(ipa, str) or not 0 < len(norm(ipa)) <= 40: raise ValueError('ipa must contain 1-40 phones.')
-    if not isinstance(audio, str) or not 0 < len(audio) <= 3_000_000: raise ValueError('audio must be base64, up to about 2 MB.')
+    if not isinstance(audio, str) or not 0 < len(audio) <= 8_200_000: raise ValueError('audio must be base64, up to about 6 MB.')
     return {'word': word.strip(), 'language': language, 'ipa': ipa, 'audio': audio}
 
 
@@ -113,7 +113,7 @@ def parse_transcribe_request(body: bytes | str) -> dict:
     data = json.loads(body)
     if not isinstance(data, dict): raise ValueError('Provide a JSON object.')
     audio, hint, languages = data.get('audio'), data.get('hint', ''), data.get('languages', ['en'])
-    if not isinstance(audio, str) or not 0 < len(audio) <= 3_000_000: raise ValueError('audio must be base64, up to about 2 MB.')
+    if not isinstance(audio, str) or not 0 < len(audio) <= 8_200_000: raise ValueError('audio must be base64, up to about 6 MB.')
     if not isinstance(hint, str) or len(hint) > 300: raise ValueError('hint must be up to 300 characters.')
     if not isinstance(languages, list) or not 0 < len(languages) <= 4 or not all(isinstance(c, str) and LANGUAGE.match(c) for c in languages):
         raise ValueError('languages must be 1-4 language codes.')
