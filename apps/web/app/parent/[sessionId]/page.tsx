@@ -16,7 +16,7 @@ export default async function SessionPage({
   const initial = await getParentViewReader().getParentView(sessionId);
   if (!initial) notFound();
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col items-start gap-6">
       <LiveProgress initial={initial} childName={childName()} />
       {sessionId !== SAMPLE_SESSION_ID && <DeleteSessionButton sessionId={sessionId} />}
     </div>

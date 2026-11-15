@@ -431,10 +431,11 @@ body {
 /* Parent dashboard: warm light palette folded in from the apps/parent mock.
    Re-points the shared tokens for everything under /parent, so every component follows it. */
 .parent-theme {
-  --background: #faf7f2;
-  --foreground: #23201c;
+  /* Tellavision look (Figma parent frames): near-white page, black ink, hairline borders. */
+  --background: #fdfdfc;
+  --foreground: #000000;
   --card: #ffffff;
-  --line: #ebe4d9;
+  --line: rgb(0 0 0 / 0.1);
   --good: #2f9e5b;
   --warn: #d98a1c;
   --attention: #b45309;

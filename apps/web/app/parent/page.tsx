@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia } from "@/components/ui/empty";
 import { childName } from "../../lib/parent/child";
-import { demoToolsEnabled } from "../../lib/parent/demo";
 import { getParentViewReader } from "../../lib/parent/reader";
 import { showFor } from "../../lib/parent/shows";
 import { parentStats } from "../../lib/parent/stats";
@@ -13,7 +12,7 @@ import type { ParentView } from "../../lib/parent/types";
 import { AFTER_HELP_CHIP, SNAPSHOT_NOTE, statsLabels, statusChip } from "../../lib/parent/wording";
 import { AutoRefresh } from "./_components/auto-refresh";
 import { TAB_HEIGHT, TAB_WIDTH, TabPanelOutline } from "./_components/tab-panel-outline";
-import { ChartIcon, EpisodesIcon, FamilyIcon, HelpIcon, QuestionsIcon } from "./_components/tv-icons";
+import { ChartIcon, EpisodesIcon, HelpIcon, QuestionsIcon } from "./_components/tv-icons";
 
 export const dynamic = "force-dynamic";
 
@@ -45,36 +44,10 @@ export default async function ParentHome({
   const others = views.filter((v) => v !== selected);
 
   return (
-    <div className="tv-home flex flex-col font-lexend text-sm leading-[1.35] font-medium lg:h-[calc(100dvh-3rem)] lg:min-h-[640px]">
+    <div className="tv-home flex flex-col min-h-0 flex-1 lg:min-h-[520px]">
       <AutoRefresh seconds={5} />
 
-      <header className="flex flex-wrap items-start justify-between gap-6">
-        <div className="flex flex-col items-start gap-2.5">
-          <p className="font-display text-xl font-bold text-[#161616]">Tellavision</p>
-          <Badge className="gap-2.5 px-[9px] py-1 text-base text-tv-badge [--r:11px] [&>svg]:size-5">
-            <FamilyIcon />
-            Parent View
-          </Badge>
-        </div>
-        <nav className="flex flex-col items-end gap-3">
-          <p className="text-base">Go to</p>
-          <div className="flex flex-col items-end gap-[7px]">
-            <Badge asChild variant="outline">
-              <Link href="/parent/live">Live now</Link>
-            </Badge>
-            <Badge asChild variant="outline">
-              <Link href="/parent/preview">By subject (sample)</Link>
-            </Badge>
-            {demoToolsEnabled() && (
-              <Badge asChild variant="outline">
-                <Link href="/parent/insights">Insights</Link>
-              </Badge>
-            )}
-          </div>
-        </nav>
-      </header>
-
-      <h1 className="mt-3 font-display text-4xl font-bold">{name}&apos;s Learning Moments</h1>
+      <h1 className="font-display text-4xl font-bold">{name}&apos;s Learning Moments</h1>
       <p className="mt-4 text-muted-foreground">Previously watched</p>
 
       {selected ? (

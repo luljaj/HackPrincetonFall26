@@ -1,9 +1,13 @@
 import { notFound } from "next/navigation";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { demoToolsEnabled } from "../../../lib/parent/demo";
 import { getInsightsDb } from "../../../server/storage";
 import { activityReport } from "../../../server/storage/insights";
 import type { StoreDb } from "../../../server/storage/postgres";
 import { AutoRefresh } from "../_components/auto-refresh";
+import { PANEL } from "../_components/panel";
+import { EmptyState } from "../_components/states";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +21,7 @@ export default async function InsightsPage({
   if (!demoToolsEnabled()) notFound();
   const db = getInsightsDb();
   if (!db) {
-    return <p className="text-foreground/70">Insights need the database (PIPELINE_STORE=postgres).</p>;
+    return <EmptyState>Insights need the database (PIPELINE_STORE=postgres).</EmptyState>;
   }
   const q = await searchParams;
   const report = await activityReport(db as unknown as StoreDb, {
@@ -29,12 +33,12 @@ export default async function InsightsPage({
   const fmt = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" });
 
   return (
-    <div className="space-y-6">
+    <div className="flex w-full max-w-[880px] flex-col gap-5">
       <AutoRefresh seconds={5} />
-      <header className="space-y-1">
-        <p className="text-sm text-foreground/60">Demo insights · team view</p>
-        <h1 className="text-2xl font-semibold">Learning activity</h1>
-        <p className="text-sm text-foreground/70">
+      <header className="flex flex-col gap-1">
+        <p className="text-muted-foreground">Demo insights · team view</p>
+        <h1 className="font-display text-4xl font-bold">Learning activity</h1>
+        <p className="mt-2 text-muted-foreground">
           Every session start and saved answer is an event in the <code>learning_events</code>{" "}
           {report.engine === "timescaledb" ? "TimescaleDB hypertable on Tiger Cloud" : "table"},
           grouped into {report.bucketMinutes}-minute buckets with{" "}
@@ -43,48 +47,54 @@ export default async function InsightsPage({
         </p>
       </header>
 
-      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className={`${PANEL} flex flex-col gap-5`}>
+      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[
           ["Sessions", t.sessionsStarted],
           ["Answers", t.answers],
           ["Incorrect", t.incorrect],
           ["With assistance", t.withAssistance],
         ].map(([label, value]) => (
-          <div key={label} className="rounded-2xl border border-line bg-card p-3">
-            <dt className="text-xs text-foreground/60">{label}</dt>
-            <dd className="text-2xl font-semibold tabular-nums">{value}</dd>
-          </div>
+          <li key={label}>
+            <Card className="px-4 py-3">
+              <CardHeader className="gap-0 px-0">
+                <CardTitle className="text-2xl leading-[1.35] tabular-nums">{value}</CardTitle>
+                <CardDescription className="text-xs">{label}</CardDescription>
+              </CardHeader>
+            </Card>
+          </li>
         ))}
-      </dl>
+      </ul>
 
       {report.buckets.length === 0 ? (
-        <p className="text-foreground/70">No activity in this window yet.</p>
+        <p className="text-muted-foreground">No activity in this window yet.</p>
       ) : (
-        <table className="w-full text-sm tabular-nums">
-          <thead className="text-left text-foreground/60">
-            <tr>
-              <th className="py-1 font-normal">Time</th>
-              <th className="py-1 text-right font-normal">Sessions</th>
-              <th className="py-1 text-right font-normal">Answers</th>
-              <th className="py-1 text-right font-normal">Correct</th>
-              <th className="py-1 text-right font-normal">Incorrect</th>
-              <th className="py-1 text-right font-normal">Other</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table className="tabular-nums">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Time</TableHead>
+              <TableHead className="text-right">Sessions</TableHead>
+              <TableHead className="text-right">Answers</TableHead>
+              <TableHead className="text-right">Correct</TableHead>
+              <TableHead className="text-right">Incorrect</TableHead>
+              <TableHead className="text-right">Other</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {report.buckets.map((b) => (
-              <tr key={b.bucketStart} className="border-t border-foreground/10">
-                <td className="py-1">{fmt.format(new Date(b.bucketStart))}</td>
-                <td className="py-1 text-right">{b.sessionsStarted}</td>
-                <td className="py-1 text-right">{b.answers}</td>
-                <td className="py-1 text-right">{b.correct}</td>
-                <td className="py-1 text-right">{b.incorrect}</td>
-                <td className="py-1 text-right">{b.other}</td>
-              </tr>
+              <TableRow key={b.bucketStart}>
+                <TableCell>{fmt.format(new Date(b.bucketStart))}</TableCell>
+                <TableCell className="text-right">{b.sessionsStarted}</TableCell>
+                <TableCell className="text-right">{b.answers}</TableCell>
+                <TableCell className="text-right">{b.correct}</TableCell>
+                <TableCell className="text-right">{b.incorrect}</TableCell>
+                <TableCell className="text-right">{b.other}</TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       )}
+      </div>
     </div>
   );
 }

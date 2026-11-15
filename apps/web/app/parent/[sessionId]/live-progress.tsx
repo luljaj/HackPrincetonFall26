@@ -37,7 +37,7 @@ export function LiveProgress({ initial, childName }: { initial: ParentView; chil
   }, [sessionId]);
 
   return (
-    <div className="space-y-6">
+    <div className="flex w-full flex-col gap-5">
       {error && <ErrorState message={error} />}
       <SessionView view={view} childName={childName} />
     </div>

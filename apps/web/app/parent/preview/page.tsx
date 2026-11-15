@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   gradeProgress,
   PREVIEW_CHILD,
@@ -11,6 +14,7 @@ import {
 import { getParentViewReader } from "../../../lib/parent/reader";
 import { AFTER_HELP_CHIP, statusChip, type ChipTone } from "../../../lib/parent/wording";
 import { Chip } from "../_components/chip";
+import { PANEL } from "../_components/panel";
 
 export const dynamic = "force-dynamic";
 
@@ -30,44 +34,31 @@ export default async function PreviewPage() {
   const realMath = (await getParentViewReader().listParentViews(20)).filter((v) => !v.isSample);
 
   return (
-    <>
-      <div
-        role="note"
-        className="rounded-2xl border-2 border-dashed border-warn bg-warn/10 px-5 py-4 text-sm"
-      >
-        <p className="font-semibold">Preview with sample data</p>
-        <p className="text-foreground/80">
+    <div className="flex w-full flex-col gap-5">
+      <header className="flex flex-col items-start gap-1">
+        <Badge asChild variant="outline">
+          <Link href="/parent">← Back to real sessions</Link>
+        </Badge>
+        <h1 className="mt-2 font-display text-4xl font-bold">
+          {PREVIEW_CHILD}&apos;s Learning by Subject
+        </h1>
+        <p className="text-muted-foreground">{PREVIEW_PERIOD}</p>
+      </header>
+
+      <Alert role="note" className="max-w-[880px]">
+        <AlertTitle className="line-clamp-none">Preview with sample data</AlertTitle>
+        <AlertDescription>
           How {PREVIEW_CHILD}&apos;s view could look after a few weeks of watching. These subjects,
           skills and sessions are made up for the demo. Only the &ldquo;Live today&rdquo; box under
           Math shows real sessions.
-        </p>
-      </div>
+        </AlertDescription>
+      </Alert>
 
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground/60">
-            Parent view · preview
-          </p>
-          <h1 className="text-[32px] font-bold tracking-tight">
-            {PREVIEW_CHILD}&apos;s learning by subject
-          </h1>
-          <p className="text-sm text-foreground/60">{PREVIEW_PERIOD}</p>
-        </div>
-        <Link className="text-sm underline" href="/parent">
-          ← Back to real sessions
-        </Link>
-      </header>
-
-      <nav className="flex flex-wrap gap-2" aria-label="Subjects">
+      <nav className="flex flex-wrap gap-[7px]" aria-label="Subjects">
         {PREVIEW_SUBJECTS.map((s) => (
-          <a
-            key={s.id}
-            href={`#${s.id}`}
-            className="rounded-full border border-line bg-card px-4 py-1.5 text-sm font-semibold"
-            style={{ color: s.color }}
-          >
-            {s.name}
-          </a>
+          <Badge key={s.id} asChild variant="outline" className="px-3 py-1 text-sm">
+            <a href={`#${s.id}`}>{s.name}</a>
+          </Badge>
         ))}
       </nav>
 
@@ -75,87 +66,88 @@ export default async function PreviewPage() {
         <SubjectSection key={s.id} subject={s} liveCount={s.id === "math" ? realMath.length : null} />
       ))}
 
-      <p className="text-sm text-foreground/60">
+      <p className="text-xs text-muted-foreground">
         Sample data for the demo. A real view would only show what was actually heard and saved,
         and a single answer is a snapshot, not a measure of mastery.
       </p>
-    </>
+    </div>
   );
 }
 
 function SubjectSection({ subject, liveCount }: { subject: PreviewSubject; liveCount: number | null }) {
   return (
-    <section
-      id={subject.id}
-      className="scroll-mt-6 space-y-5 rounded-2xl border border-l-[6px] border-line bg-card px-5 py-5"
-      style={{ borderLeftColor: subject.color }}
-    >
-      <div className="space-y-1">
+    <section id={subject.id} className={`${PANEL} grid scroll-mt-6 gap-x-8 gap-y-5 lg:grid-cols-2`}>
+      <div className="flex flex-col gap-1 lg:col-span-2">
         <div className="flex items-center gap-2">
-          <h2 className="text-2xl font-bold" style={{ color: subject.color }}>
-            {subject.name}
-          </h2>
-          <span className="rounded border border-foreground/30 px-1.5 text-xs uppercase">Sample</span>
+          <h2 className="font-display text-[32px] font-bold">{subject.name}</h2>
+          <Badge variant="outline">Sample</Badge>
         </div>
-        <p className="text-[17px]">{subject.headline}</p>
+        <p className="text-base">{subject.headline}</p>
       </div>
 
-      <GradePath subject={subject} />
+      <div className="flex flex-col gap-3 lg:col-span-2">
+        <GradePath subject={subject} />
 
       {liveCount !== null && (
-        <div className="rounded-xl border border-good/40 bg-good/10 px-4 py-3 text-sm">
-          <p className="font-semibold">Live today: real Dora counting sessions</p>
-          <p className="text-foreground/80">
+        <Card className="gap-1 border-2 border-primary px-5 py-4">
+          <CardHeader className="px-0">
+            <CardTitle className="font-lexend text-sm leading-[1.35] font-medium">
+              Live today: real Dora counting sessions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center gap-2 px-0 text-muted-foreground">
             {liveCount === 0
               ? "Today's Dora apple-counting moments will appear here as real Math sessions."
-              : `${liveCount} real session${liveCount === 1 ? "" : "s"} from today's demo count toward Math.`}{" "}
-            <Link className="underline" href="/parent">
-              See them
-            </Link>
-          </p>
-        </div>
+              : `${liveCount} real session${liveCount === 1 ? "" : "s"} from today's demo count toward Math.`}
+            <Badge asChild variant="outline">
+              <Link href="/parent">See them</Link>
+            </Badge>
+          </CardContent>
+        </Card>
       )}
+      </div>
 
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-foreground/60">Skills</h3>
-        <ul className="divide-y divide-line">
+        <h3 className="mb-2 text-muted-foreground">Skills</h3>
+        <ul className="flex flex-col gap-2">
           {subject.skills.map((k) => (
-            <li key={k.name} className="flex flex-wrap items-center justify-between gap-2 py-2">
-              <span>
-                <span className="mr-2 rounded bg-foreground/5 px-1.5 py-0.5 text-xs text-foreground/60">
-                  Grade {k.grade}
+            <li key={k.name}>
+              <Card className="flex-row flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+                <span className="flex items-center gap-2">
+                  <Badge variant="outline" className="shadow-none">Grade {k.grade}</Badge>
+                  {k.name}
                 </span>
-                {k.name}
-              </span>
-              <span className="text-sm text-foreground/60">
-                {k.tries > 0 ? `${k.tries} tries` : ""}
-                <Chip tone={SKILL_TONE[k.status]}>{SKILL_STATUS_LABEL[k.status]}</Chip>
-              </span>
+                <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {k.tries > 0 ? `${k.tries} tries` : ""}
+                  <Chip tone={SKILL_TONE[k.status]}>{SKILL_STATUS_LABEL[k.status]}</Chip>
+                </span>
+              </Card>
             </li>
           ))}
         </ul>
       </div>
 
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-foreground/60">Recent moments (sample)</h3>
-        <ol className="grid gap-3">
+        <h3 className="mb-2 text-muted-foreground">Recent moments (sample)</h3>
+        <ol className="flex flex-col gap-2">
           {subject.sessions.map((m) => {
             const chip = statusChip(m.status);
             return (
-              <li key={m.date} className="grid gap-1 border-t border-line pt-3">
-                <p className="text-sm text-foreground/60">
-                  <span className="font-semibold" style={{ color: m.color }}>
-                    {m.show}
-                  </span>{" "}
-                  · {day(m.date)}
-                </p>
-                <p>{m.question}</p>
-                <p>
-                  <span className="text-foreground/60">{PREVIEW_CHILD} said: </span>“{m.answer}”
-                  <Chip tone={chip.tone}>{chip.label}</Chip>
-                  {m.afterHelp && <Chip tone="muted">{AFTER_HELP_CHIP}</Chip>}
-                </p>
-                <p className="text-sm text-foreground/70">{m.summary}</p>
+              <li key={m.date}>
+                <Card className="gap-1 px-4 py-3">
+                  <CardHeader className="gap-0 px-0">
+                    <CardDescription className="text-xs">
+                      {m.show} · {day(m.date)}
+                    </CardDescription>
+                    <CardTitle className="font-lexend text-sm leading-[1.35] font-medium">{m.question}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-wrap items-center gap-2 px-0">
+                    <span className="font-display text-base font-bold">“{m.answer}”</span>
+                    <Chip tone={chip.tone}>{chip.label}</Chip>
+                    {m.afterHelp && <Chip tone="muted">{AFTER_HELP_CHIP}</Chip>}
+                  </CardContent>
+                  <CardFooter className="px-0 text-xs text-muted-foreground">{m.summary}</CardFooter>
+                </Card>
               </li>
             );
           })}
@@ -180,20 +172,21 @@ function GradePath({ subject }: { subject: PreviewSubject }) {
     },
   ];
   return (
-    <div className="space-y-2" aria-label={`${subject.name} grade path`}>
-      <h3 className="text-sm font-semibold text-foreground/60">
+    <div className="flex flex-col gap-2" aria-label={`${subject.name} grade path`}>
+      <h3 className="text-muted-foreground">
         Grade path: Grade {subject.gradeFrom} → Grade {subject.gradeTo}
       </h3>
       {rows.map((r) => (
-        <div key={r.label} className="grid grid-cols-[72px_1fr_auto] items-center gap-3 text-sm">
-          <span className="font-semibold">{r.label}</span>
-          <div className="h-2.5 overflow-hidden rounded-full bg-foreground/10">
+        <div key={r.label} className="grid grid-cols-[72px_1fr_auto] items-center gap-3">
+          <span>{r.label}</span>
+          {/* Thick rounded bar, yellow for progress, as the design asks of charts. */}
+          <div className="h-3.5 overflow-hidden rounded-full border border-border bg-card/50">
             <div
-              className="h-full rounded-full"
-              style={{ width: `${r.total ? (r.filled / r.total) * 100 : 0}%`, background: subject.color }}
+              className="h-full rounded-full bg-primary"
+              style={{ width: `${r.total ? (r.filled / r.total) * 100 : 0}%` }}
             />
           </div>
-          <span className="text-foreground/60">{r.note}</span>
+          <span className="text-xs text-muted-foreground">{r.note}</span>
         </div>
       ))}
     </div>

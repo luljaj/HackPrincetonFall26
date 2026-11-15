@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 // Dev/demo only: rendered only when DEMO_TOOLS=true.
 export function ResetDemoButton({ onReset }: { onReset?: () => void }) {
@@ -20,11 +21,11 @@ export function ResetDemoButton({ onReset }: { onReset?: () => void }) {
   };
 
   return (
-    <div className="flex items-center gap-3 rounded border border-dashed border-foreground/30 p-3 text-sm">
-      <span className="text-foreground/60">Demo tools</span>
-      <button type="button" onClick={onClick} className="rounded border border-foreground/30 px-3 py-1">
+    <div className="flex flex-wrap items-center gap-3">
+      <span className="text-muted-foreground">Demo tools</span>
+      <Button type="button" variant="outline" size="sm" onClick={onClick}>
         Reset demo
-      </button>
+      </Button>
       {status && <span role="status">{status}</span>}
     </div>
   );

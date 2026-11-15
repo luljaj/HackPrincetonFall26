@@ -7,7 +7,8 @@ import { subscribeToSession } from "../../../lib/parent/subscribe";
 import type { ParentView } from "../../../lib/parent/types";
 import { ResetDemoButton } from "../_components/reset-demo-button";
 import { SessionView } from "../_components/session-view";
-import { ErrorState, LoadingState } from "../_components/states";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState, ErrorState, LoadingState } from "../_components/states";
 
 type Live = { view: ParentView | null };
 
@@ -38,7 +39,8 @@ export function LiveSession({ demoTools, childName }: { demoTools: boolean; chil
   }, [refetch]);
 
   return (
-    <div className="space-y-6">
+    <div className="flex w-full max-w-[880px] flex-col gap-5">
+      <h1 className="font-display text-4xl font-bold">Live now</h1>
       {demoTools && <ResetDemoButton onReset={() => void refetch()} />}
       {error && <ErrorState message={error} />}
       {live === undefined ? (
@@ -46,12 +48,12 @@ export function LiveSession({ demoTools, childName }: { demoTools: boolean; chil
       ) : live.view ? (
         <SessionView key={live.view.progress.sessionId} view={live.view} childName={childName} />
       ) : (
-        <div className="space-y-2">
-          <p className="text-foreground/70">Waiting for a session to start…</p>
-          <Link className="text-sm underline" href={`/parent/${SAMPLE_SESSION_ID}`}>
-            View sample session
-          </Link>
-        </div>
+        <>
+          <EmptyState>Waiting for a session to start…</EmptyState>
+          <Badge asChild variant="outline" className="self-start">
+            <Link href={`/parent/${SAMPLE_SESSION_ID}`}>View sample session</Link>
+          </Badge>
+        </>
       )}
     </div>
   );

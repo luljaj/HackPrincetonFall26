@@ -1,21 +1,36 @@
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia } from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
+import { QuestionsIcon } from "./tv-icons";
+
 export function LoadingState() {
   return (
-    <div aria-busy="true" className="space-y-3">
-      <div className="h-6 w-1/3 animate-pulse rounded bg-foreground/10" />
-      <div className="h-24 animate-pulse rounded bg-foreground/10" />
-      <div className="h-24 animate-pulse rounded bg-foreground/10" />
+    <div aria-busy="true" className="flex flex-col gap-3">
+      <Skeleton className="h-8 w-1/3" />
+      <Skeleton className="h-24" />
+      <Skeleton className="h-24" />
     </div>
   );
 }
 
-export function EmptyState() {
-  return <p className="text-foreground/70">Waiting for the first answer…</p>;
+/** One icon and one short sentence on the big soft panel: the empty-state recipe from the design. */
+export function EmptyState({ children = "Waiting for the first answer…" }: { children?: React.ReactNode }) {
+  return (
+    <Empty className="min-h-[220px] flex-none gap-[21px] p-10 md:p-10">
+      <EmptyHeader>
+        <EmptyMedia className="mb-0">
+          <QuestionsIcon size={32} />
+        </EmptyMedia>
+        <EmptyDescription className="text-sm/[1.35] text-muted-foreground/70">{children}</EmptyDescription>
+      </EmptyHeader>
+    </Empty>
+  );
 }
 
 export function ErrorState({ message }: { message: string }) {
   return (
-    <p role="status" className="rounded border border-foreground/20 p-3 text-sm">
-      {message} We'll keep trying.
-    </p>
+    <Alert role="status">
+      <AlertDescription className="text-foreground">{message} We&apos;ll keep trying.</AlertDescription>
+    </Alert>
   );
 }

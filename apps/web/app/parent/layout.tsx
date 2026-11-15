@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Lexend, Sora } from "next/font/google";
 import { hasParentAccess } from "../../lib/parent/access";
 import { AccessForm } from "./_components/access-form";
+import { ParentHeader } from "./_components/parent-header";
 
 const sora = Sora({ subsets: ["latin"], weight: "700", variable: "--font-sora" });
 const lexend = Lexend({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-lexend-face" });
@@ -15,10 +16,11 @@ export default async function ParentLayout({ children }: { children: React.React
   const allowed = await hasParentAccess();
   return (
     <div
-      className={`${sora.variable} ${lexend.variable} parent-theme min-h-screen bg-background font-sans text-foreground has-[.tv-home]:bg-tv-page has-[.tv-home]:text-black`}
+      className={`${sora.variable} ${lexend.variable} parent-theme min-h-dvh bg-background font-lexend text-sm leading-[1.35] font-medium text-foreground`}
     >
-      {/* The home page (.tv-home) uses the wide Tellavision layout and, on desktop, fills exactly one screen; other parent pages keep the narrow column. */}
-      <main className="mx-auto max-w-[820px] space-y-7 px-6 py-12 has-[.tv-home]:max-w-[1280px] has-[.tv-home]:px-10 has-[.tv-home]:py-6">
+      {/* Every parent page shares this shell. The home page (.tv-home) also fills exactly one screen on desktop. */}
+      <main className="mx-auto flex min-h-dvh max-w-[1280px] flex-col gap-4 px-10 py-6 lg:has-[.tv-home]:h-dvh">
+        <ParentHeader showNav={allowed} />
         {allowed ? children : <AccessForm />}
       </main>
     </div>

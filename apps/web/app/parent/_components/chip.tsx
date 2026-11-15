@@ -1,15 +1,8 @@
+import { Badge } from "@/components/ui/badge";
 import type { ChipTone } from "../../../lib/parent/wording";
 
-const tones: Record<ChipTone, string> = {
-  good: "bg-good/15 text-good",
-  warn: "bg-warn/15 text-warn",
-  muted: "bg-foreground/5 text-foreground/60",
-};
-
+// Status chip in the Tellavision look: yellow marks a correct answer, everything else is a quiet
+// white chip. State is carried by the wording, not by red/green/amber.
 export function Chip({ tone, children }: { tone: ChipTone; children: React.ReactNode }) {
-  return (
-    <span className={`ml-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${tones[tone]}`}>
-      {children}
-    </span>
-  );
+  return <Badge variant={tone === "good" ? "default" : "outline"}>{children}</Badge>;
 }
