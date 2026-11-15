@@ -102,12 +102,8 @@
   height: 34px;
   border-radius: 50%;
   color: #fff;
-  background: linear-gradient(135deg, #5866ff, #9a6bff);
+  background: #fff;
   box-shadow: 0 6px 16px -6px #5866ffaa;
-}
-.mark svg {
-  width: 17px;
-  height: 17px;
 }
 .statusPill {
   display: inline-flex;
@@ -242,10 +238,6 @@
   filter: blur(16px);
   opacity: 0.55;
   animation: spin 9s linear infinite;
-}
-.orb svg {
-  width: 30px;
-  height: 30px;
 }
 .welcome h3 {
   max-width: 16ch;
@@ -429,8 +421,8 @@
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  width: 16px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   color: var(--agent-blue);
   cursor: pointer;

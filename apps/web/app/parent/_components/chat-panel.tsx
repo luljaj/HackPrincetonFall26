@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { LESSONS_EVENT } from "../../../lib/play/language-lessons";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -15,7 +16,7 @@ import {
   type FocusLevel,
 } from "../../../lib/parent/preferences";
 import { demoAnswer, DEMO_MODE_EVENT, isDemoPrompt, readDemoMode } from "../../../lib/parent/demo-mode";
-import { Plus, RotateCcw, Sparkles } from "lucide-react";
+import { Plus, RotateCcw } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,17 +49,15 @@ const TONE_LABEL: Record<Tone, string> = {
   neutral: "",
 };
 
-function Sparkle() {
+function TellavisionMark({ size = 32 }: { size?: number }) {
   return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      aria-hidden="true"
-    >
-      <path d="M10 2l2.1 5.9L18 10l-5.9 2.1L10 18l-2.1-5.9L2 10l5.9-2.1zM19 14l1.1 3.1L23 18l-2.9 1.1L19 22l-1.1-2.9L15 18l2.9-.9z" />
-    </svg>
+    <Image
+      src="/tellavision-logomark.svg"
+      alt=""
+      width={size}
+      height={size}
+      unoptimized
+    />
   );
 }
 
@@ -533,8 +532,8 @@ function Exchange({
       </div>
       <div ref={agentRef} className={styles.agentRow}>
         <Avatar className="mt-0.5">
-          <AvatarFallback className="bg-gradient-to-br from-[#5866ff] to-[#9a6bff] text-white">
-            <Sparkles className="size-4" />
+          <AvatarFallback className="bg-white">
+            <TellavisionMark />
           </AvatarFallback>
         </Avatar>
         <div className={styles.agentBody}>
@@ -782,7 +781,7 @@ export function ChatPanel({ child }: { child: string }) {
         <header className={styles.header}>
           <div className={styles.identity}>
             <span className={styles.mark} aria-hidden="true">
-              <Sparkle />
+              <TellavisionMark />
             </span>
             <h2 id="parent-agent-title">tellavision</h2>
             <Badge variant="outline" className={cn(styles.statusPill, "rounded-full bg-card/80")} data-busy={busy}>
@@ -821,7 +820,7 @@ export function ChatPanel({ child }: { child: string }) {
           {turns.length === 0 ? (
             <div className={styles.welcome}>
               <span className={styles.orb} aria-hidden="true">
-                <Sparkle />
+                <TellavisionMark size={54} />
               </span>
               <h3>
                 What should {child} explore next?
@@ -889,8 +888,7 @@ export function ChatPanel({ child }: { child: string }) {
           aria-controls="parent-agent-panel"
           onClick={() => toggle(!open)}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/figma/home-imgVector.svg" alt="" width={16} height={16} />
+          <TellavisionMark size={24} />
         </button>
         <input
           ref={inputRef}

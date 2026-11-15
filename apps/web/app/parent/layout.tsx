@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { Lexend, Sora } from "next/font/google";
 import { hasParentAccess } from "../../lib/parent/access";
 import { demoToolsEnabled } from "../../lib/parent/demo";
@@ -31,7 +32,15 @@ export default async function ParentLayout({ children }: { children: React.React
     <div className={`${sora.variable} ${lexend.variable} parent-theme min-h-screen bg-background font-sans text-foreground`}>
       <div className="parent-shell">
         <aside className="parent-sidebar">
-          <p className="parent-wordmark">tellavision</p>
+          <div className="parent-wordmark">
+            <Image
+              src="/tellavision-wordmark.svg"
+              alt="tellavision"
+              width={285}
+              height={82}
+              unoptimized
+            />
+          </div>
           {allowed && <SideNav items={nav} />}
         </aside>
         <main className="parent-main">{allowed ? children : <AccessForm />}</main>
