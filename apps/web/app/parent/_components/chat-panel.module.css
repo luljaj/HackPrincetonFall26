@@ -21,6 +21,9 @@
 .dock[data-open="true"] {
   left: max(20px, env(safe-area-inset-left));
   max-width: 720px;
+  transition:
+    left 325ms var(--agent-ease),
+    max-width 325ms var(--agent-ease);
 }
 .panel {
   position: fixed;
@@ -58,8 +61,8 @@
   opacity: 1;
   visibility: visible;
   transition:
-    clip-path 700ms var(--agent-ease),
-    opacity 120ms ease,
+    clip-path 350ms var(--agent-ease),
+    opacity 60ms ease,
     visibility 0s;
 }
 .revealWave {
@@ -984,6 +987,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .dock,
+  .dock[data-open="true"],
   .panel,
   .dock[data-open="true"] .panel {
     transition:

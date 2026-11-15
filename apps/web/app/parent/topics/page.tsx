@@ -17,5 +17,5 @@ export default async function TopicsPage() {
     episode: `${showFor(r.session.episodeId).show} · ${showFor(r.session.episodeId).episode}`,
   }))).sort((a, b) => b.endedAt - a.endedAt);
   const evidence = [...currentEvidence, ...legacy.map(t => ({ ...t, skillId: skillOf(t.spotId), episode: `${showFor(t.episodeId).show} · earlier TV session` }))].sort((a,b) => b.endedAt - a.endedAt);
-  return <><AutoRefresh seconds={5} /><MasterySection mastery={mastery} name={childName()} evidence={evidence} initialLanguage={plan.language} /></>;
+  return <><AutoRefresh seconds={5} /><MasterySection mastery={mastery} name={await childName()} evidence={evidence} initialLanguage={plan.language} /></>;
 }

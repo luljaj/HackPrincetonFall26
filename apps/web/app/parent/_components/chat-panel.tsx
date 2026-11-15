@@ -66,8 +66,8 @@ const reducedMotion = () =>
   typeof window !== "undefined" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-// One slow veil that rises through the whole page when the companion opens.
-const SWEEP_MS = 2800;
+// One veil that rises through the whole page when the companion opens.
+const SWEEP_MS = 1400;
 const SWEEP_EASE = "cubic-bezier(0.4, 0, 0.3, 1)";
 // How long a reply takes to replace its skeleton.
 const REVEAL_MS = 650;

@@ -17,7 +17,7 @@ export default async function SessionPage({
   if (!initial) notFound();
   return (
     <div className="space-y-8">
-      <LiveProgress initial={initial} childName={childName()} />
+      <LiveProgress initial={initial} childName={await childName()} />
       {sessionId !== SAMPLE_SESSION_ID && <DeleteSessionButton sessionId={sessionId} />}
     </div>
   );

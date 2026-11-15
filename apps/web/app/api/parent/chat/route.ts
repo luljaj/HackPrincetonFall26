@@ -37,7 +37,7 @@ export async function POST(request: Request): Promise<Response> {
   if (direct?.name === "set_language") {
     try {
       const noModel: ChatClient = { responses: { create: async () => { throw new Error("Unexpected model call"); } } };
-      const result = await runChat(noModel, "direct", parsed.data.messages, [], childName(), new Date(), undefined, undefined, learning, direct);
+      const result = await runChat(noModel, "direct", parsed.data.messages, [], await childName(), new Date(), undefined, undefined, learning, direct);
       return Response.json(result, { headers: { "Cache-Control": "no-store" } });
     } catch { return Response.json({ error: "The language couldn't be changed. Try again." }, { status: 502 }); }
   }
@@ -58,7 +58,7 @@ export async function POST(request: Request): Promise<Response> {
       return saved;
     } };
     const model = process.env.PARENT_CHAT_MODEL?.trim() || config.lunaModel;
-    const result = await runChat(client as unknown as ChatClient, model, parsed.data.messages, views, childName(), new Date(), { topics, practice, mastery }, focus, learning, direct);
+    const result = await runChat(client as unknown as ChatClient, model, parsed.data.messages, views, await childName(), new Date(), { topics, practice, mastery }, focus, learning, direct);
     return Response.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return Response.json({ error: "The chat couldn't answer that. Try again." }, { status: 502 });

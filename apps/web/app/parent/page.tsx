@@ -27,7 +27,7 @@ const when = (iso: string) =>
 // Compact parent home: counts, learning focus, then one collapsed row per show. Click a show to
 // see its sessions; click a session to see what was asked and answered.
 export default async function ParentHome() {
-  const name = childName();
+  const name = await childName();
   const [views, prefs] = await Promise.all([
     getParentViewReader().listParentViews(50),
     getPreferencesStore().get(),
@@ -66,7 +66,6 @@ export default async function ParentHome() {
       <div className="learning-overview">
         <div className="learning-summary">
           <p className="learning-headline">{headline}</p>
-          <p className="breakdown-label">Breakdown</p>
           <div className="learning-stats">
             {[
               { key: "watched", icon: "Image18Vectorized", value: stats.sessions, label: labels.sessions },
@@ -105,7 +104,7 @@ export default async function ParentHome() {
                       <img src="/figma/home-imgImage21.png" alt="Dora and Boots" />
                     ) : <div className="h-full" style={{ background: show.color }} />}
                   </div>
-                  <div><h3>{show.show}</h3><p>&lsquo;{show.episode}&rsquo;{v.isSample ? " · Sample data" : ""}</p></div>
+                  <div><h3>{show.show}</h3><p>{show.episode.trim() ? <>&lsquo;{show.episode}&rsquo;</> : "Untitled episode"}{v.isSample ? " · Sample data" : ""}</p></div>
                   <footer>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/figma/home-imgAkarIconsHistory.svg" alt="" width={15} height={15} />

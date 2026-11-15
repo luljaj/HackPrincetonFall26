@@ -5,7 +5,7 @@ import { DEMO_MODE_EVENT, DEMO_START_FOCUS, readDemoMode, writeDemoMode } from "
 import { FOCUS_EVENT, type FocusEventDetail } from "../../../lib/parent/preferences";
 
 // Settings → Demo Mode. Saved in this browser only.
-export function DemoModeToggle({ child }: { child: string }) {
+export function DemoModeToggle() {
   const [on, setOn] = useState(false);
   const [note, setNote] = useState<string | null>(null);
 
@@ -33,9 +33,8 @@ export function DemoModeToggle({ child }: { child: string }) {
       window.dispatchEvent(
         new CustomEvent<FocusEventDetail>(FOCUS_EVENT, { detail: { focus: DEMO_START_FOCUS, from: "companion" } }),
       );
-      setNote("Learning focus reset to Usual for every subject.");
     } catch {
-      setNote("Couldn't reset the learning focus. Demo Mode is still on.");
+      setNote("Couldn't update learning focus. Accessibility mode is still on.");
     }
   }
 
@@ -44,13 +43,8 @@ export function DemoModeToggle({ child }: { child: string }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
           <h2 id="demo-mode-title" className="text-[19px] tracking-tight">
-            Demo Mode
+            Accessibility mode
           </h2>
-          <p className="max-w-[460px] text-sm text-foreground/60">
-            Commands like &ldquo;Make {child} learn more about addition&rdquo;, &ldquo;Switch to Spanish&rdquo; and
-            &ldquo;Reset the current skill&rdquo; update the real lesson without waiting for the chat model.
-            Other questions still go to the model. Saved in this browser only.
-          </p>
         </div>
         <button
           type="button"

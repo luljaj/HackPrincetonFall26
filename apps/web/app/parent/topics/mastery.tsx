@@ -9,9 +9,34 @@ import { LanguageLessonControls, useLanguageLessons } from "./language-lessons";
 import type { PlayTurn } from "../../../lib/play/trace";
 import { categoryProgress } from "../../../lib/parent/mastery-chart";
 import { languageName } from "../../../lib/play/view";
+import { MasteryCarousel } from "./mastery-carousel";
 import { shortDate } from "./parts";
 
 const SKILL: Record<SkillLevel, string> = { new: "Not yet", practising: "Practising", got_it: "Mastery", rusty: "Needs a refresh" };
+const SKILL_DESCRIPTION: Record<string, string> = {
+  "count-to-5": "Practises counting small groups of up to five objects, one at a time.",
+  "count-to-10": "Practises keeping numbers in order while counting groups of up to ten.",
+  "how-many": "Connects counting a group of objects with saying its total.",
+  "add-small-numbers": "Combines two small groups and works out how many there are altogether.",
+  "name-shapes": "Recognises and names shapes that appear in the story.",
+  "match-shapes": "Looks at a shape and finds the space or object it matches.",
+  "recall-places": "Remembers the stops on the map and the order of the journey.",
+  "recall-events": "Recalls something that just happened to follow the story.",
+  "recall-objects": "Remembers an object introduced earlier and brings it back to mind.",
+  "pick-place": "Uses clues from the story to choose where to go next.",
+  "pick-object": "Chooses the object that can help with the current task.",
+  "explain-choice": "Practises giving a reason for a choice in the story.",
+  "name-things": "Connects familiar objects in the scene with their names.",
+  "action-words": "Practises words that describe movement and direction.",
+  "describe-things": "Uses details such as colour, size and appearance to describe an object.",
+  "what-next": "Uses what has happened so far to suggest what might happen next.",
+  "feelings": "Notices clues about a character’s feelings and names those emotions.",
+  "imagine": "Imagines possibilities and puts those ideas into words.",
+  "answer-aloud": "Practises responding out loud when a character asks for help.",
+  "chant": "Joins in with familiar words and repeated phrases from the show.",
+  "do-action": "Follows a prompt to join in with an action from the story.",
+  "spanish-words": "Practises the Spanish words and phrases Dora introduces in the story.",
+};
 const WORD: Record<WordLevel, string> = { heard: "Heard", said: "Said", remembered: "Remembered" };
 type Evidence = Pick<PlayTurn, "turnId" | "question" | "transcript" | "outcome" | "endedAt"> & { answerStatus: string; skillId: string | null; episode: string };
 const PETALS = [
@@ -85,9 +110,10 @@ export function MasterySection({ mastery, name, evidence = [], initialLanguage =
                 onClick={() => { setSelected(subject.id); setExpanded(false); }} />;
             })}
           </div>
-          <p className="mastery-map-note">{languageCode ? "Language petal: lessons remembered" : "Mastery · fill includes practice so far"} · tap a petal</p>
+          <p className="mastery-map-note">{languageCode ? "Language petal: lessons remembered" : "Mastery · fill includes practice so far"}</p>
         </div>
-        <div className="mastery-detail" aria-live="polite">
+        <div className="mastery-detail">
+          <div className="mastery-detail-content" key={category?.id ?? "empty"}>
           {isLanguage ? <><header><img src="/figma/mastery-imgMastery1.svg" alt="" width={24} height={24} /><div><h3>{languageCategory?.name}</h3><p>Learning language · lessons saved separately</p></div></header><LanguageLessonControls state={languageState} name={name} /></> : category ? <><header>
             {spanish ? <span className="mastery-subject-icon"><img src="/figma/mastery-imgSpanish1.svg" alt="" /></span>
               : <img src="/figma/mastery-imgMastery1.svg" alt="" width={24} height={24} />}
@@ -95,6 +121,13 @@ export function MasterySection({ mastery, name, evidence = [], initialLanguage =
           </header>
           <div className="mastery-track" aria-hidden="true">{category.skills.map(s => <i key={s.id} data-level={s.level} />)}</div>
           <p className="text-xs text-foreground/60">{category.skills.filter(s => s.level === "got_it").length} of {category.skills.length} skills at mastery</p>
+          <MasteryCarousel key={category.id} label="Skills">{category.skills.map(s => <article key={s.id} className="mastery-skill-card">
+            <span className="mastery-badge" data-good={s.level === "got_it"}>{SKILL[s.level]}</span>
+            <h4>{s.name}</h4>
+            {SKILL_DESCRIPTION[s.id] && <p className="mastery-card-blurb">{SKILL_DESCRIPTION[s.id]}</p>}
+            <p className="mastery-card-blurb">{s.asked === 0 ? `This skill hasn’t been practised yet. Saved answers will show how ${name} is getting on.` : `${name} answered independently on ${s.firstTry} of ${s.asked} saved questions for this skill. These answers reflect practice so far.`}</p>
+            {s.lastSeen && <small>Last practised {when(s.lastSeen)}</small>}
+          </article>)}</MasteryCarousel>
           <img className="mastery-divider" src="/figma/mastery-imgVector2.svg" alt="" />
           <h4 className="text-base">{asked} Questions Practised</h4>
           {shown.length ? <>
@@ -116,15 +149,12 @@ export function MasterySection({ mastery, name, evidence = [], initialLanguage =
             <p className="mt-3 text-[10px] text-foreground/55">Saved history stays visible when progress is reset.</p>
           </> : <p className="mt-4 text-sm text-foreground/60">No saved questions for this subject yet.</p>}
           <img className="mastery-divider" src="/figma/mastery-imgVector2.svg" alt="" />
-          <h4 className="text-base">Skills</h4>
-          <ul className="mastery-skill-list">{category.skills.map(s => <li key={s.id}>
-            <div>{s.name}<small className="mt-1 block text-foreground/55">{s.firstTry} of {s.asked} independently{s.lastSeen ? ` · last ${when(s.lastSeen)}` : ""}</small></div>
-            <span>{SKILL[s.level]}</span>
-          </li>)}</ul></> : <div className="mastery-empty">
+          </> : <div className="mastery-empty">
             <img src="/figma/mastery-select-subject.svg" alt="" width={32} height={32} />
             <p>Select a subject to view skills</p>
           </div>}
           {category && <LearningAnalysis key={category.id} subject={category.id} version={`${mastery.categories.flatMap(c => c.skills).map(s => `${s.asked}:${s.lastSeen}`).join(",")}:${languageState.lessons.map(l => `${l.level}:${l.updatedAt}`).join(",")}`} />}
+          </div>
         </div>
       </section>
       <section className="mt-8 space-y-3" aria-label="Other subjects">
