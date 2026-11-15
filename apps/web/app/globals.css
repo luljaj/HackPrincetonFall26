@@ -81,6 +81,7 @@ body {
   --good: #2f9e5b;
   --warn: #d98a1c;
   --attention: #b45309;
+  --font-sans: var(--font-sora), ui-sans-serif, system-ui, sans-serif; /* Sora, loaded in app/parent/layout.tsx */
   /* Tailwind resolves its --color-* tokens at :root, so re-point them here too. */
   --color-background: var(--background);
   --color-foreground: var(--foreground);

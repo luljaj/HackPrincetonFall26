@@ -1,12 +1,8 @@
 // Play-session trace: what Play mode records while the kid watches, and how a session's events fold
 // into one row per pause (a "turn"). Shared by the player (sends), the API (validates) and storage (folds).
 import { z } from "zod";
+import { answeredFirstTry, SETTLES, STAGE_NAMES } from "../../app/lab/machine";
 import { skillInfo } from "./skills";
-
-export const STAGES_SAVED = [
-  "entering", "asking", "listening", "nudging", "thinking", "celebrating", "teaching", "modeling",
-  "clarifying", "giving", "graceful", "practicing", "exiting", "watching", "away", "welcome",
-] as const;
 
 const short = (n: number) => z.string().trim().max(n);
 
@@ -17,7 +13,7 @@ export const PlayEventSchema = z.strictObject({
   turnId: z.uuid().optional(), // set from "entering" until back to "watching"
   spotId: short(40).optional(),
   // stage
-  stage: z.enum(STAGES_SAVED).optional(),
+  stage: z.enum(STAGE_NAMES).optional(),
   tries: z.number().int().min(0).max(20).optional(),
   nudges: z.number().int().min(0).max(20).optional(),
   modeled: z.boolean().optional(),
@@ -140,8 +136,7 @@ export function foldSession(sessionId: string, episodeId: string, events: readon
       t.practiceLanguage = practiceLanguage || null;
       t.practiceWord = e.word ?? null;
     }
-    const ends = e.stage === "celebrating" || e.stage === "giving" || e.stage === "graceful";
-    if (!ends) continue;
+    if (!SETTLES.has(e.stage)) continue;
     if (e.practiced) {
       t.practiceOutcome = e.stage === "celebrating" ? "good" : "missed";
     } else if (t.outcome === null) {
@@ -149,7 +144,7 @@ export function foldSession(sessionId: string, episodeId: string, events: readon
       t.nudges = e.nudges ?? 0;
       t.outcome =
         e.stage === "graceful" ? "error"
-        : e.stage === "celebrating" ? (t.tries === 0 && t.nudges === 0 && !e.modeled ? "first_try" : "after_help")
+        : e.stage === "celebrating" ? (answeredFirstTry({ tries: t.tries, nudges: t.nudges, modeled: !!e.modeled }) ? "first_try" : "after_help")
         : t.spoke ? "gave" : "no_answer";
     }
   }

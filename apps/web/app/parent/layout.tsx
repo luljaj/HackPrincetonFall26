@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Sora } from "next/font/google";
 import { hasParentAccess } from "../../lib/parent/access";
 import { demoToolsEnabled } from "../../lib/parent/demo";
 import { AccessForm } from "./_components/access-form";
@@ -8,6 +9,8 @@ import { childName } from "../../lib/parent/child";
 
 // Access is checked per request, so never prerender this tree.
 export const dynamic = "force-dynamic";
+
+const sora = Sora({ subsets: ["latin"], variable: "--font-sora", display: "swap" });
 
 export const metadata: Metadata = { title: "Tellavision · Parent view" };
 
@@ -22,7 +25,7 @@ export default async function ParentLayout({ children }: { children: React.React
     { label: "Settings", section: "settings" },
   ];
   return (
-    <div className="parent-theme min-h-screen bg-background font-sans text-foreground">
+    <div className={`${sora.variable} parent-theme min-h-screen bg-background font-sans text-foreground`}>
       <div className="mx-auto grid max-w-[1400px] gap-10 px-8 pt-10 pb-36 md:grid-cols-[240px_1fr]">
         <aside className="space-y-16 md:sticky md:top-10 md:self-start">
           <p className="pl-1 text-[24px] font-semibold tracking-tight">tellavision</p>

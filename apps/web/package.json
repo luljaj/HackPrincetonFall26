@@ -10,7 +10,7 @@
     "lint": "eslint --max-warnings 0",
     "check-types": "next typegen && tsc --noEmit",
     "test": "npm run test:pipeline && npm run test:judge && npm run test:lab && npm run test:storage",
-    "test:lab": "node --test app/lab/machine.test.ts app/lab/listen.test.ts app/lab/quick-judge.test.ts",
+    "test:lab": "node --test app/lab/machine.test.ts app/lab/listen.test.ts app/lab/quick-judge.test.ts app/lab/sound.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
