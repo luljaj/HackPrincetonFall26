@@ -817,7 +817,13 @@ export function DoraPlayer({ kid = false }: { kid?: boolean }) {
     return (
       <div className={s.kidRoot}>
         {screen}
-        {/* Portaled to <body>: inside the TV screen it would be clipped by its overflow and transforms. */}
+        {/* Portaled to <body>: inside the TV screen these would be clipped by its overflow and transforms. */}
+        {createPortal(
+          <button className={s.devToggle} onClick={() => setDevOpen((o) => !o)} aria-label={devOpen ? "Hide dev tools" : "Show dev tools"} title="Dev tools (`)">
+            ⚙︎
+          </button>,
+          document.body,
+        )}
         {devOpen && createPortal(
           <aside className={s.devDrawer} aria-label="Dev tools">
             <p className={s.meta}>Dev tools · press ` to hide</p>

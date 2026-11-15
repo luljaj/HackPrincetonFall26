@@ -74,7 +74,7 @@ export default function Play() {
   // Remote control: arrows flip channels, number keys jump, P is power.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement).closest("input, textarea, select")) return; // typing in the dev drawer
+      if (e.target instanceof Element && e.target.closest("input, textarea, select")) return; // typing in the dev drawer
       if (e.key === "ArrowUp" || e.key === "ArrowRight") tune(ch + 1);
       else if (e.key === "ArrowDown" || e.key === "ArrowLeft") tune(ch - 1);
       else if (e.key.toLowerCase() === "p") power();
@@ -115,17 +115,6 @@ export default function Play() {
             <div className={s.glass} />
           </div>
 
-          <div className={s.panel}>
-            <button
-              className={s.knob}
-              aria-label="Next channel"
-              style={{ transform: `rotate(${ch * (360 / CHANNELS.length)}deg)` }}
-              onClick={() => tune(ch + 1)}
-            />
-            <div className={s.led}>{on ? String(ch + 1).padStart(2, "0") : "--"}</div>
-            <div className={s.grille} />
-            <button className={`${s.power} ${on ? s.lit : ""}`} aria-label={on ? "Turn TV off" : "Turn TV on"} onClick={power} />
-          </div>
         </div>
         <div className={s.legs}>
           <span />
