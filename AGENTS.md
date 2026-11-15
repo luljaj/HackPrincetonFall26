@@ -53,5 +53,6 @@ Don't build anything those docs mark as future work or as owned by another teamm
 
 - Work on a feature branch (for example `parent-dashboard`), not directly on `main`. Pull `main` before starting.
 - When `git pull` asks how to reconcile divergent branches, merge: `git pull --no-rebase`.
+- Commit as yourself, with the GitHub noreply address (`<id>+<login>@users.noreply.github.com`), so commits link to your account and you appear as a contributor. Agents committing for a teammate use that teammate's git identity and add no `Co-Authored-By` or other bot attribution lines.
 - Never commit secrets. `DATABASE_URL` and API keys stay in untracked `.env.local` files and are read only on the server.
 - Never store raw audio. Children's data stays pseudonymous; see the privacy section of `learning-progress-plan.md`.
