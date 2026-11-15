@@ -60,10 +60,17 @@ Spot detection finds where the show pauses, but many of those lines aren't quest
 
 For every spot, Dora asks the lesson question out loud. Her nudges, re-asks, modelling and answer reveal are built from it. Hand-written fields in `spots.json` win over generated ones (for example ep3-25's answer, and Diego where Whisper heard "Beagle").
 
-**Dora's look while asking and waiting:**
-- **Most spots:** a presenter close-up (`presenter-talk.mp4` / `presenter-wait.mp4`, cut by `tools/cut-loops.py` from the "What do you want to be?" shot). She faces the camera with open hands, breathing and blinking, and talk and wait are the same pose.
-- **Visual spots** ("What shape goes here?", "Can you find the bridge?"): the frozen scene stays on screen and Dora asks over it.
-- **The firehouse:** keeps its own close-up.
+**Dora never leaves her scene.** While she asks and waits, the picture stays where the show is:
+- **Where the show itself waits for the viewer** (same camera shot, little movement), that waiting moment is looped, with the prompt just before it as the talk loop. `tools/cut-loops.py` measures motion, cuts these for 30 spots and writes `loops.json`.
+- **Everywhere else** the paused frame is held with a very slow push-in. No cutting to a saved close-up from another scene.
+
+**Which pauses are asked.** A question must be answerable from what the kid has already seen or heard, be the show's own prompt to the viewer, or be a guess ("What do you think…?"). It is never a fact that only comes after the pause. `build-lessons.py` then picks the demo set:
+- every skill covered: counting, shapes, language, picking the right thing, remembering, imagination
+- no near-duplicate questions
+- at least 35 s apart, except the show's own runs such as three shape questions in a row
+- capped at 18, so the 24-minute story finishes in about 30 minutes
+
+`--reselect` redoes the choice without calling Luna. After each pause the show resumes 0.3 s before the next line, so its first word isn't clipped.
 
 ## Learning another language
 

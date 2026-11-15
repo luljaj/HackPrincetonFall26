@@ -360,3 +360,13 @@
 .devToggle:focus-visible {
   opacity: 1;
 }
+
+/* No in-scene loop for this spot: hold the paused frame and push in very slowly, so it never looks frozen. */
+.hold {
+  transform: scale(1.04);
+  transition: transform 9s ease-out;
+}
+
+.release {
+  transition: transform 400ms ease;
+}

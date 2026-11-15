@@ -8,6 +8,7 @@ import lines from "./lines.json";
 import spotsData from "./spots.json";
 import lessonsData from "./lessons.json";
 import translationsData from "./translations.json";
+import loopsData from "./loops.json";
 import trialEpisode from "./episode.json";
 import s from "./lab.module.css";
 import { speakFallback, streamVoice } from "./voice";
@@ -37,7 +38,7 @@ type Spot = {
   skill?: string;
 };
 type Lesson = {
-  keep: boolean; visual: boolean; question: string; type: "answer" | "say" | "open" | "choice" | "count"; answer: string; accept: string[];
+  keep: boolean; asked: boolean; visual: boolean; question: string; type: "answer" | "say" | "open" | "choice" | "count"; answer: string; accept: string[];
   say_word: string | null; say_language: string | null; say_ipa: string | null; skill: string;
 };
 type Pronunciation = { verdict: "good" | "close" | "retry" | "silent"; heard: string; target: string; coach: { expected: string; heard: string } | null; ms: number };
@@ -51,7 +52,7 @@ const SPOTS = (spotsData as Spot[]).map((sp): Spot => {
   return {
     ...sp,
     question: sp.custom ? undefined : l.question,
-    keep: l.keep,
+    keep: l.asked, // only the chosen pauses: worthwhile, answerable now, and spaced apart (build-lessons.py)
     skill: l.skill,
     visual: l.visual,
     open,
@@ -66,6 +67,7 @@ const FADE_MS = 300;
 const THINK_MS = 900; // stand-in for the pipeline round trip
 const TALK_RMS = 0.03; // mouth-open threshold, about -30 dB (calibration knob: retune per voice)
 const MOUTH_HOLD_MS = 350; // keep talking through gaps between words; swap loops per phrase, not per syllable
+const RESUME_LEAD_S = 0.3; // come back in just before the next line so its first word isn't clipped
 const LIKELY_GAP = 1.5; // the show waits at least this long at a real audience pause
 const LINES: Record<string, string> = lines; // same file the voice generator reads
 const FIREHOUSE = SPOTS.find((sp) => sp.custom) ?? SPOTS[0]!;
@@ -122,6 +124,10 @@ function lessonText(stage: Stage, sp: Spot, practiced = false, practice: Practic
     default: return null;
   }
 }
+
+// Spots whose own scene has a calm waiting moment get an in-scene talk/wait loop (tools/cut-loops.py).
+// Every other spot holds the paused frame. Dora never jumps to a different scene.
+const LOOPS = loopsData as Record<string, { talk: boolean }>;
 
 const isKnown = (sp: Spot) => !!(sp.custom || sp.say || (sp.answer && !sp.open));
 const askedText = (sp: Spot) => sp.question ?? (sp.custom ? LINES.ask : undefined) ?? sp.text;
@@ -566,7 +572,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
       lastResumed.current = sp.id;
       const done = () => timers.push(setTimeout(() => send("TRANSITION_DONE"), FADE_MS));
       ep.addEventListener("seeked", done, { once: true });
-      ep.currentTime = sp.resumeAt;
+      ep.currentTime = Math.max(sp.pauseAt, sp.resumeAt - RESUME_LEAD_S);
       timers.push(setTimeout(() => ep.removeEventListener("seeked", done), 5000));
     }
     if (stage === "thinking" && pending.current) {
@@ -710,19 +716,21 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
     : flash ? flash
     : stage === "listening" ? (hearing ? "🗣️ I'm listening…" : `🎤 ${askedText(spot)}`)
     : stage === "thinking" ? "…" : "";
+  const inScene = LOOPS[spot.id]; // this spot's own in-scene loops, if its scene has a calm wait
   const shown = likelyOnly ? SPOTS.filter((x) => x.gap >= LIKELY_GAP) : SPOTS;
 
   const screen = (
         <div className={s.screen}>
-          <video ref={episode} crossOrigin="anonymous" src={EPISODE} playsInline preload="auto" className={s.layer} />
-          <div className={`${s.layer} ${s.assistant} ${meta.assistant && !spot.visual ? s.show : ""}`}>
+          <video ref={episode} crossOrigin="anonymous" src={EPISODE} playsInline preload="auto"
+            className={`${s.layer} ${meta.assistant && !inScene ? s.hold : s.release}`} />
+          <div className={`${s.layer} ${s.assistant} ${meta.assistant && inScene ? s.show : ""}`}>
             {(["wait", "talk"] as Loop[]).map((n) => (
               <video
                 key={n}
                 ref={(el) => {
                   loops.current[n] = el;
                 }}
-                src={spot.custom ? `/media/loops/${spot.id}-${n}.mp4` : `/media/loops/presenter-${n}.mp4`}
+                src={inScene ? `/media/loops/${spot.id}-${n === "talk" && !inScene.talk ? "wait" : n}.mp4` : undefined}
                 muted
                 loop
                 autoPlay
