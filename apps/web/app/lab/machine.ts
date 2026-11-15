@@ -84,7 +84,7 @@ export function next(c: Ctx, e: Event): Ctx {
       return e === "LINE_DONE" ? to("listening", { practiced: true, nudges: c.practiced ? c.nudges : 0 }) : c;
     case "listening":
       if (e === "SPEECH_END") return to("thinking");
-      if (e === "SILENCE" && c.practiced) return to("giving"); // language practice: one try, never nag
+      if (e === "SILENCE" && c.practiced) return c.nudges < MAX_NUDGES ? to("nudging", { nudges: c.nudges + 1 }) : to("giving"); // practice: one nudge, then Dora says it
       if (e === "SILENCE") return c.nudges < MAX_NUDGES ? to("nudging", { nudges: c.nudges + 1 }) : stuck();
       return c;
     case "thinking":

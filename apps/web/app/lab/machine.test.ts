@@ -54,7 +54,9 @@ test("language practice models a missed word again, then ends after a second att
   assert.equal(retry.nudges, 1);
   assert.equal(run(["SPEECH_END", "WRONG", "LINE_DONE"], retry).stage, "exiting");
   assert.equal(run(["SPEECH_END", "CORRECT", "LINE_DONE"], retry).stage, "exiting");
-  assert.equal(run(["SILENCE", "LINE_DONE"], listening).stage, "exiting"); // shy: no nagging
+  const nudged = run(["SILENCE"], listening);
+  assert.equal(nudged.stage, "nudging"); // shy: one "Your turn!", then Dora says it
+  assert.equal(run(["LINE_DONE", "SILENCE", "LINE_DONE"], nudged).stage, "exiting");
 });
 
 test("the word is taught even when Dora had to give the answer, and only when learning", () => {
