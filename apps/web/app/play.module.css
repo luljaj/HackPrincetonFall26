@@ -1,261 +1,310 @@
-/* Play mode: just the show, full screen, with a soft glow and a nice channel switch. */
-
-.room {
-  --rounded: ui-rounded, "SF Pro Rounded", "Nunito", var(--font-geist-sans), system-ui, sans-serif;
-  --frame: min(calc(100vw - 32px), calc((100vh - 110px) * 4 / 3)); /* the 4:3 show, as big as fits */
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  font-family: var(--rounded);
-  color: #f6f3ff;
-  background: #08070d;
-  user-select: none;
-  touch-action: pan-y; /* horizontal swipes switch channels */
-}
+/* Play mode: a retro wooden TV, kept minimal. Static between channels, CRT glass over the picture. */
 
 /* zero-specificity reset so each button's own class wins */
 :where(.room) button {
   font: inherit;
-  color: inherit;
   cursor: pointer;
   border: 0;
-  background: none;
 }
 
-:where(.room) button:focus-visible {
-  outline: 3px solid #fff;
-  outline-offset: 3px;
+.room {
+  min-height: 100vh;
+  user-select: none;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  /* a plain warm wall, softly lit from the middle */
+  background: radial-gradient(ellipse at 50% 40%, #f8e2bf 0%, #e9c590 70%, #d9ab72 100%);
+  color: #3b2414;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 28px;
+  padding: 24px;
 }
 
-.idle {
-  cursor: none;
+/* ---------- the TV ---------- */
+.tv {
+  /* fit the whole TV + remote on screen: width follows window height too */
+  width: min(1100px, 96vw, calc((100vh - 200px) * 1.45));
 }
 
-/* ---------- soft glow in the picture's colours ---------- */
-.ambient {
-  position: absolute;
-  inset: -10%;
-  width: 120%;
-  height: 120%;
-  filter: blur(90px) saturate(1.5);
-  opacity: 0.35;
-  pointer-events: none;
-  transition: opacity 500ms ease;
+.cabinet {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  gap: 24px;
+  padding: 28px;
+  border-radius: 44px;
+  background:
+    repeating-linear-gradient(95deg, #0000 0 14px, #0000000d 14px 16px),
+    linear-gradient(160deg, #a5643a, #7a4223 60%, #5e301a);
+  box-shadow:
+    0 24px 60px #5e301a66,
+    inset 0 2px 0 #ffffff33,
+    inset 0 -6px 0 #00000033;
 }
 
-.ambient.tinted {
-  background: var(--ch);
-  opacity: 0.22;
-}
-
-/* ---------- the show ---------- */
-.picture {
+.screen {
   position: relative;
-  width: var(--frame);
   aspect-ratio: 4 / 3;
-  margin-bottom: 56px; /* room for the channel pills */
-  border-radius: 20px;
   overflow: hidden;
-  background: #000;
-  box-shadow: 0 30px 80px -30px #000;
-  animation: arrive 520ms cubic-bezier(0.2, 0.8, 0.2, 1) calc(var(--switch, 700ms) * 0.45) both;
+  border-radius: 36px / 44px;
+  background: #0d0d0d;
+  border: 14px solid #2a1a10;
+  box-shadow: 0 0 0 4px #c48a5c, 0 0 60px -10px var(--glow, #fff);
+  transition: box-shadow 0.4s;
 }
 
-@keyframes arrive {
-  from { opacity: 0; filter: blur(16px); transform: scale(1.03); }
+.screen.off {
+  box-shadow: 0 0 0 4px #c48a5c;
 }
 
-.picture video {
+.screen.on > .player,
+.screen.on > .soon {
+  animation: crt-on 0.55s ease-out;
+}
+
+.player,
+.snow,
+.soon {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  transform: scale(1.025); /* trims the DVD's own thin black borders */
+}
+
+.snow {
+  image-rendering: pixelated;
+  z-index: 2;
+}
+
+/* curved-glass shine + scanlines on top of everything */
+.glass {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  background:
+    repeating-linear-gradient(#0000 0 2px, #0000002e 2px 3px),
+    radial-gradient(ellipse at 30% 15%, #ffffff22, transparent 45%),
+    radial-gradient(ellipse at center, transparent 60%, #000a 100%);
+}
+
+@keyframes crt-on {
+  0% { transform: scale(1, 0.004); filter: brightness(6); }
+  45% { transform: scale(1, 0.004); filter: brightness(6); }
+  100% { transform: scale(1, 1); filter: brightness(1); }
+}
+
+.osd {
+  position: absolute;
+  top: 6%;
+  right: 6%;
+  z-index: 4;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: clamp(18px, 3vw, 34px);
+  font-weight: 700;
+  color: #7dff8a;
+  text-shadow: 0 0 8px #7dff8a, 2px 2px 0 #000;
+  letter-spacing: 2px;
+}
+
+.osd span {
+  margin-left: 12px;
 }
 
 .soon {
-  height: 100%;
   display: grid;
   place-content: center;
   justify-items: center;
   gap: 6px;
-  background:
-    repeating-linear-gradient(115deg, #ffffff14 0 30px, transparent 30px 60px),
-    var(--ch);
-  color: #1a1030; /* channel colours are light: dark text reads on all of them */
+  color: #fff;
+  font-size: clamp(20px, 3vw, 32px);
+  text-shadow: 0 3px 0 #0003;
 }
 
 .soon strong {
-  font-size: clamp(36px, 7vw, 84px);
-  line-height: 1;
+  font-size: clamp(40px, 7vw, 84px);
 }
 
-.soon span {
-  font-size: clamp(15px, 2vw, 22px);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  opacity: 0.85;
+.soonBounce {
+  font-size: clamp(48px, 8vw, 96px);
+  animation: bounce 1.2s ease-in-out infinite;
 }
 
-/* ---------- channel switch: a colour sweep with the channel's name ---------- */
-.wipe {
+@keyframes bounce {
+  50% { transform: translateY(-18px) rotate(12deg); }
+}
+
+.powerOn {
   position: absolute;
   inset: 0;
-  z-index: 5;
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  pointer-events: none;
-  background:
-    repeating-linear-gradient(0deg, #00000010 0 2px, transparent 2px 5px), /* faint TV lines */
-    var(--ch);
-  color: #1a1030;
-  animation: sweep var(--switch, 700ms) cubic-bezier(0.65, 0, 0.35, 1) both;
-}
-
-@keyframes sweep {
-  0% { clip-path: inset(0 100% 0 0); }
-  38% { clip-path: inset(0 0 0 0); }
-  62% { clip-path: inset(0 0 0 0); }
-  100% { clip-path: inset(0 0 0 100%); }
-}
-
-.wipeNumber,
-.wipeName {
-  animation: label var(--switch, 700ms) ease both;
-}
-
-.wipeNumber {
-  font-size: clamp(18px, 2.4vw, 26px);
-  font-weight: 800;
-  letter-spacing: 0.2em;
-  opacity: 0.7;
-}
-
-.wipeName {
-  font-size: clamp(44px, 9vw, 120px);
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-
-@keyframes label {
-  0%, 20% { opacity: 0; transform: translateX(-24px); }
-  45%, 60% { opacity: 1; transform: none; }
-  85%, 100% { opacity: 0; transform: translateX(24px); }
-}
-
-/* ---------- channel pills: fade away while watching ---------- */
-.channels {
-  position: absolute;
-  bottom: 22px;
-  left: 50%;
-  translate: -50% 0;
-  z-index: 6;
-  display: flex;
-  gap: 8px;
-  max-width: calc(100vw - 24px);
-  padding: 6px;
+  margin: auto;
+  width: fit-content;
+  height: fit-content;
+  padding: 22px 40px;
   border-radius: 999px;
-  background: #ffffff0f;
-  backdrop-filter: blur(16px);
-  overflow-x: auto;
-  scrollbar-width: none;
-  transition: opacity 400ms ease, translate 400ms ease;
+  font-size: clamp(20px, 3vw, 30px);
+  font-weight: 700;
+  color: #3b2414;
+  background: #ffd84d;
+  box-shadow: 0 6px 0 #c99a12, 0 0 40px #ffd84d88;
+  animation: pulse 1.6s ease-in-out infinite;
 }
 
-.idle .channels {
-  opacity: 0;
-  translate: -50% 12px;
-  pointer-events: none;
+@keyframes pulse {
+  50% { transform: scale(1.06); }
 }
 
-.pill {
+/* ---------- side panel ---------- */
+.panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding-top: 12px;
+}
+
+.knob {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #f4e3c8, #b99467 60%, #6e4b2a);
+  box-shadow: 0 6px 0 #3e2412, inset 0 -4px 6px #0004;
+  position: relative;
+  transition: transform 0.35s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+.knob::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  width: 8px;
+  height: 26px;
+  margin-left: -4px;
+  border-radius: 4px;
+  background: #3e2412;
+}
+
+.led {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 28px;
+  font-weight: 700;
+  padding: 4px 14px;
+  border-radius: 10px;
+  background: #1a0f08;
+  color: #ff5b3d;
+  text-shadow: 0 0 8px #ff5b3d;
+}
+
+.grille {
+  width: 84px;
+  flex: 1;
+  min-height: 80px;
+  border-radius: 14px;
+  background: repeating-linear-gradient(#3e2412 0 4px, #8a5530 4px 9px);
+}
+
+.power {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #6b1d12;
+  box-shadow: 0 4px 0 #3e0f08;
+}
+
+.power.lit {
+  background: #4dff6a;
+  box-shadow: 0 4px 0 #1e7a2c, 0 0 18px #4dff6a;
+}
+
+.legs {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 14%;
+}
+
+.legs span {
+  width: 26px;
+  height: 46px;
+  background: #5e301a;
+  border-radius: 0 0 10px 10px;
+  transform: skewX(-10deg);
+}
+
+.legs span:last-child {
+  transform: skewX(10deg);
+}
+
+/* ---------- the remote ---------- */
+.remote {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+}
+
+.chip {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex: none;
-  padding: 7px 16px 7px 7px;
+  gap: 10px;
+  padding: 14px 24px 14px 14px;
   border-radius: 999px;
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 700;
-  color: #f6f3ffcc;
-  transition: background 200ms ease, color 200ms ease, transform 150ms ease;
+  color: #fff;
+  text-shadow: 0 2px 0 #0003;
+  box-shadow: 0 6px 0 #0003;
+  transition: transform 0.15s;
 }
 
-.pill b {
+.chip b {
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: var(--c);
-  color: #1a1030;
-  font-size: 13px;
+  background: #fff;
+  color: #3b2414;
+  text-shadow: none;
 }
 
-.pill:hover {
-  background: #ffffff14;
+.chip:hover,
+.chip.active {
+  transform: translateY(-4px) scale(1.06);
+}
+
+.chip.active {
+  outline: 4px solid #fff;
+}
+
+.arrow {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  font-size: 22px;
   color: #fff;
+  background: #3b2414;
+  box-shadow: 0 6px 0 #1a0f08;
 }
 
-.pill.active {
-  background: var(--c);
-  color: #1a1030;
+.chip:active,
+.arrow:active {
+  transform: translateY(4px);
+  box-shadow: none;
 }
 
-.pill.active b {
-  background: #ffffffe0;
-}
-
-.pill:active {
-  transform: scale(0.96);
-}
-
-/* ---------- start ---------- */
-.start {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 18px 34px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #ff5fa2, #ffb03b);
-  color: #2a1030;
-  font-size: clamp(18px, 2.4vw, 26px);
-  font-weight: 800;
-  box-shadow: 0 14px 40px -10px #ff5fa288;
-  animation: breathe 2.2s ease-in-out infinite;
-}
-
-@keyframes breathe {
-  50% { transform: scale(1.05); }
-}
-
-@media (max-width: 600px) {
-  .room {
-    --frame: calc(100vw - 16px);
+@media (max-width: 720px) {
+  .cabinet {
+    grid-template-columns: 1fr;
   }
-  .picture {
-    border-radius: 14px;
+  .panel {
+    flex-direction: row;
+    justify-content: center;
   }
-  .pill {
-    font-size: 14px;
-    padding: 6px 12px 6px 6px;
+  .grille {
+    flex: 0 0 84px;
+    min-height: 44px;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .picture,
-  .start {
-    animation: none;
-  }
-  .wipe {
-    animation: fade var(--switch, 700ms) ease both;
-  }
-}
-
-@keyframes fade {
-  0%, 100% { opacity: 0; }
-  40%, 60% { opacity: 1; }
-}
