@@ -1,10 +1,12 @@
 import Link from "next/link";
 import {
-  gradeProgress,
+  currentSkill,
   PREVIEW_CHILD,
   PREVIEW_PERIOD,
   PREVIEW_SUBJECTS,
   SKILL_STATUS_LABEL,
+  whereNow,
+  type PreviewSkill,
   type PreviewSubject,
   type SkillStatus,
 } from "../../../lib/parent/preview-data";
@@ -134,21 +136,10 @@ function SubjectSection({
       )}
 
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-foreground/60">Skills</h3>
+        <h3 className="mb-1 text-sm font-semibold text-foreground/60">Skills, in plain words</h3>
         <ul className="divide-y divide-line">
           {subject.skills.map((k) => (
-            <li key={k.name} className="flex flex-wrap items-center justify-between gap-2 py-2">
-              <span>
-                <span className="mr-2 rounded bg-foreground/5 px-1.5 py-0.5 text-xs text-foreground/60">
-                  Grade {k.grade}
-                </span>
-                {k.name}
-              </span>
-              <span className="text-sm text-foreground/60">
-                {k.tries > 0 ? `${k.tries} tries` : ""}
-                <Chip tone={SKILL_TONE[k.status]}>{SKILL_STATUS_LABEL[k.status]}</Chip>
-              </span>
-            </li>
+            <SkillRow key={k.name} skill={k} color={subject.color} />
           ))}
         </ul>
       </div>
@@ -182,37 +173,123 @@ function SubjectSection({
   );
 }
 
-function GradePath({ subject }: { subject: PreviewSubject }) {
-  const g1 = gradeProgress(subject, 1);
-  const g2 = gradeProgress(subject, 2);
-  const practicing = subject.skills.filter((k) => k.grade === 2 && k.status === "practicing").length;
-  const g2Total = subject.skills.filter((k) => k.grade === 2).length;
-  const rows = [
-    { label: `Grade ${subject.gradeFrom}`, filled: g1.answered, total: g1.total, note: `${g1.answered} of ${g1.total} skills answered` },
-    {
-      label: `Grade ${subject.gradeTo}`,
-      filled: g2.answered + practicing * 0.5,
-      total: g2Total,
-      note: `practicing ${practicing} of ${g2Total} skills`,
-    },
-  ];
+/** A skill in parent words: what it is, an example from a show, and how it's been going lately. */
+function SkillRow({ skill, color }: { skill: PreviewSkill; color: string }) {
   return (
-    <div className="space-y-2" aria-label={`${subject.name} grade path`}>
-      <h3 className="text-sm font-semibold text-foreground/60">
-        Grade path: Grade {subject.gradeFrom} → Grade {subject.gradeTo}
-      </h3>
-      {rows.map((r) => (
-        <div key={r.label} className="grid grid-cols-[72px_1fr_auto] items-center gap-3 text-sm">
-          <span className="font-semibold">{r.label}</span>
-          <div className="h-2.5 overflow-hidden rounded-full bg-foreground/10">
-            <div
-              className="h-full rounded-full"
-              style={{ width: `${r.total ? (r.filled / r.total) * 100 : 0}%`, background: subject.color }}
+    <li className="grid gap-1 py-3 text-sm">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="font-semibold">{skill.name}</span>
+        <span className="rounded bg-foreground/5 px-1.5 py-0.5 text-xs text-foreground/60">Grade {skill.grade}</span>
+        <Chip tone={SKILL_TONE[skill.status]}>{SKILL_STATUS_LABEL[skill.status]}</Chip>
+      </div>
+      <p className="text-foreground/80">{skill.plain}</p>
+      <p className="text-foreground/60">
+        <span className="font-medium text-foreground/70">Example:</span> {skill.example}
+      </p>
+      {skill.recent > 0 && (
+        <p className="flex items-center gap-2 text-xs text-foreground/60">
+          <span className="flex gap-1" aria-hidden>
+            {Array.from({ length: skill.recent }, (_, i) => (
+              <span
+                key={i}
+                className="h-2.5 w-2.5 rounded-full border"
+                style={i < skill.firstTry ? { background: color, borderColor: color } : { borderColor: color }}
+              />
+            ))}
+          </span>
+          {skill.firstTry} of the last {skill.recent} tries right on the first try
+        </p>
+      )}
+    </li>
+  );
+}
+
+const STEP_STYLE: Record<SkillStatus, (color: string) => React.CSSProperties> = {
+  first_try: (c) => ({ background: c, borderColor: c, color: "white" }),
+  after_help: (c) => ({ background: `color-mix(in srgb, ${c} 55%, white)`, borderColor: c, color: "white" }),
+  practicing: (c) => ({ borderColor: c, color: c, borderWidth: 2 }),
+  up_next: () => ({ borderStyle: "dashed" }),
+};
+
+/**
+ * The grade path as steps: every skill from Grade 1 to Grade 2 in order, filled in as it's done,
+ * with "Sam is here" on the one being worked on now. Plus the dated milestones that got there.
+ */
+function GradePath({ subject }: { subject: PreviewSubject }) {
+  const here = currentSkill(subject);
+  const lanes = [1, 2] as const;
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1">
+        <h3 className="text-sm font-semibold text-foreground/60">
+          Grade path: Grade {subject.gradeFrom} → Grade {subject.gradeTo}
+        </h3>
+        <p className="text-[15px] font-medium">{whereNow(subject, PREVIEW_CHILD)}</p>
+      </div>
+
+      <ol className="space-y-3">
+        {lanes.map((grade) => (
+          <li key={grade} className="grid gap-2 sm:grid-cols-[72px_1fr] sm:items-start">
+            <span className="pt-1 text-sm font-bold">Grade {grade}</span>
+            <ol className="flex flex-wrap items-center gap-1.5">
+              {subject.skills
+                .filter((k) => k.grade === grade)
+                .map((k, i, arr) => (
+                  <li key={k.name} className="flex items-center gap-1.5">
+                    <span
+                      className="rounded-full border border-foreground/25 px-2.5 py-1 text-xs font-semibold text-foreground/60"
+                      style={STEP_STYLE[k.status](subject.color)}
+                      title={SKILL_STATUS_LABEL[k.status]}
+                    >
+                      {(k.status === "first_try" || k.status === "after_help") && <span aria-hidden>✓ </span>}
+                      {k.name}
+                    </span>
+                    {k === here && (
+                      <span className="whitespace-nowrap rounded bg-foreground px-1.5 py-0.5 text-[10px] font-semibold text-background">
+                        ← {PREVIEW_CHILD} is here
+                      </span>
+                    )}
+                    {i < arr.length - 1 && (
+                      <span aria-hidden className="text-foreground/30">
+                        →
+                      </span>
+                    )}
+                  </li>
+                ))}
+            </ol>
+          </li>
+        ))}
+      </ol>
+
+      <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-foreground/60" aria-label="Legend">
+        {(Object.keys(SKILL_STATUS_LABEL) as SkillStatus[]).map((st) => (
+          <span key={st} className="inline-flex items-center gap-1.5">
+            <span
+              className="inline-block h-3 w-3 rounded-full border border-foreground/25"
+              style={STEP_STYLE[st](subject.color)}
             />
-          </div>
-          <span className="text-foreground/60">{r.note}</span>
-        </div>
-      ))}
+            {SKILL_STATUS_LABEL[st]}
+          </span>
+        ))}
+      </p>
+
+      <div>
+        <h3 className="mb-2 text-sm font-semibold text-foreground/60">How {PREVIEW_CHILD} got here</h3>
+        <ol className="relative space-y-3 border-l-2 pl-4" style={{ borderColor: subject.color }}>
+          {subject.milestones.map((m) => (
+            <li key={m.date} className="relative text-sm">
+              <span
+                aria-hidden
+                className="absolute -left-[23px] top-1 h-3 w-3 rounded-full border-2 bg-card"
+                style={{ borderColor: subject.color }}
+              />
+              <span className="text-foreground/60">{day(m.date)} · </span>
+              {m.text}
+              <span className="ml-2 rounded bg-foreground/5 px-1.5 py-0.5 text-xs text-foreground/60">Grade {m.grade}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
     </div>
   );
 }

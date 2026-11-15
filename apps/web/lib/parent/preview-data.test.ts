@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gradeProgress, PREVIEW_SUBJECTS, SKILL_STATUS_LABEL } from "./preview-data";
+import { currentSkill, gradeProgress, PREVIEW_SUBJECTS, SKILL_STATUS_LABEL, whereNow } from "./preview-data";
 
 describe("preview sample data", () => {
   it("covers Math, English and Science, each from Grade 1 to Grade 2", () => {
@@ -26,4 +26,27 @@ describe("preview sample data", () => {
     expect(gradeProgress(PREVIEW_SUBJECTS[0]!, 1)).toEqual({ answered: 5, total: 5 });
     expect(gradeProgress(PREVIEW_SUBJECTS[0]!, 2)).toEqual({ answered: 0, total: 3 });
   });
+
+  it("explains every skill in plain words with an example, and tracks recent tries", () => {
+    for (const k of PREVIEW_SUBJECTS.flatMap((x) => x.skills)) {
+      expect(k.plain.length).toBeGreaterThan(10);
+      expect(k.example.length).toBeGreaterThan(5);
+      expect(k.firstTry).toBeLessThanOrEqual(k.recent);
+    }
+  });
+
+  it("says where the child is and which skill they're on", () => {
+    const math = PREVIEW_SUBJECTS[0]!;
+    expect(whereNow(math, "Sam")).toBe("Sam has done all 5 Grade 1 skills and has started 2 of 3 Grade 2 skills.");
+    expect(currentSkill(math)?.name).toBe("Tens and ones");
+  });
+
+  it("orders milestones from Grade 1 to Grade 2 over time", () => {
+    for (const s of PREVIEW_SUBJECTS) {
+      const dates = s.milestones.map((m) => m.date);
+      expect([...dates].sort()).toEqual(dates);
+      expect(s.milestones.at(-1)?.grade).toBe(2);
+    }
+  });
 });
+
