@@ -22,7 +22,7 @@ export function DemoModeToggle({ child }: { child: string }) {
     writeDemoMode(next);
     setNote(null);
     if (!next) return;
-    // Start the demo from a balanced mix, so the Math dial has somewhere to go.
+    // Start the demo from a balanced mix, so the Numbers dial has somewhere to go.
     try {
       const res = await fetch("/api/parent/preferences", {
         method: "PUT",
@@ -47,8 +47,9 @@ export function DemoModeToggle({ child }: { child: string }) {
             Demo Mode
           </h2>
           <p className="max-w-[460px] text-sm text-foreground/60">
-            The companion answers &ldquo;Make {child} learn more about addition&rdquo; instantly. Other questions still go to
-            the model. Saved in this browser only.
+            Commands like &ldquo;Make {child} learn more about addition&rdquo;, &ldquo;Switch to Spanish&rdquo; and
+            &ldquo;Reset the current skill&rdquo; update the real lesson without waiting for the chat model.
+            Other questions still go to the model. Saved in this browser only.
           </p>
         </div>
         <button

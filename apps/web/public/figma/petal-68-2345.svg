@@ -1,0 +1,33 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="146.289" height="126.319" viewBox="0 0 146.289 126.319" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="Ellipse 11" filter="url(#filter0_di_0_4)">
+<use xlink:href="#stroke0_0_4" fill="#EFEFF1"/>
+<use xlink:href="#stroke0_0_4" fill="url(#paint0_linear_0_4)"/>
+<mask id="stroke1_0_4" fill="white">
+<use xlink:href="#stroke0_0_4"/>
+</mask>
+<path d="M65.142 108.481C49.6418 103.509 35.5858 95.1202 23.9427 84.0609C16.0864 76.5985 12.1582 72.8673 12.7602 66.5653C13.3621 60.2634 18.6847 56.8576 29.3299 50.046L71.506 23.0586C83.7655 15.2141 89.8952 11.2918 95.7202 13.1604C101.545 15.029 104.249 21.7851 109.658 35.2973L128.264 81.7833C132.96 93.5163 135.308 99.3828 132.132 104.859C128.956 110.335 123.59 111.085 112.859 112.585C96.9551 114.807 80.6422 113.454 65.142 108.481Z" stroke-width="2" stroke="white" stroke-opacity="0.3" mask="url(#stroke1_0_4)"/>
+</g>
+<defs>
+<filter id="filter0_di_0_4" x="0" y="-2.86102e-06" width="146.289" height="126.319" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset/>
+<feGaussianBlur stdDeviation="6.35"/>
+<feComposite in2="hardAlpha" operator="out"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.11 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_4"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_4" result="shape"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset/>
+<feGaussianBlur stdDeviation="4.6"/>
+<feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+<feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.77 0"/>
+<feBlend mode="normal" in2="shape" result="effect2_innerShadow_0_4"/>
+</filter>
+<linearGradient id="paint0_linear_0_4" x1="137.479" y1="0.119231" x2="30.979" y2="53.6192" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FF8000"/>
+<stop offset="1" stop-color="#FFAD8A"/>
+</linearGradient>
+<path id="stroke0_0_4" d="M29.3299 50.046C18.6847 56.8576 13.3621 60.2634 12.7602 66.5653C12.1582 72.8673 16.0864 76.5985 23.9427 84.0609C35.5858 95.1202 49.6418 103.509 65.142 108.481C80.6422 113.454 96.9551 114.807 112.859 112.585C123.59 111.085 128.956 110.335 132.132 104.859C135.308 99.3828 132.96 93.5163 128.264 81.7833L109.658 35.2973C104.249 21.7851 101.545 15.029 95.7202 13.1604C89.8952 11.2918 83.7655 15.2141 71.506 23.0586L29.3299 50.046Z"/>
+</defs>
+</svg>

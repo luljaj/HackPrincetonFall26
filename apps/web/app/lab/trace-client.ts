@@ -10,11 +10,13 @@ export function createTrace(sessionId: string, episodeId: string, endFields: () 
   let seq = 0;
   let queue: PlayEvent[] = [];
   let sending = false;
+  let flushRequested = false;
 
   const body = (events: PlayEvent[]) => JSON.stringify({ sessionId, episodeId, events });
 
   async function flush() {
-    if (sending || queue.length === 0) return;
+    if (sending) { flushRequested = true; return; }
+    if (queue.length === 0) return;
     sending = true;
     const batch = queue.slice(0, 200);
     try {
@@ -24,6 +26,7 @@ export function createTrace(sessionId: string, episodeId: string, endFields: () 
       // offline: keep the queue
     } finally {
       sending = false;
+      if (flushRequested) { flushRequested = false; void flush(); }
     }
   }
 
@@ -39,6 +42,7 @@ export function createTrace(sessionId: string, episodeId: string, endFields: () 
   function record(fields: Fields) {
     queue.push({ ...fields, seq: seq++, at: Date.now() });
     if (queue.length > MAX_QUEUE) queue = queue.slice(-MAX_QUEUE);
+    if (fields.type === "session_start" || (fields.type === "stage" && ["practicing", "celebrating", "giving", "graceful"].includes(fields.stage ?? ""))) void flush();
   }
 
   return {

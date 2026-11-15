@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { LESSONS_EVENT } from "../../../lib/play/language-lessons";
+import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   DEFAULT_FOCUS,
+  FocusSchema,
   FOCUS_EVENT,
   FOCUS_LABEL,
   type FocusEventDetail,
@@ -375,6 +378,7 @@ function Result({ turn, focus, child }: { turn: Turn; focus: Focus; child: strin
 
 // A nonmodal agent region: the dashboard stays usable while it is open.
 export function ChatPanel({ child }: { child: string }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
@@ -448,21 +452,18 @@ export function ChatPanel({ child }: { child: string }) {
       .map((m) => ({ ...m, content: m.content.slice(0, 2000) }));
     try {
       // Demo Mode: the rehearsed prompt skips the model. It saves the real focus
-      // change and holds the skeleton just long enough to read as "working".
+      // change immediately; the result animation supplies its own pacing.
       if (demoMode && isDemoPrompt(prompt)) {
         const before = focusRef.current;
         const answer = demoAnswer(child, before);
-        const [res] = await Promise.all([
-          fetch("/api/parent/preferences", {
+        const res = await fetch("/api/parent/plan", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             signal: controller.signal,
             body: JSON.stringify({ focus: answer.after }),
-          }),
-          new Promise((resolve) => setTimeout(resolve, 900)),
-        ]);
+          });
         if (!res.ok) throw new Error("Couldn't change the focus. Try again.");
-        const saved = (await res.json()) as { focus: Focus };
+        const saved = { focus: FocusSchema.parse((await res.json()).focus) };
         update({
           status: "done",
           reply: answer.reply,
@@ -482,7 +483,7 @@ export function ChatPanel({ child }: { child: string }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
-        body: JSON.stringify({ messages }),
+        body: JSON.stringify({ messages, demo: demoMode }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
@@ -495,6 +496,8 @@ export function ChatPanel({ child }: { child: string }) {
         sessionIds: body.sessionIds,
         focusChange: body.focusChange,
       });
+      if (body.lessonChanged) window.dispatchEvent(new Event(LESSONS_EVENT));
+      if (body.masteryReset?.length || body.languageChange !== undefined || body.lessonChanged) router.refresh();
       if (body.focusChange?.after) {
         setFocus(body.focusChange.after);
         window.dispatchEvent(new CustomEvent<FocusEventDetail>(FOCUS_EVENT, {
@@ -666,13 +669,14 @@ export function ChatPanel({ child }: { child: string }) {
           aria-controls="parent-agent-panel"
           onClick={() => toggle(!open)}
         >
-          <Sparkle />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/figma/home-imgVector.svg" alt="" width={16} height={16} />
         </button>
         <input
           ref={inputRef}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder="Ask a question, or tell me what’s next…"
+          placeholder={`Have ${child} learn more about addition…`}
           aria-label="Ask about your child's learning"
           aria-controls="parent-agent-panel"
           maxLength={2000}
@@ -687,9 +691,8 @@ export function ChatPanel({ child }: { child: string }) {
           className={styles.sendButton}
           aria-label="Send"
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M20 5v7a3 3 0 0 1-3 3H5M9 11l-4 4 4 4" />
-          </svg>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/figma/home-imgFluentArrowEnterLeft24Filled.svg" alt="" width={22} height={22} />
         </button>
       </form>
     </div>

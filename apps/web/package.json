@@ -10,7 +10,7 @@
     "lint": "eslint --max-warnings 0",
     "check-types": "next typegen && tsc --noEmit",
     "test": "npm run test:pipeline && npm run test:judge && npm run test:lab && npm run test:storage",
-    "test:lab": "node --test app/lab/machine.test.ts app/lab/listen.test.ts app/lab/quick-judge.test.ts app/lab/sound.test.ts",
+    "test:lab": "node --test app/lab/machine.test.ts app/lab/listen.test.ts app/lab/quick-judge.test.ts app/lab/sound.test.ts app/lab/focus-lessons.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
@@ -18,7 +18,7 @@
     "eval:pipeline": "tsx evals/pipeline/run.ts",
     "test:judge": "tsx --test server/judge/judge.test.ts",
     "test:pipeline": "tsx --test lib/contracts/contracts.test.ts server/pipeline/pipeline.test.ts server/pipeline/providers.test.ts evals/pipeline/eval.test.ts server/pipeline/http.test.ts",
-    "test:storage": "vitest run server/storage/postgres.test.ts server/storage/play.test.ts lib/parent lib/play server/parent-chat"
+    "test:storage": "vitest run server/storage/postgres.test.ts server/storage/play.test.ts server/storage/language-lessons.test.ts lib/parent lib/play server/parent-chat"
   },
   "dependencies": {
     "@repo/ui": "*",

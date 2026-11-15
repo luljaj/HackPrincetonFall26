@@ -117,14 +117,14 @@ body {
 /* Parent dashboard: warm light palette folded in from the apps/parent mock.
    Re-points the shared tokens for everything under /parent, so every component follows it. */
 .parent-theme {
-  --background: #e8ebf2;
-  --foreground: #23201c;
+  --background: #e6e8f0;
+  --foreground: #373839;
   --card: #ffffff;
   --line: #e2e5ec;
   --good: #2f9e5b;
   --warn: #d98a1c;
   --attention: #b45309;
-  --font-sans: var(--font-sora), ui-sans-serif, system-ui, sans-serif; /* Sora, loaded in app/parent/layout.tsx */
+  --font-sans: var(--font-lexend), ui-sans-serif, system-ui, sans-serif;
   /* Tailwind resolves its --color-* tokens at :root, so re-point them here too. */
   --color-background: var(--background);
   --color-foreground: var(--foreground);

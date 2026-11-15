@@ -43,6 +43,20 @@
       "when": 1794711924991,
       "tag": "0005_play_events_hypertable",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794720094712,
+      "tag": "0006_superb_warhawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794724930431,
+      "tag": "0007_modern_war_machine",
+      "breakpoints": true
     }
   ]
 }

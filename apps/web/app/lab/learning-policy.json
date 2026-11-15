@@ -1,0 +1,17 @@
+{
+  "note": "Starting guesses to tune with real children; thresholds currently have only synthetic and boundary checks.",
+  "pronunciation": {
+    "en": { "good": -4.5, "close": -10.5 },
+    "es": { "good": -4.5, "close": -10.5 },
+    "de": { "good": -6, "close": -12 },
+    "fr": { "good": -6, "close": -12 },
+    "hi": { "good": -7.5, "close": -13.5 },
+    "ja": { "good": -8, "close": -14 },
+    "zh": { "good": -9.5, "close": -15.5 },
+    "default": { "good": -7.5, "close": -13.5 }
+  },
+  "practice": { "maxAttempts": 2 },
+  "recall": { "skills": ["recall-places", "recall-objects", "recall-events"], "editDivisor": 12 },
+  "answers": { "editDivisor": 4 },
+  "playback": { "thinkingDelayMs": 120 }
+}

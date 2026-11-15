@@ -10,6 +10,7 @@ export const SUBJECTS = CATEGORIES.map((c, i) => ({ id: c.id, name: c.name, colo
 
 export type SubjectId = string;
 export const FOCUS_LEVELS = ["less", "usual", "more"] as const;
+export const PLAN_LANGUAGES = ["", "es", "fr", "de", "zh", "hi", "ja"] as const;
 export type FocusLevel = (typeof FOCUS_LEVELS)[number];
 
 export const FOCUS_LABEL: Record<FocusLevel, string> = { less: "Less", usual: "Usual", more: "More" };

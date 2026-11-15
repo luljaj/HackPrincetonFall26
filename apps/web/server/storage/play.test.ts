@@ -8,6 +8,7 @@ import { playToParentView } from "../../lib/play/view";
 import { createMemoryPlayStore, createPostgresPlayStore, type PlayStore } from "./play";
 import type { StoreDb } from "./postgres";
 import * as schema from "./schema";
+import { skillOf } from "../../lib/play/mastery";
 
 const S = "11111111-1111-4111-8111-111111111111";
 const T1 = "22222222-2222-4222-8222-222222222222";
@@ -94,6 +95,18 @@ describe.each([
     store = await make();
   });
 
+  it("resets mastery without deleting saved pauses and resolves the latest skill", async () => {
+    await store.ingest(batch(viewing()));
+    const skill = skillOf("ep3-02")!;
+    expect(await store.currentSkill()).toBe(skillOf("ep3-09"));
+    expect((await store.mastery()).categories.flatMap(c => c.skills).find(s => s.id === skill)?.asked).toBe(1);
+    await store.resetSkills([skill], t0 + 60_000);
+    expect((await store.mastery()).categories.flatMap(c => c.skills).find(s => s.id === skill)).toMatchObject({ level: "new", asked: 0 });
+    expect((await store.get(S))?.turns).toHaveLength(3);
+    await store.ingest(batch(viewing()));
+    expect((await store.mastery()).categories.flatMap(c => c.skills).find(s => s.id === skill)?.asked).toBe(0);
+  });
+
   it("saves batches, ignores retried events, and groups topics", async () => {
     const events = viewing();
     await store.ingest(batch(events.slice(0, 10)));
@@ -121,5 +134,22 @@ describe.each([
     expect(await store.deleteAll()).toBe(1);
     expect(await store.list(10)).toEqual([]);
     expect(await store.topics()).toEqual([]);
+  });
+});
+
+describe("older TV counting evidence", () => {
+  it("includes committed real counting answers in Numbers, excludes samples, and preserves resets", async () => {
+    const db = drizzle(new PGlite(), { schema });
+    await migrate(db, { migrationsFolder: "./drizzle" });
+    for (const [sessionId, isSample] of [["old-tv", false], ["old-sample", true]] as const) {
+      await db.insert(schema.sessions).values({ sessionId, sceneId: "demo-scene", objectiveId: "count-small-sets", sceneSnapshot: {}, isSample, createdAt: new Date(t0) });
+      await db.insert(schema.interactions).values({ sessionId, interactionId: sessionId+"-answer", turnNumber: 1, sceneId: "demo-scene", objectiveId: "count-small-sets", questionId: "count", questionText: "How many apples?", answerGuide: "Two", transcript: "Two", responseType: "teaching", responseText: "Yes", answerStatus: "correct", assistanceBefore: true, assistanceInResponse: false, turnResponse: {}, completedAt: new Date(t0+1) });
+    }
+    const store = createPostgresPlayStore(db as unknown as StoreDb);
+    expect((await store.mastery()).categories.flatMap(c => c.skills).find(s => s.id === "how-many")).toMatchObject({ asked: 1, firstTry: 0, level: "practising" });
+    expect(await store.legacyEvidence()).toHaveLength(1);
+    await store.resetSkills(["how-many"], t0+2);
+    expect((await store.mastery()).categories.flatMap(c => c.skills).find(s => s.id === "how-many")?.asked).toBe(0);
+    expect(await store.legacyEvidence()).toHaveLength(1);
   });
 });

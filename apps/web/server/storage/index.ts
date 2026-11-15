@@ -1,4 +1,5 @@
 import "server-only";
+import { createMemoryLanguageLessonStore, createPostgresLanguageLessonStore, type LanguageLessonStore } from "./language-lessons";
 import type { ProgressReader } from "../../lib/contracts";
 import type { PipelineStore } from "./contract";
 import { createDemoAdmin, type DemoAdmin } from "./admin";
@@ -53,4 +54,11 @@ const playShared = globalThis as typeof globalThis & { [playKey]?: PlayStore };
 export function getPlayStore(): PlayStore {
   if (process.env.PIPELINE_STORE === "postgres") return createPostgresPlayStore(getDb());
   return (playShared[playKey] ??= createMemoryPlayStore());
+}
+
+const languageKey = Symbol.for("hackprinceton.language-lessons.memory.v1");
+const languageShared = globalThis as typeof globalThis & { [languageKey]?: LanguageLessonStore };
+export function getLanguageLessonStore(): LanguageLessonStore {
+  if (process.env.PIPELINE_STORE === "postgres") return createPostgresLanguageLessonStore(getDb());
+  return languageShared[languageKey] ??= createMemoryLanguageLessonStore(async () => (await getPlayStore().list(10000)).flatMap(r => r.turns.map(t => ({ ...t, sessionId: r.session.sessionId }))));
 }

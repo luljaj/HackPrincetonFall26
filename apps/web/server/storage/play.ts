@@ -1,15 +1,18 @@
-import { and, asc, desc, eq, inArray, lt, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, lt, ne, notExists, or, sql } from "drizzle-orm";
 import { foldSession, type PlayBatch, type PlayEvent, type PlaySessionSummary, type PlayTurn } from "../../lib/play/trace";
-import { masteryFrom, type Mastery } from "../../lib/play/mastery";
+import { masteryFrom, skillOf, type Mastery } from "../../lib/play/mastery";
 import { PersistenceError } from "./contract";
 import type { StoreDb } from "./postgres";
-import { playEvents, playSessions, playTurns } from "./schema";
+import { interactions, sessions, masteryResets, playEvents, playSessions, playTurns } from "./schema";
 
 export type PlaySessionRecord = { session: PlaySessionSummary; turns: PlayTurn[] };
 export type PracticeRow = { language: string; words: string[]; tried: number; saidIt: number; lastSeen: number };
 export type TopicRow = { topic: string; subject: string; questions: number; firstTry: number; afterHelp: number; gave: number; noAnswer: number; lastSeen: number };
 
+export type LegacyEvidence = { sessionId: string; turnId: string; spotId: string; question: string; transcript: string; episodeId: string; answerStatus: string;
+  outcome: "first_try" | "after_help" | "gave" | "no_answer"; endedAt: number; practiceLanguage: null; practiceWord: null; practiceOutcome: null };
 export type PlayStore = {
+  legacyEvidence(): Promise<LegacyEvidence[]>;
   /** Saves a batch (duplicates ignored), re-folds the session, returns its current state. */
   ingest(batch: PlayBatch): Promise<PlaySessionRecord>;
   list(limit: number): Promise<PlaySessionRecord[]>;
@@ -18,6 +21,8 @@ export type PlayStore = {
   topics(): Promise<TopicRow[]>;
   /** Skill levels per mastery category, and word levels per language (lib/play/mastery.ts). */
   mastery(): Promise<Mastery>;
+  resetSkills(skillIds: readonly string[], at?: number): Promise<void>;
+  currentSkill(): Promise<string | null>;
   /** Words practised in another language, grouped by language. */
   practice(): Promise<PracticeRow[]>;
   /** Deletes one viewing's whole trace (session, events, turns). False if it didn't exist. */
@@ -65,6 +70,7 @@ export function practiceRows(turns: readonly PlayTurn[]): PracticeRow[] {
 const ms = (d: Date | null) => (d ? d.getTime() : null);
 
 export function createPostgresPlayStore(db: StoreDb): PlayStore {
+  const learnerKey = "default"; // The current app has one pseudonymous learner.
   const turnsFor = async (ids: string[]) => {
     if (ids.length === 0) return new Map<string, PlayTurn[]>();
     const rows = await db.select().from(playTurns).where(inArray(playTurns.sessionId, ids)).orderBy(asc(playTurns.turnNumber));
@@ -87,7 +93,18 @@ export function createPostgresPlayStore(db: StoreDb): PlayStore {
     lastEventAt: r.lastEventAt.getTime(), endedAt: ms(r.endedAt), watchedSeconds: r.watchedSeconds,
   });
 
+  const legacyEvidence = async (): Promise<LegacyEvidence[]> => {
+    const older = await db.select({ sessionId: interactions.sessionId, turnId: interactions.interactionId, objectiveId: interactions.objectiveId,
+      question: interactions.questionText, transcript: interactions.transcript, episodeId: interactions.sceneId,
+      answerStatus: interactions.answerStatus, assistanceBefore: interactions.assistanceBefore, endedAt: interactions.completedAt })
+      .from(interactions).innerJoin(sessions, eq(sessions.sessionId, interactions.sessionId))
+      .where(and(eq(sessions.isSample, false), notExists(db.select({ id: playTurns.turnId }).from(playTurns).where(and(eq(playTurns.sessionId, interactions.sessionId), isNotNull(playTurns.outcome))))));
+    return older.filter(row => skillOf(`objective:${row.objectiveId}`)).map(row => ({ ...row,
+      spotId: `objective:${row.objectiveId}`, endedAt: row.endedAt.getTime(), outcome: row.answerStatus === "correct" ? row.assistanceBefore ? "after_help" : "first_try" : row.answerStatus === "incorrect" ? "gave" : "no_answer",
+      practiceLanguage: null, practiceWord: null, practiceOutcome: null }));
+  };
   return {
+    legacyEvidence,
     async ingest(batch) {
       // Retention: what the kid said is kept TRANSCRIPT_DAYS, then blanked (turns) and removed (events).
       // Batches arrive every 2 s; the sweep only needs to run about once an hour per server.
@@ -97,7 +114,7 @@ export function createPostgresPlayStore(db: StoreDb): PlayStore {
           const first = Math.min(...batch.events.map((e) => e.at));
           await tx
             .insert(playSessions)
-            .values({ sessionId: batch.sessionId, episodeId: batch.episodeId, startedAt: new Date(first), lastEventAt: new Date(first) })
+            .values({ learnerKey, sessionId: batch.sessionId, episodeId: batch.episodeId, startedAt: new Date(first), lastEventAt: new Date(first) })
             .onConflictDoNothing();
           await tx
             .insert(playEvents)
@@ -165,8 +182,22 @@ export function createPostgresPlayStore(db: StoreDb): PlayStore {
           practiceLanguage: playTurns.practiceLanguage, practiceWord: playTurns.practiceWord, practiceOutcome: playTurns.practiceOutcome,
         })
         .from(playTurns)
-        .where(sql`${playTurns.outcome} is not null or ${playTurns.practiceWord} is not null`);
-      return masteryFrom(rows.map((r) => ({ ...r, endedAt: r.endedAt.getTime() })));
+        .innerJoin(playSessions, eq(playTurns.sessionId, playSessions.sessionId))
+        .where(and(eq(playSessions.learnerKey, learnerKey), or(isNotNull(playTurns.outcome), isNotNull(playTurns.practiceWord))));
+      const resets = await db.select().from(masteryResets).where(eq(masteryResets.learnerKey, learnerKey));
+      const legacy = await legacyEvidence();
+      return masteryFrom([...rows.map((r) => ({ ...r, endedAt: r.endedAt.getTime() })), ...legacy], Date.now(), resets.map(r => ({ skillId: r.skillId, resetAt: r.resetAt.getTime() })));
+    },
+    async resetSkills(skillIds, at = Date.now()) {
+      if (!skillIds.length) return;
+      await db.insert(masteryResets).values(skillIds.map(skillId => ({ learnerKey, skillId, resetAt: new Date(at) })))
+        .onConflictDoUpdate({ target: [masteryResets.learnerKey, masteryResets.skillId], set: { resetAt: sql`greatest(${masteryResets.resetAt}, excluded.reset_at)` } });
+    },
+    async currentSkill() {
+      const [latest] = await db.select({ spotId: playTurns.spotId }).from(playTurns)
+        .innerJoin(playSessions, eq(playTurns.sessionId, playSessions.sessionId))
+        .where(eq(playSessions.learnerKey, learnerKey)).orderBy(desc(playTurns.endedAt), desc(playTurns.startedAt)).limit(1);
+      return latest ? skillOf(latest.spotId) : null;
     },
     async delete(sessionId) {
       // Events and turns go with it (ON DELETE CASCADE).
@@ -197,7 +228,9 @@ export function createPostgresPlayStore(db: StoreDb): PlayStore {
 export function createMemoryPlayStore(): PlayStore {
   const events = new Map<string, { episodeId: string; bySeq: Map<number, PlayEvent> }>();
   const records = new Map<string, PlaySessionRecord>();
+  const resets = new Map<string, number>();
   return {
+    async legacyEvidence() { return []; },
     async ingest(batch) {
       const s = events.get(batch.sessionId) ?? { episodeId: batch.episodeId, bySeq: new Map() };
       for (const e of batch.events) if (!s.bySeq.has(e.seq)) s.bySeq.set(e.seq, e);
@@ -219,7 +252,14 @@ export function createMemoryPlayStore(): PlayStore {
       return practiceRows([...records.values()].flatMap((r) => r.turns));
     },
     async mastery() {
-      return masteryFrom([...records.values()].flatMap((r) => r.turns.map((t) => ({ ...t, sessionId: r.session.sessionId }))));
+      return masteryFrom([...records.values()].flatMap((r) => r.turns.map((t) => ({ ...t, sessionId: r.session.sessionId }))), Date.now(), [...resets].map(([skillId, resetAt]) => ({ skillId, resetAt })));
+    },
+    async resetSkills(skillIds, at = Date.now()) {
+      for (const skillId of skillIds) resets.set(skillId, Math.max(at, resets.get(skillId) ?? -Infinity));
+    },
+    async currentSkill() {
+      const latest = [...records.values()].flatMap(r => r.turns).sort((a, b) => b.endedAt - a.endedAt || b.startedAt - a.startedAt)[0];
+      return latest ? skillOf(latest.spotId) : null;
     },
     async delete(sessionId) {
       events.delete(sessionId);

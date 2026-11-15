@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CHANNELS } from "./channels";
 import { DoraPlayer } from "./lab/player";
-import { subscribeToPlan } from "../lib/parent/subscribe";
+import { type RequestedLesson, subscribeToPlan } from "../lib/parent/subscribe";
 import s from "./play.module.css";
 
 // Languages the kid can practise (answers are taught in them after each question).
@@ -31,13 +31,45 @@ export default function Play() {
   const [tuning, setTuning] = useState(false);
   const [osd, setOsd] = useState<string | null>(null); // on-screen display text (channel or language)
   const [learn, setLearn] = useState("");
+  const [requestedLesson, setRequestedLesson] = useState<RequestedLesson | undefined>();
+  const [learningNotice, setLearningNotice] = useState<{ code: string; status: "queued" | "active" } | null>(null);
+  useEffect(() => {
+    if (!learningNotice) return;
+    const timer = setTimeout(() => setLearningNotice(null), 5000);
+    return () => clearTimeout(timer);
+  }, [learningNotice]);
+  const [focus, setFocus] = useState<Record<string, string>>({});
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [fullscreenError, setFullscreenError] = useState(false);
+  const screen = useRef<HTMLDivElement>(null);
   const [playerControls, setPlayerControls] = useState<HTMLDivElement | null>(
     null,
   );
   const noise = useRef<HTMLCanvasElement>(null);
   const audio = useRef<AudioContext | null>(null);
   const channel = CHANNELS[ch]!;
+
+  useEffect(() => {
+    const syncFullscreen = () =>
+      setFullscreen(document.fullscreenElement === screen.current);
+    document.addEventListener("fullscreenchange", syncFullscreen);
+    return () =>
+      document.removeEventListener("fullscreenchange", syncFullscreen);
+  }, []);
+
+  async function toggleFullscreen() {
+    setFullscreenError(false);
+    try {
+      if (document.fullscreenElement === screen.current) {
+        await document.exitFullscreen();
+      } else {
+        await screen.current?.requestFullscreen();
+      }
+    } catch {
+      setFullscreenError(true);
+    }
+  }
 
   function hiss() {
     const ctx = (audio.current ??= new AudioContext());
@@ -72,18 +104,19 @@ export default function Play() {
 
   function pickLanguage(code: string) {
     setLearn(code);
-    const l = LANGUAGES.find((x) => x.code === code)!;
-    setOsd(`${l.flag} LEARN ${l.code ? l.name.toUpperCase() : "OFF"}`);
+    if (on) setLearningNotice({ code, status: "queued" });
   }
 
   // The parent's learning plan (learning-plan.md): a language change lands mid-episode, at Dora's next line.
   useEffect(
     () =>
-      subscribeToPlan(({ language }) => {
+      subscribeToPlan(({ language, focus: nextFocus, lesson }) => {
+        if (lesson) setRequestedLesson(lesson);
+        if (nextFocus) setFocus(nextFocus);
         const l = LANGUAGES.find((x) => x.code === language);
         if (!l) return; // unset or unknown: keep what the kid picked
         setLearn(l.code);
-        setOsd(`${l.flag} LEARN ${l.code ? l.name.toUpperCase() : "OFF"}`);
+
       }) ?? undefined,
     [],
   );
@@ -133,10 +166,11 @@ export default function Play() {
   });
 
   return (
-    <main className={s.room}>
+    <main className={s.room} data-learning-language={learn}>
       <div className={s.tv}>
         <div className={s.cabinet}>
           <div
+            ref={screen}
             className={`${s.screen} ${on ? s.on : s.off}`}
             style={{ ["--glow" as string]: channel.color }}
           >
@@ -148,9 +182,17 @@ export default function Play() {
                   onLearnChange={setLearn}
                   controlsTarget={playerControls}
                   captionsEnabled={captionsEnabled}
+                  learningFocus={focus}
+                  requestedLesson={requestedLesson}
+                  onLanguageState={setLearningNotice}
                 />
               </div>
             )}
+            {on && learningNotice && <div className={s.learningNotice} role="status" aria-live="polite" data-language={learningNotice.code}>
+              <span aria-hidden="true">{LANGUAGES.find(l => l.code === learningNotice.code)?.flag}</span>
+              <div><b>{learningNotice.status === "queued" ? `${LANGUAGES.find(l => l.code === learningNotice.code)?.name} is next` : `Let's learn ${LANGUAGES.find(l => l.code === learningNotice.code)?.name}!`}</b>
+                <small>{learningNotice.status === "queued" ? "Dora is finishing this question." : "A new learning adventure."}</small></div>
+            </div>}
             {on && channel.id !== "dora" && (
               <div className={s.soon} style={{ background: channel.color }}>
                 <span className={s.soonBounce}>★</span>
@@ -172,6 +214,38 @@ export default function Play() {
               </p>
             )}
             <div className={s.glass} />
+            <button
+              type="button"
+              className={s.fullscreen}
+              aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+              title={fullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+              onClick={toggleFullscreen}
+            >
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path
+                  d={
+                    fullscreen
+                      ? "M4 9h5V4m6 0v5h5M4 15h5v5m6 0v-5h5"
+                      : "M9 4H4v5m11-5h5v5M4 15v5h5m6 0h5v-5"
+                  }
+                />
+              </svg>
+            </button>
+            {fullscreenError && (
+              <p className={s.fullscreenError} role="status">
+                Fullscreen is unavailable. Please try again.
+              </p>
+            )}
           </div>
         </div>
         <div className={s.legs}>
