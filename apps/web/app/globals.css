@@ -13,12 +13,55 @@
   --color-line: var(--line);
   --color-good: var(--good);
   --color-warn: var(--warn);
+  /* Tellavision parent look, read from the Figma parent frames. Used by /parent (.tv-home). */
+  --color-tv-page: #fdfdfc;
+  --color-tv-yellow: #ffde36;
+  --color-tv-card: #d9d9d9;
+  --color-tv-panel: #e7e7e7;
+  --color-tv-badge: #696969;
+  --color-tv-blue: #1b18e9;
+  --color-tv-blue-light: #9db8ff;
+  --font-display: var(--font-sora), system-ui, sans-serif;
+  --font-lexend: var(--font-lexend-face), system-ui, sans-serif;
+  --shadow-tv-halo: 0 0 92.5px rgb(0 0 0 / 0.1);
+  --shadow-tv-chip: 0 0 13.7px rgb(0 0 0 / 0.1);
+  --shadow-tv-button: 0 0 9.7px rgb(0 0 0 / 0.1);
+}
+
+/* shadcn/ui semantic tokens (components/ui). Inline, so they follow whichever theme sets the variables. */
+@theme inline {
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-card-foreground: var(--card-foreground);
 }
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
   --attention: #b45309;
+  --primary: #171717;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #171717;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #171717;
+  --destructive: #b91c1c;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #a1a1aa;
+  --card-foreground: var(--foreground);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -402,6 +445,34 @@ body {
   --color-line: var(--line);
   --color-good: var(--good);
   --color-warn: var(--warn);
+  /* Same for the fonts: next/font sets --font-sora and --font-lexend-face on this element. */
+  --font-display: var(--font-sora), system-ui, sans-serif;
+  --font-lexend: var(--font-lexend-face), system-ui, sans-serif;
+  /* shadcn tokens in the Tellavision palette: yellow is the one action colour. */
+  --primary: #ffde36;
+  --primary-foreground: #000000;
+  --secondary: #ffffff;
+  --secondary-foreground: #000000;
+  --muted: #d9d9d9;
+  --muted-foreground: rgb(0 0 0 / 0.44);
+  --accent: #fff4bf;
+  --accent-foreground: #000000;
+  --border: rgb(0 0 0 / 0.1);
+  --input: rgb(0 0 0 / 0.1);
+  --ring: #ffde36;
   --color-attention: var(--attention);
   color-scheme: light;
+}
+
+/* iOS-style continuous corners (Figma corner smoothing 100%). Set the Figma radius with --r,
+   e.g. class="sq [--r:48px]". A squircle needs about 1.84x the radius to bulge as far into the
+   corner as Figma's smoothed corner does; browsers without corner-shape get the plain radius. */
+.sq {
+  border-radius: var(--r, 16px);
+}
+@supports (corner-shape: squircle) {
+  .sq {
+    border-radius: calc(var(--r, 16px) * 1.84);
+    corner-shape: squircle;
+  }
 }
