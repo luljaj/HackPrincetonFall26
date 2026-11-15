@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { MasteryCarousel } from "./mastery-carousel";
 import { z } from "zod";
 import { LanguageLessonSchema, LESSONS_EVENT, LESSON_LEVELS, LessonLevelSchema, type LanguageCode, type LanguageLesson, type LessonWrite } from "../../../lib/play/language-lessons";
 const ResponseSchema = z.object({ lessons: z.array(LanguageLessonSchema) });
@@ -65,8 +66,9 @@ export function LanguageLessonControls({ state, name }: { state: State; name: st
   const visible = state.lessons.filter(row => row.active);
   const removed = state.lessons.filter(row => !row.active);
   function row(lesson: LanguageLesson) {
-    return <li key={lesson.lessonId} className="language-lesson" data-lesson-id={lesson.lessonId}>
+    return <article key={lesson.lessonId} className="language-lesson" data-lesson-id={lesson.lessonId}>
       <div><b>{lesson.word}</b><span>{lesson.english}</span><small>{lesson.source === "parent" ? "Parent-set level" : lesson.source === "recorded" ? "From saved practice" : "Not practised yet"}</small></div>
+      <p className="mastery-card-blurb">Practise “{lesson.word}” ({lesson.english}) in the story. {lesson.question}</p>
       <div className="language-lesson-actions">
         <label className="sr-only" htmlFor={`level-${lesson.language}-${lesson.lessonId}`}>Level for {lesson.english}</label>
         <select id={`level-${lesson.language}-${lesson.lessonId}`} value={lesson.level} disabled={state.busy !== null}
@@ -78,15 +80,15 @@ export function LanguageLessonControls({ state, name }: { state: State; name: st
           : <button disabled={state.busy !== null} onClick={() => { void state.save(lesson, { active: true }); }}>Add lesson</button>}
         {lesson.source === "parent" && <button disabled={state.busy !== null} onClick={() => { void state.save(lesson, "recorded"); }}>Use recorded progress</button>}
       </div>
-    </li>;
+    </article>;
   }
   return <>
     <p className="mt-3 text-xs text-foreground/60">{name}&apos;s levels stay saved when you switch languages. A parent can raise or lower any level.</p>
     {state.error && <p role="alert" className="mt-3 text-sm text-[#9b3644]">{state.error}</p>}
     {state.loading ? <p role="status" className="mt-4 text-sm">Loading saved lessons…</p> : <>
       <p className="mt-4 text-sm">{visible.filter(l => l.level === 3).length}/{visible.length} lessons remembered</p>
-      <ul className="language-lesson-list">{visible.map(row)}</ul>
-      {removed.length > 0 && <details className="mt-4 text-sm"><summary>Removed lessons ({removed.length})</summary><ul className="language-lesson-list">{removed.map(row)}</ul></details>}
+      <MasteryCarousel key={visible.map(l => l.lessonId).join(",")} label="Lessons">{visible.map(row)}</MasteryCarousel>
+      {removed.length > 0 && <details className="mt-4 text-sm"><summary>Removed lessons ({removed.length})</summary><div className="language-lesson-list">{removed.map(row)}</div></details>}
     </>}
   </>;
 }

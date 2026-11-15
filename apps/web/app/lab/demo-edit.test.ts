@@ -1,43 +1,30 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { demoPlaybackAt, demoWatchedSeconds, DEMO_FILM_SECONDS, TREASURE_EDIT, nextDemoExercise } from "./demo-edit.ts";
+import spots from "./spots.json" with { type: "json" };
+import lessons from "./lessons.json" with { type: "json" };
+import { DEMO_EDIT, DEMO_PAUSE_IDS, skipTarget } from "./demo-edit.ts";
 
-test("the demo plays complete ordered story clips, skips side trips and ends before the unrelated recap", () => {
-  let total=0;
-  for (const [index,clip] of TREASURE_EDIT.clips.entries()) {
-    assert.ok(clip.out>clip.in);
-    if(index) assert.ok(clip.in>TREASURE_EDIT.clips[index-1]!.out);
-    assert.deepEqual(demoPlaybackAt(clip.in),{kind:"play"});
-    const next=TREASURE_EDIT.clips[index+1];
-    assert.deepEqual(demoPlaybackAt(clip.out),next?{kind:"seek",time:next.in}:{kind:"done"});
-    assert.ok(Math.abs(demoWatchedSeconds(clip.in)-total)<.001);
-    total+=clip.out-clip.in;
+const pauseAt = (id: string) => spots.find((s) => s.id === id)!.pauseAt;
+
+test("every demo moment is a real, kept pause, in story order, with its skip point just before it", () => {
+  const authored: Record<string, { keep?: boolean }> = lessons;
+  let last = 0;
+  for (const x of DEMO_EDIT.exercises) {
+    assert.ok(spots.some((s) => s.id === x.pauseId), x.pauseId);
+    assert.notEqual(authored[x.pauseId]?.keep, false, `${x.pauseId} is dropped in lessons.json`); // demo pauses ignore `asked`, but never a dropped lesson
+    const at = pauseAt(x.pauseId);
+    assert.ok(at > last, "story order");
+    assert.ok(x.from < at && at - x.from < 20, `${x.pauseId}: skip lands 0-20 s before the question`);
+    last = at;
   }
-  assert.ok(DEMO_FILM_SECONDS<115);
-  assert.ok(Math.abs(demoWatchedSeconds(1445)-DEMO_FILM_SECONDS)<.001);
-  assert.deepEqual(TREASURE_EDIT.pauseIds,["ep3-55"]);
+  assert.ok(DEMO_EDIT.finale.from > last);
 });
 
-import questions from "./demo-questions.json" with { type: "json" };
-import lines from "./lines.json" with { type: "json" };
-import { statSync } from "node:fs";
-test("every translated demo question has matching captions and an actual prepared voice asset", () => {
-  assert.deepEqual(Object.keys(questions).sort(),["de","es","fr","hi","ja","zh"]);
-  const captions: Record<string,string> = lines;
-  for (const [language,values] of Object.entries(questions)) {
-    assert.equal(Object.keys(values).length,4);
-    for (const [key,text] of Object.entries(values)) {
-      const id=`${key}_${language}`;
-      assert.equal(captions[id],text);
-      assert.ok(statSync(new URL(`../../public/media/lab/${id}.m4a`,import.meta.url)).size>1000);
-    }
-  }
-});
-
-test("one Next exercise button follows the remaining exercises, including automatic lesson starts", () => {
-  assert.equal(nextDemoExercise([]),"count");
-  assert.equal(nextDemoExercise(["count"]),"addition");
-  assert.equal(nextDemoExercise(["count","translation"]),"addition");
-  assert.equal(nextDemoExercise(["count","addition"]),"translation");
-  assert.equal(nextDemoExercise(["count","addition","translation"]),"story");
+test("skip goes to the next exercise's setup, then the finale, then nowhere", () => {
+  assert.deepEqual(skipTarget(0, pauseAt), { from: 166.07, label: "Who helps when we're lost?" });
+  assert.equal(skipTarget(180, pauseAt)?.label, "Where do we go next?"); // past the map question
+  assert.equal(skipTarget(590, pauseAt)?.from, 590); // already inside the bridge setup: never jump back
+  assert.equal(skipTarget(1250, pauseAt)?.label, "The end");
+  assert.equal(skipTarget(1300, pauseAt), null);
+  assert.equal(DEMO_PAUSE_IDS.length, DEMO_EDIT.exercises.length);
 });

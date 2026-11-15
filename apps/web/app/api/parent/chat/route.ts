@@ -2,7 +2,6 @@ import OpenAI from "openai";
 import { setPlan } from "../../../../lib/live/plan";
 import { hasParentAccess } from "../../../../lib/parent/access";
 import { childName } from "../../../../lib/parent/child";
-import { LanguageCodeSchema } from "../../../../lib/play/language-lessons";
 import { demoCommand } from "../../../../lib/parent/demo-mode";
 import { getParentViewReader } from "../../../../lib/parent/reader";
 import { ChatRequestSchema, runChat, type ChatClient } from "../../../../server/parent-chat/chat";
@@ -24,20 +23,17 @@ export async function POST(request: Request): Promise<Response> {
   const lessons = getLanguageLessonStore();
   const learning = {
     currentSkill: () => play.currentSkill(), resetSkills: (ids: readonly string[]) => play.resetSkills(ids), mastery: () => play.mastery(),
-    setLanguage: async (language: Parameters<typeof setPlan>[0]["language"]) => {
-      const code = LanguageCodeSchema.safeParse(language);
-      if (!code.success) return setPlan({ language });
-      const available = (await lessons.list(code.data)).filter(row => row.active);
-      const lesson = available.find(row => row.lessonId === "demo-addition-1" && row.level < 3) ?? available.sort((a,b) => a.level - b.level)[0];
-      return setPlan({ language, ...(lesson ? { lessonId: lesson.lessonId } : {}) });
-    },
+    // Switching language only switches the language: the show's next pause teaches its answer in it, in
+    // context. A word out of nowhere at whatever frame is on screen was the old behaviour. Explicit lesson
+    // requests still go through change_lesson.
+    setLanguage: (language: Parameters<typeof setPlan>[0]["language"]) => setPlan({ language }),
     lessons,
   };
   // An explicit language command goes straight through the real write tool, even with Demo Mode off.
   if (direct?.name === "set_language") {
     try {
       const noModel: ChatClient = { responses: { create: async () => { throw new Error("Unexpected model call"); } } };
-      const result = await runChat(noModel, "direct", parsed.data.messages, [], childName(), new Date(), undefined, undefined, learning, direct);
+      const result = await runChat(noModel, "direct", parsed.data.messages, [], await childName(), new Date(), undefined, undefined, learning, direct);
       return Response.json(result, { headers: { "Cache-Control": "no-store" } });
     } catch { return Response.json({ error: "The language couldn't be changed. Try again." }, { status: 502 }); }
   }
@@ -58,7 +54,7 @@ export async function POST(request: Request): Promise<Response> {
       return saved;
     } };
     const model = process.env.PARENT_CHAT_MODEL?.trim() || config.lunaModel;
-    const result = await runChat(client as unknown as ChatClient, model, parsed.data.messages, views, childName(), new Date(), { topics, practice, mastery }, focus, learning, direct);
+    const result = await runChat(client as unknown as ChatClient, model, parsed.data.messages, views, await childName(), new Date(), { topics, practice, mastery }, focus, learning, direct);
     return Response.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return Response.json({ error: "The chat couldn't answer that. Try again." }, { status: 502 });

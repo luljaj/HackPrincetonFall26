@@ -51,7 +51,6 @@ export function SideNav({ items }: { items: Array<{ label: string; section: stri
 
   return (
     <nav className="parent-nav" aria-label="Navigate">
-      <p className="parent-nav-label">Navigate</p>
       <div className="parent-nav-list" ref={listRef} data-keyboard={keyboard} onPointerDown={() => setKeyboard(false)} onWheel={() => setKeyboard(false)}>
       {indicator && <span aria-hidden="true" className="parent-nav-indicator" style={{ transform: `translate(${indicator.x}px, ${indicator.y}px)`, width: indicator.width, height: indicator.height }} />}
       {items.map(({ label, section }) => {

@@ -4,6 +4,7 @@ import { showFor } from "../../../lib/parent/shows";
 import { summarize } from "../../../lib/play/view";
 import { getPlayStore, TRANSCRIPT_DAYS } from "../../../server/storage";
 import { DeleteTrace } from "./delete-trace";
+import { StudentNameForm } from "./student-name-form";
 import { DemoModeToggle } from "./demo-mode-toggle";
 
 export const dynamic = "force-dynamic";
@@ -13,20 +14,17 @@ const when = (ms: number) =>
 
 // Settings → saved viewings. Every Play-mode trace, with a delete for each one and for all of them.
 export default async function SettingsPage() {
-  const name = childName();
+  const name = await childName();
   const records = await getPlayStore().list(200);
 
   return (
     <>
       <header className="space-y-3">
         <h1 className="text-[34px] tracking-tight">Settings</h1>
-        <p className="max-w-[520px] text-[15px] leading-snug text-foreground/60">
-          Every time {name} watches, the app saves a trace: each pause, what {name} said, and how Dora helped. What{" "}
-          {name} said is kept for {TRANSCRIPT_DAYS} days, then removed. You can delete any trace here.
-        </p>
       </header>
 
-      <DemoModeToggle child={name} />
+      <StudentNameForm name={name} />
+      <DemoModeToggle />
 
       <section className="space-y-4 rounded-[32px] bg-[#f9f9fb] p-6" aria-labelledby="traces-title">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -36,7 +34,7 @@ export default async function SettingsPage() {
           {records.length > 0 && <DeleteTrace label="Delete all" />}
         </div>
         {records.length === 0 && <p className="text-sm text-foreground/60">No viewings saved.</p>}
-        <ul className="grid gap-2">
+        <ul className="grid max-h-80 gap-2 overflow-y-auto overscroll-contain p-1" tabIndex={0} aria-label="Saved viewings">
           {records.map(({ session, turns }) => {
             const show = showFor(session.episodeId);
             return (

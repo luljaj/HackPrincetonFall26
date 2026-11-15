@@ -53,10 +53,10 @@ export default async function ParentLayout({ children }: { children: React.React
         <div popover="auto" id="parent-profile-menu" className="parent-profile-menu" aria-label="Profiles">
           <p>Switch profile</p>
           <div className="parent-profile-current"><span className="parent-profile-avatar" aria-hidden="true">P</span><span>Parent view<small>Current profile</small></span><span aria-hidden="true">✓</span></div>
-          <Link href="/"><span className="parent-child-avatar" aria-hidden="true">{childName().slice(0, 1)}</span><span>{childName()}<small>Kid mode · watch the cartoon</small></span><span aria-hidden="true">↗</span></Link>
+          <Link href="/"><span className="parent-child-avatar" aria-hidden="true">{(await childName()).slice(0, 1)}</span><span>{await childName()}<small>Kid mode · watch the cartoon</small></span><span aria-hidden="true">↗</span></Link>
         </div>
       </>}
-      {allowed && <ChatPanel child={childName()} />}
+      {allowed && <ChatPanel child={await childName()} />}
     </div>
   );
 }
