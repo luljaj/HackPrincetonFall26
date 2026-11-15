@@ -1,15 +1,19 @@
 import Link from "next/link";
 import { childName } from "../../lib/parent/child";
-import { demoToolsEnabled } from "../../lib/parent/demo";
 import { groupByShow } from "../../lib/parent/group";
 import { getParentViewReader } from "../../lib/parent/reader";
 import { parentStats } from "../../lib/parent/stats";
 import { SNAPSHOT_NOTE, statsLabels, statusChip } from "../../lib/parent/wording";
-import { getPreferencesStore } from "../../server/storage";
+import { showFor } from "../../lib/parent/shows";
+import { getPlayStore, getPreferencesStore } from "../../server/storage";
+import { topicRows } from "../../server/storage/play";
 import { AutoRefresh } from "./_components/auto-refresh";
+import { ChatPanel } from "./_components/chat-panel";
 import { Chip } from "./_components/chip";
 import { FocusControls } from "./_components/focus-controls";
+import { STAT_TILES } from "./_components/stat-icons";
 import { TurnRows } from "./_components/turn-rows";
+import { WeekGauge } from "./_components/week-gauge";
 
 export const dynamic = "force-dynamic";
 
@@ -31,43 +35,100 @@ export default async function ParentHome() {
   const labels = statsLabels(stats);
   const shows = groupByShow(listed);
 
+  // This week, across the same sessions as the tiles (real ones once any exist).
+  const weekAgo = Date.now() - 7 * 86_400_000;
+  const weekTurns = listed.filter((v) => Date.parse(v.startedAt) >= weekAgo).flatMap((v) => v.progress.interactions);
+  const week = {
+    firstTry: weekTurns.filter((t) => t.assessment.answerStatus === "correct" && !t.assessment.assistanceBeforeAnswer).length,
+    afterHelp: weekTurns.filter((t) => t.assessment.answerStatus === "correct" && t.assessment.assistanceBeforeAnswer).length,
+    missed: weekTurns.filter((t) => t.assessment.answerStatus !== "correct").length,
+  };
+  // Headline: the topic answered first-try most this week (play trace), else the latest summary.
+  const top = topicRows(
+    (await getPlayStore().list(100)).flatMap((r) => r.turns).filter((t) => t.endedAt >= weekAgo),
+  ).sort((x, y) => y.firstTry - x.firstTry)[0];
+  const headline =
+    top && top.firstTry > 0
+      ? `${name} answered ${top.firstTry} of ${top.questions} ${top.topic.toLowerCase()} question${top.questions === 1 ? "" : "s"} on the first try this week.`
+      : (listed.find((v) => v.progress.episode.parentSummary)?.progress.episode.parentSummary ??
+        `${name} hasn't answered a question yet. Open Play mode to start.`);
+
   return (
     <>
       <AutoRefresh seconds={5} />
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-foreground/60">Parent view</p>
-          <h1 className="text-2xl font-bold tracking-tight">{name}&apos;s learning moments</h1>
-        </div>
-        <Link className="rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background" href="/">
-          Open Play mode ↗
-        </Link>
-      </header>
+      <div className="grid items-start gap-8 lg:grid-cols-[1fr_400px]">
+        <header className="space-y-6">
+          <h1 className="text-[44px] leading-tight tracking-tight">{name}&apos;s Learning Moments</h1>
+          <p className="max-w-[600px] text-[24px] leading-snug text-foreground/60">{headline}</p>
+          <div className="flex flex-wrap gap-3">
+            {STAT_TILES.map(({ key, icon }, i) => (
+              <div
+                key={key}
+                className={`flex w-[200px] items-center gap-3 rounded-2xl border p-4 ${
+                  i === 0
+                    ? "border-[#f3e9b0] bg-gradient-to-br from-[#fdf3b8] via-[#fbf8e6] to-[#eef1ff] shadow-[0_2px_10px_rgba(253,230,120,0.35)]"
+                    : "border-[#f1ecd0] bg-gradient-to-br from-[#f4f6ff] to-[#fbf9ea]"
+                }`}
+              >
+                <span className="shrink-0 scale-125">{icon}</span>
+                <div className="grid">
+                  <b className="text-[28px] font-bold leading-none tabular-nums">{stats[key]}</b>
+                  <span className="mt-1 text-[13px] leading-tight text-foreground/55 first-letter:uppercase">{labels[key]}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </header>
+        <WeekGauge firstTry={week.firstTry} afterHelp={week.afterHelp} missed={week.missed} />
+      </div>
 
-      <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm" aria-label="Parent pages">
-        <Link className="underline" href="/parent/live">
-          Live now
-        </Link>
-        <Link className="underline" href="/parent/topics">
-          Topics (sample)
-        </Link>
-        <Link className="underline" href="/parent/preview">
-          Preview by subject (sample)
-        </Link>
-        {demoToolsEnabled() && (
-          <Link className="underline" href="/parent/insights">
-            Insights
-          </Link>
-        )}
-      </nav>
-
-      <p className="flex flex-wrap gap-2 text-sm">
-        {(Object.keys(labels) as (keyof typeof labels)[]).map((k) => (
-          <span key={k} className="rounded-full border border-line bg-card px-3 py-1">
-            <b className="tabular-nums">{stats[k]}</b> <span className="text-foreground/60">{labels[k]}</span>
+      <section className="space-y-5 rounded-[40px] bg-[#f9f9fb] p-8 md:mt-16" aria-labelledby="recent-title">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 id="recent-title" className="text-[28px] tracking-tight">
+            Recently watched
+          </h2>
+          <span className="flex gap-4 text-sm">
+            <Link className="underline" href="/parent/live">
+              Live now
+            </Link>
+            <Link className="underline" href="/">
+              Open Play mode ↗
+            </Link>
           </span>
-        ))}
-      </p>
+        </div>
+        {listed.length === 0 && <p className="text-sm text-foreground/60">Nothing watched yet.</p>}
+        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {listed.slice(0, 6).map((v) => {
+            const show = showFor(v.sceneId);
+            return (
+              <li key={v.progress.sessionId}>
+                <Link href={`/parent/${v.progress.sessionId}`} className="group block space-y-2">
+                  <div
+                    className="flex h-[170px] flex-col justify-between rounded-2xl p-4 text-white transition-transform group-hover:-translate-y-0.5"
+                    style={{ background: `linear-gradient(135deg, ${show.color}, ${show.color}99 60%, #d9d9d9)` }}
+                  >
+                    <span className="text-xs font-semibold uppercase tracking-wide opacity-90">
+                      {when(v.startedAt)}
+                      {v.isSample ? " · sample" : ""}
+                    </span>
+                    <span>
+                      <b className="block text-[22px] font-semibold leading-tight">{show.show}</b>
+                      <span className="text-sm opacity-90">{show.episode}</span>
+                    </span>
+                  </div>
+                  <p className="line-clamp-2 px-1 text-sm text-foreground/70">
+                    {v.progress.episode.parentSummary ?? "No answer heard yet."}
+                  </p>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      <div className="mx-auto w-full max-w-[780px]">
+        <ChatPanel child={name} />
+      </div>
 
       <FocusControls initial={prefs} />
 

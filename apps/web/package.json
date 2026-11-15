@@ -18,7 +18,7 @@
     "eval:pipeline": "tsx evals/pipeline/run.ts",
     "test:judge": "tsx --test server/judge/judge.test.ts",
     "test:pipeline": "tsx --test lib/contracts/contracts.test.ts server/pipeline/pipeline.test.ts server/pipeline/providers.test.ts evals/pipeline/eval.test.ts server/pipeline/http.test.ts",
-    "test:storage": "vitest run server/storage/postgres.test.ts lib/parent"
+    "test:storage": "vitest run server/storage/postgres.test.ts server/storage/play.test.ts lib/parent server/parent-chat"
   },
   "dependencies": {
     "@repo/ui": "*",

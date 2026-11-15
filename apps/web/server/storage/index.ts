@@ -9,6 +9,8 @@ import {
   type PreferencesStore,
 } from "./preferences";
 import { MemoryPipelineStore } from "./memory";
+import { createMemoryPlayStore, createPostgresPlayStore, type PlayStore } from "./play";
+export { TRANSCRIPT_DAYS } from "./play";
 import { createPostgresStore } from "./postgres";
 
 export * from "./contract";
@@ -42,4 +44,13 @@ const prefsShared = globalThis as typeof globalThis & { [prefsKey]?: Preferences
 export function getPreferencesStore(): PreferencesStore {
   if (process.env.PIPELINE_STORE === "postgres") return createPreferencesStore(getDb());
   return (prefsShared[prefsKey] ??= createMemoryPreferencesStore());
+}
+
+const playKey = Symbol.for("hackprinceton.play.memory.v1");
+const playShared = globalThis as typeof globalThis & { [playKey]?: PlayStore };
+
+/** Play-mode session trace: Postgres when configured, otherwise in memory. */
+export function getPlayStore(): PlayStore {
+  if (process.env.PIPELINE_STORE === "postgres") return createPostgresPlayStore(getDb());
+  return (playShared[playKey] ??= createMemoryPlayStore());
 }

@@ -1,19 +1,70 @@
 import Link from "next/link";
 import { childName } from "../../../lib/parent/child";
 import { TOPICS, TOPICS_PERIOD, topicTotals } from "../../../lib/parent/topics-data";
+import { getPlayStore } from "../../../server/storage";
+import { showFor } from "../../../lib/parent/shows";
+import { clock } from "../../../lib/play/view";
 import { Chip } from "../_components/chip";
 import { LevelSteps, SampleBanner, shortDate, StatPills, VideoTag } from "./parts";
 
 // Topic overview (sample data): basic stats, questions missed, getting better / needs practice,
 // topic progress cards and the learning plan. Each topic opens its own page.
-export default function TopicsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function TopicsPage() {
   const name = childName();
+  const store = getPlayStore();
+  const [real, recent] = await Promise.all([store.topics(), store.list(50)]);
+  const showName = (id: string) => `${showFor(id).show} · ${showFor(id).episode}`;
+  const realMissed = recent
+    .flatMap((r) => r.turns.filter((t) => t.outcome === "gave").map((t) => ({ ...t, episodeId: r.session.episodeId })))
+    .sort((a, b) => b.endedAt - a.endedAt)
+    .slice(0, 8);
   const totals = topicTotals();
   const missed = TOPICS.flatMap((t) => t.missed.map((m) => ({ ...m, topic: t })))
     .sort((a, b) => b.date.localeCompare(a.date));
 
   return (
     <>
+      {real.length > 0 && (
+        <section className="space-y-3 rounded-[24px] bg-[#f9f9fb] p-5" aria-labelledby="real-topics">
+          <h2 id="real-topics" className="text-[19px] tracking-tight">
+            From {name}&apos;s real play
+          </h2>
+          <ul className="grid gap-2 sm:grid-cols-3">
+            {real.map((t) => (
+              <li key={t.topic} className="grid gap-1 rounded-xl border border-line bg-white p-3">
+                <b className="font-semibold">{t.topic}</b>
+                <span className="text-sm text-foreground/70">
+                  {t.questions} question{t.questions === 1 ? "" : "s"}: {t.firstTry} before help, {t.afterHelp} after help
+                  {t.gave ? `, ${t.gave} shown by Dora` : ""}
+                </span>
+                <span className="text-xs text-foreground/50">Last seen {shortDate(new Date(t.lastSeen).toISOString())}</span>
+              </li>
+            ))}
+          </ul>
+          {realMissed.length > 0 && (
+            <>
+              <h3 className="pt-2 text-sm font-semibold text-foreground/70">Questions missed</h3>
+              <ul className="grid gap-2">
+                {realMissed.map((t) => (
+                  <li key={t.turnId} className="grid gap-0.5 rounded-xl border border-line bg-white p-3 text-sm">
+                    <span>{t.question}</span>
+                    <span className="text-foreground/70">
+                      {name} said {t.transcript ? `“${t.transcript}”` : "nothing"}
+                      {t.expectedAnswer ? ` · expected “${t.expectedAnswer}”` : ""}
+                    </span>
+                    <span className="text-xs text-foreground/50">
+                      {t.topic} · {showName(t.episodeId)}
+                      {t.momentSeconds != null ? ` at ${clock(t.momentSeconds)}` : ""} · {shortDate(new Date(t.endedAt).toISOString())}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
+      )}
       <SampleBanner>
         How topics could look after a few weeks. These topics, questions and videos are made up for the demo.
       </SampleBanner>

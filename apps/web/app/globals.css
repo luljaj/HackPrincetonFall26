@@ -74,10 +74,10 @@ body {
 /* Parent dashboard: warm light palette folded in from the apps/parent mock.
    Re-points the shared tokens for everything under /parent, so every component follows it. */
 .parent-theme {
-  --background: #faf7f2;
+  --background: #e8ebf2;
   --foreground: #23201c;
   --card: #ffffff;
-  --line: #ebe4d9;
+  --line: #e2e5ec;
   --good: #2f9e5b;
   --warn: #d98a1c;
   --attention: #b45309;
