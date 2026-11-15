@@ -208,7 +208,7 @@ function FocusBoard({
       <ul className={styles.subjects}>
         {SUBJECTS.map((subject) => {
           const before = change?.before[subject.id];
-          const level = shown[subject.id];
+          const level = shown[subject.id] ?? "usual";
           const changed = !!change && before !== change.after[subject.id];
           return (
             <li
