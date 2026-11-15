@@ -10,7 +10,7 @@ import { topicRows } from "../../server/storage/play";
 import { AutoRefresh } from "./_components/auto-refresh";
 import { Chip } from "./_components/chip";
 import { FocusControls } from "./_components/focus-controls";
-import { STAT_TILES } from "./_components/stat-icons";
+
 import { TurnRows } from "./_components/turn-rows";
 import { WeekGauge } from "./_components/week-gauge";
 import { demoToolsEnabled } from "../../lib/parent/demo";
@@ -45,7 +45,8 @@ export default async function ParentHome() {
   const week = {
     firstTry: weekTurns.filter((t) => t.assessment.answerStatus === "correct" && !t.assessment.assistanceBeforeAnswer).length,
     afterHelp: weekTurns.filter((t) => t.assessment.answerStatus === "correct" && t.assessment.assistanceBeforeAnswer).length,
-    missed: weekTurns.filter((t) => t.assessment.answerStatus !== "correct").length,
+    missed: weekTurns.filter((t) => t.assessment.answerStatus === "incorrect").length,
+    unclear: weekTurns.filter((t) => t.assessment.answerStatus !== "correct" && t.assessment.answerStatus !== "incorrect").length,
   };
   // Headline: the topic answered first-try most this week (play trace), else the latest summary.
   const top = topicRows(
@@ -60,77 +61,65 @@ export default async function ParentHome() {
   return (
     <>
       <AutoRefresh seconds={5} />
-      <section id="home" aria-label="Home" className="scroll-mt-10 space-y-8">
-      <div className="grid items-start gap-8 lg:grid-cols-[1fr_400px]">
-        <header className="space-y-6">
-          <h1 className="text-[44px] leading-tight tracking-tight">{name}&apos;s Learning Moments</h1>
-          <p className="max-w-[600px] text-[24px] leading-snug text-foreground/60">{headline}</p>
-          <div className="flex flex-wrap gap-3">
-            {STAT_TILES.map(({ key, icon }, i) => (
-              <div
-                key={key}
-                className={`flex w-[200px] items-center gap-3 rounded-2xl border p-4 ${
-                  i === 0
-                    ? "border-[#f3e9b0] bg-gradient-to-br from-[#fdf3b8] via-[#fbf8e6] to-[#eef1ff] shadow-[0_2px_10px_rgba(253,230,120,0.35)]"
-                    : "border-[#f1ecd0] bg-gradient-to-br from-[#f4f6ff] to-[#fbf9ea]"
-                }`}
-              >
-                <span className="shrink-0 scale-125">{icon}</span>
-                <div className="grid">
-                  <b className="text-[28px] font-bold leading-none tabular-nums">{stats[key]}</b>
-                  <span className="mt-1 text-[13px] leading-tight text-foreground/55 first-letter:uppercase">{labels[key]}</span>
-                </div>
+      <section id="home" aria-label="Home" className="scroll-mt-10">
+      <h1 className="parent-heading">{name}&apos;s Learning Moments</h1>
+      <div className="learning-overview">
+        <div className="learning-summary">
+          <p className="learning-headline">{headline}</p>
+          <p className="breakdown-label">Breakdown</p>
+          <div className="learning-stats">
+            {[
+              { key: "watched", icon: "Image18Vectorized", value: stats.sessions, label: labels.sessions },
+              { key: "answered", icon: "Image19Vectorized", value: stats.answered, label: labels.answered },
+              { key: "afterHelp", icon: "PuzzledSmileyStreamlineFlex1Vectorized", value: stats.correctAfterHelp, label: labels.correctAfterHelp },
+            ].map(({ key, icon, value, label }) => (
+              <div key={key} className="learning-stat" data-stat={key}>
+                <span className="stat-icon" aria-hidden="true">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img className="stat-glow" src={`/figma/home-img${icon}.svg`} alt="" width={36} height={36} />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`/figma/home-img${icon}.svg`} alt="" width={36} height={36} />
+                </span>
+                <div><b>{value}</b><small>{label}</small></div>
               </div>
             ))}
           </div>
-        </header>
-        <WeekGauge firstTry={week.firstTry} afterHelp={week.afterHelp} missed={week.missed} />
-      </div>
-
-      <section className="space-y-5 rounded-[40px] bg-[#f9f9fb] p-8 md:mt-16" aria-labelledby="recent-title">
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h2 id="recent-title" className="text-[28px] tracking-tight">
-            Recently watched
-          </h2>
-          <span className="flex gap-4 text-sm">
-            <Link className="underline" href="/parent/live">
-              Live now
-            </Link>
-            <Link className="underline" href="/">
-              Open Play mode ↗
-            </Link>
-          </span>
         </div>
-        {listed.length === 0 && <p className="text-sm text-foreground/60">Nothing watched yet.</p>}
-        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {listed.slice(0, 6).map((v) => {
+        <WeekGauge firstTry={week.firstTry} afterHelp={week.afterHelp} missed={week.missed} unclear={week.unclear} />
+      </div>
+      <section className="parent-recent" aria-labelledby="recent-title">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 id="recent-title">Recently watched</h2>
+          <Link className="text-xs text-foreground/60 underline" href="/parent/live">Live now ↗</Link>
+        </div>
+        {listed.length === 0 && <p className="mt-4 text-sm text-foreground/60">Nothing watched yet.</p>}
+        <ul tabIndex={0} aria-label="Recently watched episodes, scroll horizontally">
+          {listed.map((v) => {
             const show = showFor(v.sceneId);
             return (
               <li key={v.progress.sessionId}>
-                <Link href={`/parent/${v.progress.sessionId}`} className="group block space-y-2">
-                  <div
-                    className="flex h-[170px] flex-col justify-between rounded-2xl p-4 text-white transition-transform group-hover:-translate-y-0.5"
-                    style={{ background: `linear-gradient(135deg, ${show.color}, ${show.color}99 60%, #d9d9d9)` }}
-                  >
-                    <span className="text-xs font-semibold uppercase tracking-wide opacity-90">
-                      {when(v.startedAt)}
-                      {v.isSample ? " · sample" : ""}
-                    </span>
-                    <span>
-                      <b className="block text-[22px] font-semibold leading-tight">{show.show}</b>
-                      <span className="text-sm opacity-90">{show.episode}</span>
-                    </span>
+                <Link href={`/parent/${v.progress.sessionId}`} className="episode-card">
+                  <div className="episode-cover">
+                    {show.show === "Dora" ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src="/figma/home-imgImage21.png" alt="Dora and Boots" />
+                    ) : <div className="h-full" style={{ background: show.color }} />}
                   </div>
-                  <p className="line-clamp-2 px-1 text-sm text-foreground/70">
-                    {v.progress.episode.parentSummary ?? "No answer heard yet."}
-                  </p>
+                  <div><h3>{show.show}</h3><p>&lsquo;{show.episode}&rsquo;{v.isSample ? " · Sample data" : ""}</p></div>
+                  <footer>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/figma/home-imgAkarIconsHistory.svg" alt="" width={15} height={15} />
+                    <time dateTime={v.startedAt}>{when(v.startedAt)}</time>
+                    <span className="episode-view">View</span>
+                  </footer>
                 </Link>
               </li>
             );
           })}
         </ul>
       </section>
-
+      <details className="parent-extras">
+        <summary>Learning plan &amp; session history</summary>
       <FocusControls initial={prefs} />
 
       <section className="space-y-2" aria-labelledby="shows-title">
@@ -191,7 +180,8 @@ export default async function ParentHome() {
         ))}
       </section>
 
-      <p className="text-xs text-foreground/60">{SNAPSHOT_NOTE}</p>
+      <p className="mt-5 text-xs text-foreground/60">{SNAPSHOT_NOTE}</p>
+      </details>
       </section>
 
       {/* One scrolling page: every tab is a section, and the side nav scrolls between them. */}
@@ -215,7 +205,7 @@ export default async function ParentHome() {
 
 function Section({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return (
-    <section id={id} aria-label={label} className="scroll-mt-10 space-y-8 border-t border-foreground/10 pt-14">
+    <section id={id} aria-label={label} className="parent-section space-y-8">
       {children}
     </section>
   );

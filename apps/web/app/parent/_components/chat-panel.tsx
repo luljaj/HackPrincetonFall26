@@ -666,13 +666,14 @@ export function ChatPanel({ child }: { child: string }) {
           aria-controls="parent-agent-panel"
           onClick={() => toggle(!open)}
         >
-          <Sparkle />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/figma/home-imgVector.svg" alt="" width={16} height={16} />
         </button>
         <input
           ref={inputRef}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder="Ask a question, or tell me what’s next…"
+          placeholder={`Have ${child} learn more about addition…`}
           aria-label="Ask about your child's learning"
           aria-controls="parent-agent-panel"
           maxLength={2000}
@@ -687,9 +688,8 @@ export function ChatPanel({ child }: { child: string }) {
           className={styles.sendButton}
           aria-label="Send"
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M20 5v7a3 3 0 0 1-3 3H5M9 11l-4 4 4 4" />
-          </svg>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/figma/home-imgFluentArrowEnterLeft24Filled.svg" alt="" width={22} height={22} />
         </button>
       </form>
     </div>
