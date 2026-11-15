@@ -95,7 +95,7 @@ function SubjectSection({
   focus: Focus;
   liveCount: number | null;
 }) {
-  const level = focus[subject.id];
+  const level = focus[subject.id] ?? "usual"; // sample subjects aren't focus categories
   return (
     <section
       id={subject.id}

@@ -9,6 +9,7 @@
  */
 
 import type * as live from "../live.js";
+import type * as plan from "../plan.js";
 
 import type {
   ApiFromModules,
@@ -18,6 +19,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   live: typeof live;
+  plan: typeof plan;
 }>;
 
 /**

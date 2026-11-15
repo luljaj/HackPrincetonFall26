@@ -422,11 +422,11 @@ describe("parent preferences", () => {
     await migrate(pg, { migrationsFolder: "./drizzle" });
     const prefs = createPreferencesStore(pg as unknown as StoreDb);
     expect(await prefs.get()).toEqual({ focus: DEFAULT_FOCUS, updatedAt: null });
-    await prefs.set({ math: "usual", english: "more", science: "usual" }, undefined, new Date("2026-11-14T17:00:00Z"));
-    const changed = await prefs.set({ math: "less", english: "more", science: "more" }, undefined, new Date("2026-11-14T17:05:00Z"));
-    expect(changed.focus.science).toBe("more");
+    await prefs.set({ ...DEFAULT_FOCUS, words: "more" }, undefined, new Date("2026-11-14T17:00:00Z"));
+    const changed = await prefs.set({ ...DEFAULT_FOCUS, numbers: "less", words: "more", shapes: "more" }, undefined, new Date("2026-11-14T17:05:00Z"));
+    expect(changed.focus.shapes).toBe("more");
     expect(await prefs.get()).toEqual({
-      focus: { math: "less", english: "more", science: "more" },
+      focus: { ...DEFAULT_FOCUS, numbers: "less", words: "more", shapes: "more" },
       updatedAt: "2026-11-14T17:05:00.000Z",
     });
   });

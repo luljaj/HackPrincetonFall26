@@ -1,3 +1,4 @@
+import { DEFAULT_FOCUS } from "../../lib/parent/preferences";
 import { describe, expect, it } from "vitest";
 import { sampleView } from "../../lib/parent/fixtures";
 import { runChat, type ChatClient } from "./chat";
@@ -70,26 +71,26 @@ describe("runChat", () => {
 
   it("set_focus saves only the subjects asked for and returns the change to draw", async () => {
     const saved: unknown[] = [];
-    const current = { math: "usual", english: "usual", science: "less" } as const;
+    const current = { ...DEFAULT_FOCUS, shapes: "less" };
     let n = 0;
     const client: ChatClient = {
       responses: {
         create: async () =>
           ++n === 1
-            ? { output: [{ type: "function_call", name: "set_focus", arguments: '{"math":"more","english":null,"science":null}', call_id: "f" }] }
+            ? { output: [{ type: "function_call", name: "set_focus", arguments: '{"numbers":"more","words":null,"shapes":null}', call_id: "f" }] }
             : { output: [{ type: "message", content: [{ type: "output_text", text: '{"reply":"Done, more Math.","headline":"More Math from now on","kind":"none","items":[]}' }] }] },
       },
     };
     const focus = {
       current,
-      set: async (f: typeof current | { math: "more"; english: "usual"; science: "less" }) => {
+      set: async (f: typeof current) => {
         saved.push(f);
         return { focus: f, updatedAt: "2026-11-14T00:00:00.000Z" };
       },
     };
     const result = await runChat(client, "m", [{ role: "user", content: "more addition" }], [sampleView], "Sam", new Date(), undefined, focus as never);
-    expect(saved).toEqual([{ math: "more", english: "usual", science: "less" }]);
-    expect(result.focusChange).toEqual({ before: current, after: { math: "more", english: "usual", science: "less" } });
+    expect(saved).toEqual([{ ...current, numbers: "more" }]);
+    expect(result.focusChange).toEqual({ before: current, after: { ...current, numbers: "more" } });
     expect(result.visual).toMatchObject({ headline: "More Math from now on", kind: "none" });
     expect(result.reply).toBe("Done, more Math.");
   });

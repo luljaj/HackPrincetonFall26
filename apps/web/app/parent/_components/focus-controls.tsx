@@ -16,7 +16,7 @@ import {
 
 const time = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
-// Parent picks less / usual / more per subject. Saves on every click; change it any time.
+// Parent picks less / usual / more per category. Saves on every click; change it any time.
 export function FocusControls({ initial }: { initial: ParentPreferences }) {
   const [focus, setFocus] = useState<Focus>(initial.focus);
   const [status, setStatus] = useState<string | null>(
@@ -69,7 +69,7 @@ export function FocusControls({ initial }: { initial: ParentPreferences }) {
       </div>
       <ul className="grid gap-2">
         {SUBJECTS.map((s) => (
-          <li key={s.id} className="grid grid-cols-[88px_1fr] items-center gap-3">
+          <li key={s.id} className="grid grid-cols-[160px_1fr] items-center gap-3">
             <span className="text-sm font-semibold" style={{ color: s.color }}>
               {s.name}
             </span>

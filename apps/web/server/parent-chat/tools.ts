@@ -2,6 +2,7 @@
 // views, so they share the dashboard's privacy boundary: views already passed
 // SessionProgressSchema, which carries no answer guides or Luna drafts.
 import { nextStepFor } from "../../lib/parent/next-steps";
+import { SUBJECTS } from "../../lib/parent/preferences";
 import { showFor } from "../../lib/parent/shows";
 import type { ParentView } from "../../lib/parent/types";
 import type { PracticeRow, TopicRow } from "../storage/play";
@@ -154,9 +155,9 @@ const level = (subject: string) => ({
   description: `New ${subject} weight. Null keeps it as it is.`,
 });
 
-// The one write tool: changes how often each subject comes up in Play mode.
+// The one write tool: changes how often each mastery category comes up in Play mode.
 export const setFocusTool = fn(
   "set_focus",
-  "Change the learning focus (how much each subject comes up while watching). Use whenever the parent asks for more, less, or the usual amount of a subject. Only pass subjects the parent asked to change.",
-  { math: level("Math"), english: level("English"), science: level("Science") },
+  "Change the learning focus (how much each category comes up while watching). Use whenever the parent asks for more, less, or the usual amount of something. Only pass categories the parent asked to change.",
+  Object.fromEntries(SUBJECTS.map((s) => [s.id, level(s.name)])),
 );

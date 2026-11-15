@@ -13,7 +13,7 @@ const REPLY: Record<NonNullable<PlayTurn["outcome"]>, string> = {
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const LANGUAGE: Record<string, string> = { es: "Spanish", fr: "French", de: "German", zh: "Chinese", hi: "Hindi", ja: "Japanese" };
-const languageName = (code: string | null) => (code ? LANGUAGE[code] ?? code : "another language");
+export const languageName = (code: string | null) => (code ? LANGUAGE[code] ?? code : "another language");
 
 export const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 

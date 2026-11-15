@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, inArray, lt, ne, sql } from "drizzle-orm";
 import { foldSession, type PlayBatch, type PlayEvent, type PlaySessionSummary, type PlayTurn } from "../../lib/play/trace";
+import { masteryFrom, type Mastery } from "../../lib/play/mastery";
 import { PersistenceError } from "./contract";
 import type { StoreDb } from "./postgres";
 import { playEvents, playSessions, playTurns } from "./schema";
@@ -15,6 +16,8 @@ export type PlayStore = {
   get(sessionId: string): Promise<PlaySessionRecord | null>;
   /** Finished pauses grouped by topic, across all sessions. */
   topics(): Promise<TopicRow[]>;
+  /** Skill levels per mastery category, and word levels per language (lib/play/mastery.ts). */
+  mastery(): Promise<Mastery>;
   /** Words practised in another language, grouped by language. */
   practice(): Promise<PracticeRow[]>;
   /** Deletes one viewing's whole trace (session, events, turns). False if it didn't exist. */
@@ -146,6 +149,17 @@ export function createPostgresPlayStore(db: StoreDb): PlayStore {
         .orderBy(desc(sql`count(*)`));
       return rows.map((r) => ({ ...r, lastSeen: new Date(r.lastSeen).getTime() }));
     },
+    async mastery() {
+      // ponytail: reads every finished turn; aggregate in SQL once history is thousands of turns
+      const rows = await db
+        .select({
+          sessionId: playTurns.sessionId, spotId: playTurns.spotId, outcome: playTurns.outcome, endedAt: playTurns.endedAt,
+          practiceLanguage: playTurns.practiceLanguage, practiceWord: playTurns.practiceWord, practiceOutcome: playTurns.practiceOutcome,
+        })
+        .from(playTurns)
+        .where(sql`${playTurns.outcome} is not null or ${playTurns.practiceWord} is not null`);
+      return masteryFrom(rows.map((r) => ({ ...r, endedAt: r.endedAt.getTime() })));
+    },
     async delete(sessionId) {
       // Events and turns go with it (ON DELETE CASCADE).
       const gone = await db.delete(playSessions).where(eq(playSessions.sessionId, sessionId)).returning({ id: playSessions.sessionId });
@@ -195,6 +209,9 @@ export function createMemoryPlayStore(): PlayStore {
     },
     async practice() {
       return practiceRows([...records.values()].flatMap((r) => r.turns));
+    },
+    async mastery() {
+      return masteryFrom([...records.values()].flatMap((r) => r.turns.map((t) => ({ ...t, sessionId: r.session.sessionId }))));
     },
     async delete(sessionId) {
       events.delete(sessionId);

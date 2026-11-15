@@ -5,6 +5,7 @@ import { getPlayStore } from "../../../server/storage";
 import { showFor } from "../../../lib/parent/shows";
 import { clock } from "../../../lib/play/view";
 import { Chip } from "../_components/chip";
+import { MasterySection } from "./mastery";
 import { LevelSteps, SampleBanner, shortDate, StatPills, VideoTag } from "./parts";
 
 // Topic overview (sample data): basic stats, questions missed, getting better / needs practice,
@@ -14,7 +15,7 @@ export const dynamic = "force-dynamic";
 export default async function TopicsPage() {
   const name = childName();
   const store = getPlayStore();
-  const [real, recent] = await Promise.all([store.topics(), store.list(50)]);
+  const [mastery, recent] = await Promise.all([store.mastery(), store.list(50)]);
   const showName = (id: string) => `${showFor(id).show} · ${showFor(id).episode}`;
   const realMissed = recent
     .flatMap((r) => r.turns.filter((t) => t.outcome === "gave").map((t) => ({ ...t, episodeId: r.session.episodeId })))
@@ -26,25 +27,9 @@ export default async function TopicsPage() {
 
   return (
     <>
-      {real.length > 0 && (
-        <section className="space-y-3 rounded-[24px] bg-[#f9f9fb] p-5" aria-labelledby="real-topics">
-          <h2 id="real-topics" className="text-[19px] tracking-tight">
-            From {name}&apos;s real play
-          </h2>
-          <ul className="grid gap-2 sm:grid-cols-3">
-            {real.map((t) => (
-              <li key={t.topic} className="grid gap-1 rounded-xl border border-line bg-white p-3">
-                <b className="font-semibold">{t.topic}</b>
-                <span className="text-sm text-foreground/70">
-                  {t.questions} question{t.questions === 1 ? "" : "s"}: {t.firstTry} before help, {t.afterHelp} after help
-                  {t.gave ? `, ${t.gave} shown by Dora` : ""}
-                </span>
-                <span className="text-xs text-foreground/50">Last seen {shortDate(new Date(t.lastSeen).toISOString())}</span>
-              </li>
-            ))}
-          </ul>
-          {realMissed.length > 0 && (
-            <>
+      <MasterySection mastery={mastery} name={name} />
+      {realMissed.length > 0 && (
+        <section className="space-y-3 rounded-[24px] bg-[#f9f9fb] p-5" aria-label="Questions missed">
               <h3 className="pt-2 text-sm font-semibold text-foreground/70">Questions missed</h3>
               <ul className="grid gap-2">
                 {realMissed.map((t) => (
@@ -61,8 +46,6 @@ export default async function TopicsPage() {
                   </li>
                 ))}
               </ul>
-            </>
-          )}
         </section>
       )}
       <SampleBanner>

@@ -29,9 +29,7 @@ describe("groupByShow", () => {
 describe("learning focus", () => {
   it("summarises the focus in one sentence", () => {
     expect(focusSummary(DEFAULT_FOCUS)).toBe("A balanced mix of subjects.");
-    expect(focusSummary({ math: "usual", english: "more", science: "less" })).toBe(
-      "More English, less Science.",
-    );
+    expect(focusSummary({ ...DEFAULT_FOCUS, words: "more", shapes: "less" })).toBe("More Words, less Shapes.");
   });
 
   it("rejects unknown subjects and levels", () => {

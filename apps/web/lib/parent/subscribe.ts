@@ -54,3 +54,11 @@ export function subscribeToLiveEvents(onEvents: (events: LiveEventView[]) => voi
   const c = convex();
   return c ? c.onUpdate(api.live.latest, {}, (events) => onEvents(events)) : null;
 }
+
+export type LivePlan = { language?: string; focus?: Record<string, string>; updatedAt: number };
+
+/** The parent's learning plan (learning-plan.md), every time it changes, including once on load. */
+export function subscribeToPlan(onPlan: (plan: LivePlan) => void): (() => void) | null {
+  const c = convex();
+  return c ? c.onUpdate(api.plan.get, { learnerKey: "default" }, (plan) => plan && onPlan(plan)) : null;
+}

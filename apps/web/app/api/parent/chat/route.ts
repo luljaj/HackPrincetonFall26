@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { setPlan } from "../../../../lib/live/plan";
 import { hasParentAccess } from "../../../../lib/parent/access";
 import { childName } from "../../../../lib/parent/child";
 import { getParentViewReader } from "../../../../lib/parent/reader";
@@ -27,7 +28,11 @@ export async function POST(request: Request): Promise<Response> {
     const play = getPlayStore();
     const prefs = getPreferencesStore();
     const [views, topics, practice, current] = await Promise.all([getParentViewReader().listParentViews(50), play.topics(), play.practice(), prefs.get()]);
-    const focus = { current: current.focus, set: (next: typeof current.focus) => prefs.set(next) };
+    const focus = { current: current.focus, set: async (next: typeof current.focus) => {
+      const saved = await prefs.set(next);
+      await setPlan({ focus: saved.focus }).catch(() => false); // live copy for the kid view
+      return saved;
+    } };
     const model = process.env.PARENT_CHAT_MODEL?.trim() || config.lunaModel;
     const result = await runChat(client as unknown as ChatClient, model, parsed.data.messages, views, childName(), new Date(), { topics, practice }, focus);
     return Response.json(result, { headers: { "Cache-Control": "no-store" } });
