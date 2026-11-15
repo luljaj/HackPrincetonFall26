@@ -7,7 +7,7 @@
   "de": "Hallo, ich bin Dora.",
   "zh": "Nǐ hǎo, wǒ shì Dora.",
   "hi": "Namaste, main Dora hoon.",
-  "ja": "Konnichiwa, watashi wa Dora.",
+  "ja": "Konnichiwa, watashi wa Dora desu.",
   "bed": [
    46.08,
    50.2
@@ -28,17 +28,17 @@
   ]
  },
  {
-  "start": 153.64,
-  "end": 154.3,
-  "original": "Ven rápido!",
-  "fr": "Viens vite !",
-  "de": "Komm schnell!",
-  "zh": "Kuài lái!",
-  "hi": "Jaldi aao!",
-  "ja": "Hayaku kite!",
+  "start": 147.82,
+  "end": 149.82,
+  "original": "Quiero ayudarte, Mommy!",
+  "fr": "Je veux ayudarte, Mommy!",
+  "de": "Ich möchte ayudarte, Mommy!",
+  "zh": "Wǒ xiǎng ayudarte, Mommy!",
+  "hi": "Main ayudarte, Mommy!",
+  "ja": "Watashi wa ayudarte, Mommy!",
   "bed": [
-   153.04,
-   156.3
+   147.22,
+   151.82
   ]
  },
  {
@@ -48,11 +48,25 @@
   "fr": "And there's Tico and his maman.",
   "de": "And there's Tico and his Mama.",
   "zh": "And there's Tico and his māma.",
-  "hi": "And there's Tico and his maa.",
-  "ja": "And there's Tico and his okaasan.",
+  "hi": "And there's Tico and his mā̃.",
+  "ja": "And there's Tico and his okāsan.",
   "bed": [
    385.3,
    390.84
+  ]
+ },
+ {
+  "start": 435.52,
+  "end": 436.06,
+  "original": "Vamos!",
+  "fr": "Allons-y !",
+  "de": "Los geht’s!",
+  "zh": "Wǒmen zǒu ba!",
+  "hi": "Chalo!",
+  "ja": "Ikō!",
+  "bed": [
+   434.92,
+   438.06
   ]
  },
  {
@@ -61,12 +75,12 @@
   "original": "To get the ladder up, we say, Arriba.",
   "fr": "To get the ladder up, we say, En haut.",
   "de": "To get the ladder up, we say, Hoch.",
-  "zh": "To get the ladder up, we say, Shàngqù.",
+  "zh": "To get the ladder up, we say, Shàng.",
   "hi": "To get the ladder up, we say, Upar.",
   "ja": "To get the ladder up, we say, Ue.",
   "bed": [
    482.32,
-   488.7
+   494.7
   ]
  },
  {
@@ -74,27 +88,41 @@
   "end": 488.8,
   "original": "Can you say Arriba?",
   "fr": "Can you say En haut?",
-  "de": "Can you say Hoch?",
+  "de": "Can you say Nach oben?",
   "zh": "Can you say Shàngqù?",
   "hi": "Can you say Upar?",
-  "ja": "Can you say Ue?",
+  "ja": "Can you say Ue ni?",
   "bed": [
-   486.36,
-   490.8
+   482.32,
+   494.7
   ]
  },
  {
   "start": 490.92,
   "end": 492.7,
   "original": "Say, Arriba!",
-  "fr": "Say, En haut !",
+  "fr": "Say, En haut!",
   "de": "Say, Hoch!",
   "zh": "Say, Shàngqù!",
   "hi": "Say, Upar!",
   "ja": "Say, Ue!",
   "bed": [
-   490.32,
+   482.32,
    494.7
+  ]
+ },
+ {
+  "start": 498.32,
+  "end": 499.04,
+  "original": "Arriba!",
+  "fr": "En haut !",
+  "de": "Hoch!",
+  "zh": "Shàngqù!",
+  "hi": "Upar!",
+  "ja": "Ue!",
+  "bed": [
+   497.72,
+   501.04
   ]
  },
  {
@@ -112,17 +140,31 @@
   ]
  },
  {
+  "start": 518.46,
+  "end": 519.42,
+  "original": "De nada, Benny.",
+  "fr": "De rien, Benny.",
+  "de": "Gern geschehen, Benny.",
+  "zh": "Bù kèqi, Benny.",
+  "hi": "Koi baat nahin, Benny.",
+  "ja": "Dō itashimashite, Benny.",
+  "bed": [
+   517.86,
+   521.42
+  ]
+ },
+ {
   "start": 523.64,
   "end": 526.66,
   "original": "To get the ladder down, we say, abajo.",
   "fr": "To get the ladder down, we say, en bas.",
   "de": "To get the ladder down, we say, runter.",
-  "zh": "To get the ladder down, we say, xiàlái.",
-  "hi": "To get the ladder down, we say, neeche.",
-  "ja": "To get the ladder down, we say, shita.",
+  "zh": "To get the ladder down, we say, xiàqù.",
+  "hi": "To get the ladder down, we say, nīche.",
+  "ja": "To get the ladder down, we say, shita e.",
   "bed": [
    523.04,
-   528.66
+   530.7
   ]
  },
  {
@@ -131,11 +173,11 @@
   "original": "Can you say, abajo?",
   "fr": "Can you say, en bas?",
   "de": "Can you say, nach unten?",
-  "zh": "Can you say, xiàmiàn?",
+  "zh": "Can you say, xià?",
   "hi": "Can you say, nīche?",
-  "ja": "Can you say, shita ni?",
+  "ja": "Can you say, shita?",
   "bed": [
-   526.68,
+   523.04,
    530.7
   ]
  },
@@ -143,9 +185,9 @@
   "start": 531.74,
   "end": 532.64,
   "original": "Say, abajo!",
-  "fr": "Say, en bas!",
+  "fr": "Say, en bas !",
   "de": "Say, nach unten!",
-  "zh": "Say, xià!",
+  "zh": "Say, xiàmiàn!",
   "hi": "Say, neeche!",
   "ja": "Say, shita!",
   "bed": [
@@ -158,10 +200,10 @@
   "end": 540.48,
   "original": "Abajo!",
   "fr": "En bas !",
-  "de": "Nach unten!",
-  "zh": "Xiàmiàn!",
+  "de": "Runter!",
+  "zh": "Xiàlái!",
   "hi": "Nīche!",
-  "ja": "Shita!",
+  "ja": "Oriru!",
   "bed": [
    538.92,
    542.48
@@ -171,11 +213,11 @@
   "start": 597.56,
   "end": 599.38,
   "original": "¿Dónde está? Where is the bridge?",
-  "fr": "Où est-il ? Where is the bridge?",
-  "de": "Wo ist sie? Where is the bridge?",
-  "zh": "Zài nǎlǐ? Where is the bridge?",
-  "hi": "Woh kahaan hai? Where is the bridge?",
-  "ja": "Doko ni aru no? Where is the bridge?",
+  "fr": "Où est le pont ? Where is the bridge?",
+  "de": "Wo ist die Brücke? Where is the bridge?",
+  "zh": "Qiáo zài nǎlǐ? Where is the bridge?",
+  "hi": "Pul kahaan hai? Where is the bridge?",
+  "ja": "Hashi wa doko? Where is the bridge?",
   "bed": [
    596.96,
    601.38
@@ -185,11 +227,11 @@
   "start": 606.46,
   "end": 607.78,
   "original": "Si! Allí está!",
-  "fr": "Oui ! C'est là !",
-  "de": "Ja! Da ist es!",
-  "zh": "Shì! Zài nàlǐ!",
-  "hi": "Hā̃! Vahā̃ hai!",
-  "ja": "Hai! Asoko ni aru!",
+  "fr": "Oui ! Elle est là !",
+  "de": "Ja! Da ist sie!",
+  "zh": "Duì! Tā zài nàli!",
+  "hi": "Haan! Woh wahaan hai!",
+  "ja": "Hai! Soko ni aru!",
   "bed": [
    605.86,
    609.78
@@ -215,9 +257,9 @@
   "original": "Sí, ahí está.",
   "fr": "Oui, la voilà.",
   "de": "Ja, da ist sie.",
-  "zh": "Shì de, tā zài nàli.",
-  "hi": "Haan, vahaan hai.",
-  "ja": "Hai, soko ni aru yo.",
+  "zh": "Shì, zài nàr.",
+  "hi": "Hā̃, vahā̃ hai.",
+  "ja": "Un, soko ni aru yo.",
   "bed": [
    983.9,
    988.02
@@ -227,8 +269,8 @@
   "start": 1000.9,
   "end": 1002.74,
   "original": "Let's call policía.",
-  "fr": "Let's call police.",
-  "de": "Let's call Polizei.",
+  "fr": "Let's call la police.",
+  "de": "Let's call die Polizei.",
   "zh": "Let's call jǐngchá.",
   "hi": "Let's call pulis.",
   "ja": "Let's call keisatsu.",
@@ -241,8 +283,8 @@
   "start": 1041.46,
   "end": 1043.76,
   "original": "Hola, mommy! Ya llegamos!",
-  "fr": "Bonjour, mommy ! Nous sommes arrivés !",
-  "de": "Hallo, mommy! Wir sind angekommen!",
+  "fr": "Bonjour, mommy! Nous sommes arrivés!",
+  "de": "Hallo, mommy! Wir sind da!",
   "zh": "Nǐ hǎo, mommy! Wǒmen dào le!",
   "hi": "Namaste, mommy! Hum pahunch gaye!",
   "ja": "Konnichiwa, mommy! Tsuita yo!",
@@ -258,7 +300,7 @@
   "fr": "To call the stars, six étoiles.",
   "de": "To call the stars, sechs Sterne.",
   "zh": "To call the stars, liù kē xīngxing.",
-  "hi": "To call the stars, chhah taare.",
+  "hi": "To call the stars, chhah sitaare.",
   "ja": "To call the stars, roku-tsu no hoshi.",
   "bed": [
    1347.44,
@@ -276,7 +318,7 @@
   "ja": "Ichi, ni, san, shi, go, roku.",
   "bed": [
    1357.94,
-   1369.52
+   1372.3
   ]
  },
  {
@@ -287,9 +329,9 @@
   "de": "Sechs Sterne.",
   "zh": "Liù kē xīngxing.",
   "hi": "Chhah taare.",
-  "ja": "Roku-tsu no hoshi.",
+  "ja": "Muttsu no hoshi.",
   "bed": [
-   1367.76,
+   1357.94,
    1372.3
   ]
  }

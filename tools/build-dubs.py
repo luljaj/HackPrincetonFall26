@@ -15,7 +15,9 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / 'apps/web/app/lab/dubs.json'
 LANGS = {'fr': 'French', 'de': 'German', 'zh': 'Mandarin Chinese (pinyin with tone marks)', 'hi': 'Hindi (romanised)', 'ja': 'Japanese (romaji)'}
 SPANISH = re.compile(r"[¿¡áéíóúñ]|\b(hola|vámonos|vamonos|dónde|donde|está|arriba|abajo|sí|si|gracias|amigos?|muy bien|policía|mochila|mapa|"
-                     r"puente|ya llegamos|uno|una|dos|tres|cuatro|cinco|seis|estrellas|ven|rápido|allí|ahí|soy|lo hicimos)\b", re.I)
+                     r"puente|ya llegamos|uno|una|dos|tres|cuatro|cinco|seis|estrellas|ven|rápido|allí|ahí|soy|lo hicimos|"
+                     r"quiero|ayudar|ayudarte|ayúdame|fantástico|fantastico|vamos|mira|bueno|perfecto|mami|papi|abuela|señor|"
+                     r"por favor|de nada|adiós|adios|buenos días|aquí|allá|pirámide|piramide|excelente|bienvenidos)\b", re.I)
 # Hand checks after reading each line in context (Luna's speaker call overruled where the dialogue says otherwise).
 SPEAKER_OVERRIDES: dict[str, str] = {
     '46.7': 'Dora',      # "Hola, soy Dora": her own introduction
@@ -26,6 +28,11 @@ SPEAKER_OVERRIDES: dict[str, str] = {
     '552.6': 'other',    # Tico's family thanking them for rescuing Benny
     '399.2': 'other',    # "Hola, Boots": someone greeting Boots
     '412.2': 'other',    # Tico speaks only Spanish; Dora translates him right after
+    '150.7': 'other',    # Mommy on the phone: "Fantástico! Come to La Pirámide quick! Ven rápido!"
+    '151.6': 'other',
+    '153.6': 'other',
+    '504.6': 'Dora',     # the answered shouts after "Say, Arriba!" / "Say, abajo!": keep the pair consistent
+    '539.5': 'Dora',
     '1384.5': 'unsure',  # a bare "Gracias!"
     '1436.6': 'unsure',  # "Gracias! Bye!" in the closing
 }
