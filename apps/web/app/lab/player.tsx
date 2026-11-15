@@ -11,7 +11,7 @@ import translationsData from "./translations.json";
 import loopsData from "./loops.json";
 import trialEpisode from "./episode.json";
 import s from "./lab.module.css";
-import { fetchVoice, speakFallback, streamVoice } from "./voice";
+import { fetchVoice, captionFallback, streamVoice } from "./voice";
 import dubsData from "./dubs.json";
 import { listenOnce, openMic, recorderOptions } from "./listen";
 import { localFlair } from "./flair";
@@ -96,21 +96,20 @@ function practiceFor(sp: Spot, language: string): Practice | null {
   const w = language && t ? (t[language] as Word | undefined) : undefined;
   return w && t ? { ...w, english: t.english, language, name: LEARN_LANGUAGES[language] ?? language } : null;
 }
-// Dora's hello when the kid picks a language (romanised so any voice can say it).
+// The multilingual model reads the original script; romanization is display guidance only.
 const GREETING: Record<string, string> = {
   es: "¡Hola! Let's learn Spanish!", fr: "Bonjour! Let's learn French!", de: "Hallo! Let's learn German!",
-  zh: "Nǐ hǎo! Let's learn Chinese!", hi: "Namaste! Let's learn Hindi!", ja: "Konnichiwa! Let's learn Japanese!",
+  zh: "你好! Let's learn Chinese!", hi: "नमस्ते! Let's learn Hindi!", ja: "こんにちは! Let's learn Japanese!",
 };
 
 // A "say X" spot whose word should be said in the learning language instead of the show's Spanish.
 const swapsSayWord = (sp: Spot, practice: Practice | null): practice is Practice => !!(sp.say && practice && practice.language !== sp.say.language);
 // A separate "now say it in French" step only makes sense when the pause itself wasn't already a say-it turn.
 const canPractice = (sp: Spot, language: string) => !sp.say && !!practiceFor(sp, language);
-// Non-Latin words also get their romanization, e.g. 梯子 (tīzi).
-const spoken = (p: Practice) => (p.romanized && p.romanized !== p.word ? `${p.word} (${p.romanized})` : p.word);
+const spoken = (p: Practice) => p.word;
 
 // Dora's lines built from the spot's lesson, for spots without hand-written lines. No saved audio exists
-// for these, so they're spoken live (voice server, or the browser voice when it's off).
+// for these, so they're spoken live by the voice server.
 function lessonText(stage: Stage, sp: Spot, practiced = false, practice: Practice | null = null): string | null {
   if (practice) {
     if (stage === "practicing") return `In ${practice.name}, ${practice.english} is ${spoken(practice)}! Can you say ${practice.word}?`;
@@ -135,14 +134,13 @@ function lessonText(stage: Stage, sp: Spot, practiced = false, practice: Practic
 
 // Dora's Spanish show lines, re-voiced whole in the language being learned (tools/build-dubs.py), so the
 // show itself matches the chosen language and stays one voice per sentence.
-type Dub = { start: number; end: number; original: string; bed?: [number, number] } & Record<string, unknown>;
+type Dub = { start: number; end: number; original: string; bed?: [number, number]; nextSpeechAt?: number } & Record<string, unknown>;
 const DUBS = dubsData as unknown as Dub[];
 const DUB_PREFETCH_S = 15; // fetch re-voiced lines this long before they're needed
 const DUB_DUCK = 0.06; // fallback when a line has no bed: how far the show's own audio drops under the dub
 const DUB_FADE_S = 0.25; // crossfade between the show and its no-voice bed
 const DUB_LATE_S = 1; // a dub that isn't ready may still start this long after its line ends
 const DUB_END_PAD_S = 0.4; // keep the voice removed this long past a line's transcript end
-const DUB_MAX_RATE = 1.2; // speed a longer dub up at most this much to fit the original line
 
 // Spots whose own scene has a calm waiting moment get an in-scene talk/wait loop (tools/cut-loops.py).
 // Every other spot holds the paused frame. Dora never jumps to a different scene.
@@ -223,12 +221,17 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
   const dubbing = useRef(false); // a dub owns the show's volume right now: the greeting must not touch it
 
   async function dubVoice(d: Dub, lang: string) {
+    const text = d[lang];
+    if (typeof text !== "string") return;
     const key = `${d.start}:${lang}`;
     if (dubCache.current.has(key)) return;
     dubCache.current.set(key, "pending");
     for (let attempt = 0; attempt < 12; attempt++) { // the voice server takes one line at a time: wait our turn
       try {
-        return void dubCache.current.set(key, await fetchVoice(d[lang] as string, audio.current!.ctx, new AbortController().signal));
+        return void dubCache.current.set(key, await fetchVoice({ text, language: lang,
+          durationSeconds: Math.max(0.1, Math.min(d.end - d.start + 0.3,
+            (d.nextSpeechAt ?? d.end + 1) - d.start - DUB_FADE_S)),
+          context: audio.current!.ctx, signal: new AbortController().signal }));
       } catch {
         await new Promise((resolve) => setTimeout(resolve, 600));
       }
@@ -256,7 +259,6 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
   const [heardInfo, setHeardInfo] = useState("");
   // Turn-gap timing from the kid's last sound: when Dora's first sound (the "Hmm!") and her answer started.
   const gap = useRef<{ from: number; first: number | null } | null>(null);
-  const synthSpeaking = useRef(false);
   const turn = useRef(0); // bumped on every new turn, jump or forced stage: late replies from older turns are dropped
   const episode = useRef<HTMLVideoElement>(null);
   const line = useRef<HTMLAudioElement>(null);
@@ -384,7 +386,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
     setCtx(n);
     onLearnChange?.(code);
     const text = code ? GREETING[code] ?? `Let's learn ${LEARN_LANGUAGES[code]}!` : "Okay, just English for now!";
-    if (audio.current && ctxRef.current.stage === "watching") void greet(text);
+    if (audio.current && ctxRef.current.stage === "watching" && !dubbing.current) void greet(text);
     else showFlash(text); // mid-question: don't talk over her own line
   }
 
@@ -403,10 +405,11 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
     if (!dubbing.current) fadeEpisode(0.2);
     showFlash(text, 8000);
     try {
-      await streamVoice({ text, context: a.ctx, destination: a.analyser, signal: ac.signal,
+      await streamVoice({ text, learningLanguage: learnRef.current || undefined,
+        context: a.ctx, destination: a.analyser, signal: ac.signal,
         onSpeaking: (on) => { liveSpeaking.current = on; }, onMetrics: () => undefined });
     } catch {
-      if (!ac.signal.aborted) await speakFallback(text, ac.signal, onSynth);
+      if (!ac.signal.aborted) await captionFallback(text, ac.signal);
     }
     if (ac.signal.aborted) return;
     showFlash(null);
@@ -418,11 +421,6 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
     if (learnProp !== undefined) applyLearn(learnProp);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the prop only
   }, [learnProp]);
-
-  function onSynth(on: boolean) {
-    synthSpeaking.current = on;
-    if (on) doraStartedSpeaking();
-  }
 
   // Hands-free: the kid's spoken answer → local Whisper → Luna.
   async function transcribeAndJudge(clip: Blob) {
@@ -624,6 +622,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
     const timers: ReturnType<typeof setTimeout>[] = [];
     let raf = 0;
     const speechAbort = new AbortController();
+    if (stage !== "watching") greetAbort.current?.abort();
     setSpeechCaption(null);
 
     if (stage === "watching") {
@@ -634,7 +633,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
       // line plays on top, so music and effects never drop. Lines and beds are fetched well ahead and cached.
       const a = audio.current!;
       // A run of close Dora lines shares one bed, so the original voice never comes back between them.
-      type Run = { lines: Dub[]; bed: [number, number] | undefined; src: AudioBufferSourceNode | null; gain: GainNode | null; played: Set<Dub>; voiceEnds: number };
+      type Run = { language: string; lines: Dub[]; bed: [number, number] | undefined; src: AudioBufferSourceNode | null; gain: GainNode | null; voices: Set<AudioBufferSourceNode>; voiceGain: GainNode; played: Set<Dub>; voiceEnds: number };
       let active: Run | null = null;
       const fade = (param: AudioParam, to: number, seconds = DUB_FADE_S) => {
         param.cancelScheduledValues(a.ctx.currentTime);
@@ -643,11 +642,17 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
       };
       const endDub = (restore: boolean) => {
         if (!active) return;
-        const { src, gain } = active;
+        const { src, gain, voices, voiceGain } = active;
         active = null;
         dubbing.current = false;
         if (gain) fade(gain.gain, 0);
-        if (src) setTimeout(() => { try { src.stop(); } catch { /* already stopped */ } }, DUB_FADE_S * 1000 + 50);
+        fade(voiceGain.gain, 0);
+        setTimeout(() => {
+          for (const source of voices) { try { source.stop(); } catch { /* already stopped */ } source.disconnect(); }
+          if (src) { try { src.stop(); } catch { /* already stopped */ } src.disconnect(); }
+          gain?.disconnect();
+          voiceGain.disconnect();
+        }, DUB_FADE_S * 1000 + 50);
         if (restore) fade(a.epGain.gain, 1);
       };
       speechAbort.signal.addEventListener("abort", () => endDub(false), { once: true }); // a pause takes over the audio
@@ -656,6 +661,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
         const lang = learnRef.current;
         const t = ep.currentTime;
         if (!lang || lang === "es") return endDub(true); // Spanish is what the show already speaks
+        if (active && active.language !== lang) endDub(true);
         // Fetch the next couple of lines (and their beds) ahead of time; retried while the voice server is busy.
         for (const d of DUBS.filter((x) => typeof x[lang] === "string" && x.start > t && x.start - t < DUB_PREFETCH_S).slice(0, 3)) {
           void dubVoice(d, lang);
@@ -664,8 +670,12 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
         if (!active) {
           const d = DUBS.find((x) => typeof x[lang] === "string" && t >= (x.bed?.[0] ?? x.start - 0.05) && t < x.end);
           if (!d) return;
-          active = { lines: runOf(d, lang), bed: d.bed, src: null, gain: null, played: new Set(), voiceEnds: 0 };
+          const voiceGain = a.ctx.createGain();
+          voiceGain.connect(a.analyser);
+          active = { language: lang, lines: runOf(d, lang), bed: d.bed, src: null, gain: null,
+            voices: new Set(), voiceGain, played: new Set(), voiceEnds: 0 };
           dubbing.current = true;
+          greetAbort.current?.abort();
           const bedBuffer = d.bed ? bedCache.current.get(d.bed[0]) : undefined;
           if (d.bed && bedBuffer instanceof AudioBuffer) {
             // The same moment of the show, minus the voice: started at the matching offset so it stays in sync.
@@ -689,15 +699,17 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
           run.played.add(d);
           const src = a.ctx.createBufferSource();
           src.buffer = buffer;
-          src.playbackRate.value = Math.min(DUB_MAX_RATE, Math.max(1, buffer.duration / (d.end - d.start + 0.3)));
-          src.connect(a.analyser);
+          src.connect(run.voiceGain);
+          run.voices.add(src);
+          src.onended = () => { run.voices.delete(src); src.disconnect(); };
           src.start();
           speechAbort.signal.addEventListener("abort", () => { try { src.stop(); } catch { /* already ended */ } }, { once: true });
-          run.voiceEnds = Math.max(run.voiceEnds, t + buffer.duration / src.playbackRate.value);
+          run.voiceEnds = Math.max(run.voiceEnds, t + buffer.duration);
         }
         const last = run.lines[run.lines.length - 1]!;
         // Whisper's line ends run a little early: keep the bed a moment longer so no original syllable leaks.
-        const over = t >= Math.max(last.end + DUB_END_PAD_S, run.voiceEnds + 0.1);
+        const handback = last.nextSpeechAt === undefined ? Infinity : last.nextSpeechAt - DUB_FADE_S;
+        const over = t >= Math.min(handback, Math.max(last.end + DUB_END_PAD_S, run.voiceEnds + 0.1));
         if (over || (run.bed && t >= run.bed[1] - DUB_FADE_S - 0.05)) endDub(true);
       };
       const watch = () => {
@@ -752,7 +764,8 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
         if ((voiceMode.current || customText !== null || fromLesson !== null || flaired !== saved) && text) {
           const a = audio.current!;
           void streamVoice({
-            text, context: a.ctx, destination: a.analyser, signal: speechAbort.signal,
+            text, learningLanguage: learnRef.current || undefined,
+            context: a.ctx, destination: a.analyser, signal: speechAbort.signal,
             onSpeaking: (speaking) => {
               if (speechAbort.signal.aborted) return;
               liveSpeaking.current = speaking;
@@ -765,8 +778,8 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
             if (!speechAbort.signal.aborted) send("LINE_DONE");
           }).catch(async (error: unknown) => {
             if (speechAbort.signal.aborted) return;
-            setVoiceError(`${error instanceof Error ? error.message : "Speech failed."} Using the browser voice.`);
-            await speakFallback(text, speechAbort.signal, onSynth);
+            setVoiceError(`${error instanceof Error ? error.message : "Speech failed."} Showing captions while Dora's voice is unavailable.`);
+            await captionFallback(text, speechAbort.signal);
             if (!speechAbort.signal.aborted) send("LINE_DONE");
           });
         } else {
@@ -774,8 +787,8 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
           ln.onplaying = doraStartedSpeaking;
           ln.onended = () => send("LINE_DONE");
           ln.onerror = () => {
-            setVoiceError("Saved voice line could not be loaded. Using the browser voice.");
-            void speakFallback(text ?? "", speechAbort.signal, onSynth)
+            setVoiceError("Saved voice line could not be loaded. Showing captions.");
+            void captionFallback(text ?? "", speechAbort.signal)
               .then(() => { if (!speechAbort.signal.aborted) send("LINE_DONE"); });
           };
           void ln.play().catch(() => { if (!speechAbort.signal.aborted) { setVoiceError("Audio playback failed."); send("LINE_DONE"); } });
@@ -787,7 +800,6 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
       cancelAnimationFrame(raf);
       timers.forEach(clearTimeout);
       liveSpeaking.current = false;
-      synthSpeaking.current = false;
       speechAbort.abort();
       ln.onended = null;
       ln.onerror = null;
@@ -849,9 +861,9 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
     const tick = (now: number) => {
       a.analyser.getFloatTimeDomainData(buf);
       const rms = Math.sqrt(buf.reduce((sum, x) => sum + x * x, 0) / buf.length);
-      const speaking = !line.current!.paused || !filler.current!.paused || liveSpeaking.current || synthSpeaking.current;
+      const speaking = !line.current!.paused || !filler.current!.paused || liveSpeaking.current;
       // The browser voice can't be measured, so the mouth just talks while it speaks.
-      if (speaking && (rms > TALK_RMS || synthSpeaking.current)) openUntil = now + MOUTH_HOLD_MS;
+      if (speaking && rms > TALK_RMS) openUntil = now + MOUTH_HOLD_MS;
       const show: Loop = speaking && now < openUntil ? "talk" : "wait";
       if (show !== shown) {
         shown = show;

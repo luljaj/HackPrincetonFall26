@@ -44,13 +44,14 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--dataset',type=Path,default=ROOT/'voices/dora/dataset')
     p.add_argument('--steps',type=int,default=200)
+    p.add_argument('--reference',type=Path,default=ROOT/'voices/dora/reference-training.wav')
     p.add_argument('--rank',type=int,default=8)
     p.add_argument('--layers',type=int,default=8)
     p.add_argument('--learning-rate',type=float,default=1e-4)
     a=p.parse_args();out=ROOT/'voices/dora/checkpoints';out.mkdir(exist_ok=True)
     if a.steps<1 or a.rank<1 or not 1<=a.layers<=24:raise ValueError('Invalid training settings.')
     random.seed(42);mx.random.seed(42)
-    model,_=load_voice(use_adapter=False);model.t3.finalize('float32')
+    model,_=load_voice(use_adapter=False,reference_override=a.reference);model.t3.finalize('float32')
     conditioning=model._t3_cond_emb.astype(mx.float32);mx.eval(conditioning)
     train=[json.loads(s) for s in (a.dataset/'train.jsonl').read_text().splitlines()]
     valid=[json.loads(s) for s in (a.dataset/'valid.jsonl').read_text().splitlines()]

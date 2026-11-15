@@ -35,4 +35,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-/public/media/
+/public/media/*
+!/public/media/lab/
+/public/media/lab/*
+!/public/media/lab/*.m4a

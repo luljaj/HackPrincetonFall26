@@ -27,8 +27,9 @@ function parseMessage(line: string): VoiceMessage {
   throw new Error("Invalid voice stream message.");
 }
 
-export async function streamVoice({ text, context, destination, signal, onSpeaking, onMetrics }: {
+export async function streamVoice({ text, learningLanguage, context, destination, signal, onSpeaking, onMetrics }: {
   text: string;
+  learningLanguage?: string;
   context: AudioContext;
   destination: AudioNode;
   signal: AbortSignal;
@@ -56,14 +57,14 @@ export async function streamVoice({ text, context, destination, signal, onSpeaki
     await context.resume();
     const response = await fetch("/api/voice", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }), signal,
+      body: JSON.stringify({ text, learningLanguage }), signal,
     });
     if (!response.ok || !response.body) throw new Error(response.status === 429 ? "Voice is busy. Try again shortly." : "Voice service unavailable. Start the local voice server.");
     reader = response.body.getReader();
     const decoder = new TextDecoder();
     let pending = "";
     let sampleRate: number | undefined;
-    let nextAt = context.currentTime + 0.06;
+    let nextAt: number | undefined;
     const consume = (line: string) => {
       if (!line.trim()) return;
       const message = parseMessage(line);
@@ -90,7 +91,8 @@ export async function streamVoice({ text, context, destination, signal, onSpeaki
             source.disconnect();
             if (streamDone && sources.size === 0) finishPlayback?.();
           };
-          nextAt = Math.max(nextAt, context.currentTime + 0.025);
+          // Start the buffer when audio arrives; time spent generating must not consume it.
+          nextAt = Math.max(nextAt ?? context.currentTime + 0.16, context.currentTime + 0.025);
           source.start(nextAt);
           nextAt += buffer.duration;
           onSpeaking(true);
@@ -126,63 +128,50 @@ export async function streamVoice({ text, context, destination, signal, onSpeaki
   }
 }
 
-/** Fallback when the local voice server is down: the browser's own speech synthesis, so the loop still talks. */
-export function speakFallback(text: string, signal: AbortSignal, onSpeaking: (speaking: boolean) => void): Promise<void> {
+/** Keep the caption readable if speech fails, without changing the character's voice. */
+export function captionFallback(text: string, signal: AbortSignal): Promise<void> {
   return new Promise((resolve) => {
-    if (!("speechSynthesis" in window)) return resolve();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.05;
-    utterance.pitch = 1.35; // brighter, closer to a young character than the default voice
-    // Some browsers never fire onend for a background tab; don't let that stall the stage machine.
-    // On timeout, cancel the speech too, or the hands-free mic would open while Dora is still talking.
-    const guard = setTimeout(() => cancel(), 1500 + text.split(/\s+/).length * 450);
+    if (signal.aborted) return resolve();
+    const guard = setTimeout(() => finish(), Math.min(12000, 1500 + text.split(/\s+/).length * 350));
     const finish = () => {
       clearTimeout(guard);
-      signal.removeEventListener("abort", cancel);
-      onSpeaking(false);
+      signal.removeEventListener("abort", finish);
       resolve();
     };
-    const cancel = () => { speechSynthesis.cancel(); finish(); };
-    utterance.onstart = () => onSpeaking(true);
-    utterance.onend = finish;
-    utterance.onerror = finish;
-    signal.addEventListener("abort", cancel, { once: true });
-    speechSynthesis.cancel();
-    speechSynthesis.speak(utterance);
+    signal.addEventListener("abort", finish, { once: true });
   });
 }
 
 /** Fetch a whole line from the voice server as one buffer (for dubbing, where it's prepared ahead and played on cue). */
-export async function fetchVoice(text: string, context: AudioContext, signal: AbortSignal): Promise<AudioBuffer> {
+export async function fetchVoice({ text, language, durationSeconds, context, signal }: {
+  text: string; language: string; durationSeconds: number; context: AudioContext; signal: AbortSignal;
+}): Promise<AudioBuffer> {
   const response = await fetch("/api/voice", {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }), signal,
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, language, durationSeconds }), signal,
   });
   if (!response.ok) throw new Error("Voice service unavailable.");
   let sampleRate: number | undefined;
+  let complete = false;
   const chunks: Int16Array[] = [];
   for (const line of (await response.text()).split("\n")) {
     if (!line.trim()) continue;
     const message = parseMessage(line);
+    if (complete) throw new Error("Unexpected data after voice completion.");
     if (message.type === "start") sampleRate = message.sampleRate;
     else if (message.type === "error") throw new Error(message.error);
+    else if (message.type === "done") complete = true;
     else if (message.type === "audio") {
       const bytes = Uint8Array.from(atob(message.pcm), (c) => c.charCodeAt(0));
+      if (!sampleRate || !bytes.length || bytes.length % 2) throw new Error("Invalid voice audio.");
       chunks.push(new Int16Array(bytes.buffer, 0, bytes.length >> 1));
     }
   }
   const length = chunks.reduce((n, c) => n + c.length, 0);
-  if (!sampleRate || !length) throw new Error("Empty voice audio.");
+  if (!complete || !sampleRate || !length) throw new Error("Incomplete voice audio.");
   const all = new Float32Array(length);
   let at = 0;
   for (const c of chunks) for (let i = 0; i < c.length; i++) all[at++] = c[i]! / 32768;
-  // Trim the silence generated speech carries at both ends (keeping 40 ms), so a dub fits its line better.
-  const pad = Math.round(sampleRate * 0.04);
-  let first = 0;
-  let last = all.length - 1;
-  while (first < last && Math.abs(all[first]!) < 0.02) first++;
-  while (last > first && Math.abs(all[last]!) < 0.02) last--;
-  const trimmed = all.subarray(Math.max(0, first - pad), Math.min(all.length, last + pad));
-  const buffer = context.createBuffer(1, trimmed.length, sampleRate);
-  buffer.getChannelData(0).set(trimmed);
+  const buffer = context.createBuffer(1, all.length, sampleRate);
+  buffer.getChannelData(0).set(all);
   return buffer;
 }

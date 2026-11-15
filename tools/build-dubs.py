@@ -4,7 +4,7 @@ The episode is English with Spanish words baked into the recording ("¿Dónde es
 When a kid learns French, those moments should be French, and for continuity the whole sentence is re-voiced
 in Dora's voice rather than one word in a different voice. For each transcript line with Spanish, Luna decides
 who is speaking (from the dialogue around it) and rewrites the line per language: English kept, Spanish swapped
-for the target language, non-Latin languages romanised so the voice can say them. Only Dora's lines are dubbed.
+for the target language in its native script. Only Dora's lines are dubbed.
 Output: apps/web/app/lab/dubs.json. Needs OPENAI_API_KEY (read from apps/web/.env.local). Stdlib only.
 """
 import argparse, json, os, re, sys, urllib.request
@@ -13,7 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / 'apps/web/app/lab/dubs.json'
-LANGS = {'fr': 'French', 'de': 'German', 'zh': 'Mandarin Chinese (pinyin with tone marks)', 'hi': 'Hindi (romanised)', 'ja': 'Japanese (romaji)'}
+LANGS = {'fr': 'French', 'de': 'German', 'zh': 'Mandarin Chinese (Chinese characters)', 'hi': 'Hindi (Devanagari)', 'ja': 'Japanese (native script)'}
 SPANISH = re.compile(r"[¿¡áéíóúñ]|\b(hola|vámonos|vamonos|dónde|donde|está|arriba|abajo|sí|si|gracias|amigos?|muy bien|policía|mochila|mapa|"
                      r"puente|ya llegamos|uno|una|dos|tres|cuatro|cinco|seis|estrellas|ven|rápido|allí|ahí|soy|lo hicimos|"
                      r"quiero|ayudar|ayudarte|ayúdame|fantástico|fantastico|vamos|mira|bueno|perfecto|mami|papi|abuela|señor|"
@@ -54,7 +54,7 @@ You get one transcript line (the target) with the lines around it. Decide who sa
 (Dora introduces herself and talks to the viewer; Boots is her monkey friend; others include Mommy, Tico, Benny, Swiper).
 If the target line contains Spanish, rewrite it for each language: keep every English word exactly, replace only the
 Spanish words with the natural equivalent in that language (keep the same meaning, keep it short). Chinese, Hindi and
-Japanese must be romanised (pinyin with tone marks, romanised Hindi, romaji) because a voice will read them aloud.
+Japanese must use their native scripts, because the multilingual voice uses real language phonetics.
 If the line has no Spanish, set has_spanish false and copy the line unchanged for every language."""
 
 
@@ -98,7 +98,9 @@ def main():
         speaker = SPEAKER_OVERRIDES.get(sid, r['speaker'])
         print(f"{sid:>7}s {speaker:7} {'ES' if r['has_spanish'] else '--'} | {s['text'].strip()}  →  fr: {r['rewrites']['fr']}")
         if r['has_spanish'] and speaker == 'Dora':
-            dubs.append({'start': round(s['start'], 2), 'end': round(s['end'], 2), 'original': s['text'].strip(), **r['rewrites']})
+            after = next((x for x in segments if x['start'] >= s['end'] - .04), None)
+            dubs.append({'start': round(s['start'], 2), 'end': round(s['end'], 2), 'original': s['text'].strip(),
+                         **r['rewrites'], **({'nextSpeechAt': round(after['start'], 2)} if after else {})})
     OUT.write_text(json.dumps(dubs, indent=1, ensure_ascii=False) + '\n')
     print(f'{len(dubs)} Dora lines to dub → {OUT.relative_to(ROOT)}')
 
