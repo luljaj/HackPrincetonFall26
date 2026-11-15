@@ -181,3 +181,13 @@ export const resetSkillTool = fn("reset_skill", "Start a skill or category over 
 export const setLanguageTool = fn("set_language", "Change the actual learning language on the TV, effective at Dora's next line. Use this for 'switch to Spanish', never set_focus. Empty string means English only.", {
   language: { type: "string", enum: [...PLAN_LANGUAGES] },
 });
+
+export const listLanguageLessonsTool = fn("list_language_lessons", "Read saved lesson levels for one language. Returns prepared lesson ids, native words, English meanings, levels (0 New, 1 Heard, 2 Said, 3 Remembered), active state and whether the parent set the level. Use before editing a lesson by its English meaning.", {
+  language: { type: "string", enum: ["es", "fr", "de", "zh", "hi", "ja"] },
+});
+export const changeLessonTool = fn("change_lesson", "Only on an explicit parent request: set a prepared lesson's level (including lowering it), remove it from practice, restore it, or discard the parent's override and use recorded progress. Earlier viewing evidence is preserved. Read list_language_lessons to resolve the lesson id. level must be null except for set_level.", {
+  language: { type: "string", enum: ["es", "fr", "de", "zh", "hi", "ja"] },
+  lessonId: { type: "string" },
+  action: { type: "string", enum: ["set_level", "remove", "restore", "use_recorded"] },
+  level: { type: ["integer", "null"], enum: [0, 1, 2, 3, null] },
+});

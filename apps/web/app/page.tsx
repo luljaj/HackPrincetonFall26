@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CHANNELS } from "./channels";
 import { DoraPlayer } from "./lab/player";
-import { subscribeToPlan } from "../lib/parent/subscribe";
+import { type RequestedLesson, subscribeToPlan } from "../lib/parent/subscribe";
 import s from "./play.module.css";
 
 // Languages the kid can practise (answers are taught in them after each question).
@@ -31,6 +31,13 @@ export default function Play() {
   const [tuning, setTuning] = useState(false);
   const [osd, setOsd] = useState<string | null>(null); // on-screen display text (channel or language)
   const [learn, setLearn] = useState("");
+  const [requestedLesson, setRequestedLesson] = useState<RequestedLesson | undefined>();
+  const [learningNotice, setLearningNotice] = useState<{ code: string; status: "queued" | "active" } | null>(null);
+  useEffect(() => {
+    if (!learningNotice) return;
+    const timer = setTimeout(() => setLearningNotice(null), 5000);
+    return () => clearTimeout(timer);
+  }, [learningNotice]);
   const [focus, setFocus] = useState<Record<string, string>>({});
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
@@ -97,19 +104,19 @@ export default function Play() {
 
   function pickLanguage(code: string) {
     setLearn(code);
-    const l = LANGUAGES.find((x) => x.code === code)!;
-    setOsd(`${l.flag} LEARN ${l.code ? l.name.toUpperCase() : "OFF"}`);
+    if (on) setLearningNotice({ code, status: "queued" });
   }
 
   // The parent's learning plan (learning-plan.md): a language change lands mid-episode, at Dora's next line.
   useEffect(
     () =>
-      subscribeToPlan(({ language, focus: nextFocus }) => {
+      subscribeToPlan(({ language, focus: nextFocus, lesson }) => {
+        if (lesson) setRequestedLesson(lesson);
         if (nextFocus) setFocus(nextFocus);
         const l = LANGUAGES.find((x) => x.code === language);
         if (!l) return; // unset or unknown: keep what the kid picked
         setLearn(l.code);
-        setOsd(`${l.flag} LEARN ${l.code ? l.name.toUpperCase() : "OFF"}`);
+
       }) ?? undefined,
     [],
   );
@@ -159,7 +166,7 @@ export default function Play() {
   });
 
   return (
-    <main className={s.room}>
+    <main className={s.room} data-learning-language={learn}>
       <div className={s.tv}>
         <div className={s.cabinet}>
           <div
@@ -176,9 +183,16 @@ export default function Play() {
                   controlsTarget={playerControls}
                   captionsEnabled={captionsEnabled}
                   learningFocus={focus}
+                  requestedLesson={requestedLesson}
+                  onLanguageState={setLearningNotice}
                 />
               </div>
             )}
+            {on && learningNotice && <div className={s.learningNotice} role="status" aria-live="polite" data-language={learningNotice.code}>
+              <span aria-hidden="true">{LANGUAGES.find(l => l.code === learningNotice.code)?.flag}</span>
+              <div><b>{learningNotice.status === "queued" ? `${LANGUAGES.find(l => l.code === learningNotice.code)?.name} is next` : `Let's learn ${LANGUAGES.find(l => l.code === learningNotice.code)?.name}!`}</b>
+                <small>{learningNotice.status === "queued" ? "Dora is finishing this question." : "A new learning adventure."}</small></div>
+            </div>}
             {on && channel.id !== "dora" && (
               <div className={s.soon} style={{ background: channel.color }}>
                 <span className={s.soonBounce}>★</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LESSONS_EVENT } from "../../../lib/play/language-lessons";
 import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
@@ -495,7 +496,8 @@ export function ChatPanel({ child }: { child: string }) {
         sessionIds: body.sessionIds,
         focusChange: body.focusChange,
       });
-      if (body.masteryReset?.length || body.languageChange !== undefined) router.refresh();
+      if (body.lessonChanged) window.dispatchEvent(new Event(LESSONS_EVENT));
+      if (body.masteryReset?.length || body.languageChange !== undefined || body.lessonChanged) router.refresh();
       if (body.focusChange?.after) {
         setFocus(body.focusChange.after);
         window.dispatchEvent(new CustomEvent<FocusEventDetail>(FOCUS_EVENT, {

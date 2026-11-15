@@ -19,6 +19,7 @@ import { listenOnce, openMic, recorderOptions } from "./listen";
 import { localFlair } from "./flair";
 import { clearlyCorrect } from "./quick-judge";
 import { createTrace } from "./trace-client";
+import type { RequestedLesson } from "../../lib/parent/subscribe";
 import { additionLesson, wantsAddition } from "./focus-lessons";
 import { skillOf } from "../../lib/play/mastery";
 import policy from "./learning-policy.json";
@@ -44,6 +45,8 @@ type Spot = {
   keep?: boolean;
   skill?: string;
   preparedLine?: string;
+  practiceOnly?: boolean;
+  practiceLine?: string;
 };
 type Lesson = {
   keep: boolean; asked: boolean; visual: boolean; question: string; type: "answer" | "say" | "open" | "choice" | "count"; answer: string; accept: string[];
@@ -85,6 +88,7 @@ const fmt = (t: number) => `${String(Math.floor(t / 60)).padStart(2, "0")}:${(t 
 
 // Which audio file a stage plays at this spot. null = no line (generic spots: the show already asked).
 function lineFor(stage: Stage, spot: Spot, tries: number): string | null {
+  if (stage === "practicing" && spot.practiceLine) return spot.practiceLine;
   if (stage === "asking" && spot.preparedLine) return spot.preparedLine;
   let base = STAGES[stage].line;
   if (!base) return null;
@@ -184,18 +188,24 @@ type Loop = "talk" | "wait";
 
 // The interactive Dora player. `/lab` shows it with every debug control; the kid view (`/`) shows only the
 // screen, with the mic always on and the same controls in a hidden dev drawer (press ` or add ?dev).
-export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, controlsTarget, captionsEnabled = true, learningFocus }: {
+export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, controlsTarget, captionsEnabled = true, learningFocus, requestedLesson, onLanguageState }: {
   kid?: boolean;
   learn?: string; // language to practise, driven by the kid view's language row
   onLearnChange?: (code: string) => void; // the dev drawer's picker changed it
   controlsTarget?: HTMLElement | null;
   captionsEnabled?: boolean;
   learningFocus?: Record<string, string>;
+  requestedLesson?: RequestedLesson;
+  onLanguageState?: (state: { code: string; status: "queued" | "active" }) => void;
 }) {
   const [ctx, setCtx] = useState<Ctx>(INITIAL);
   const [started, setStarted] = useState(false);
   const previousFocus = useRef(learningFocus?.numbers);
   const queuedAddition = useRef(false);
+  const pendingLanguageLesson = useRef<RequestedLesson | null>(null);
+  const lastLessonRequest = useRef(0);
+  const pendingLanguage = useRef<string | undefined>(undefined);
+  const [languageTick, setLanguageTick] = useState(0);
   const additionIndex = useRef(0);
   const priorStage = useRef<Stage>("watching");
   const [spot, setSpot] = useState<Spot>(FIREHOUSE);
@@ -399,8 +409,23 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
 
   // Switching language takes effect at once: the very next answer is practised in it, and if the show is
   // playing Dora greets in that language right away (the show dips while she talks).
-  function applyLearn(code: string) {
-    if (code === learnRef.current) return;
+  function applyLearn(code: string, greetNow = true) {
+    if (code === learnRef.current) {
+      if (pendingLanguage.current !== undefined) {
+        pendingLanguage.current = undefined;
+        onLanguageState?.({ code, status: "active" });
+      }
+      return;
+    }
+    if (started && (ctxRef.current.stage !== "watching" || sound.current === "greeting")) {
+      if (pendingLanguage.current !== code) {
+        pendingLanguage.current = code;
+        if (onLanguageState) onLanguageState({ code, status: "queued" });
+        else showFlash(`${LEARN_LANGUAGES[code] ?? "English"} is next. Let's finish this question!`);
+      }
+      return;
+    }
+    pendingLanguage.current = undefined;
     setLearn(code);
     learnRef.current = code;
     rec({ type: "language", language: code });
@@ -408,9 +433,10 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     ctxRef.current = n;
     setCtx(n);
     onLearnChange?.(code);
+    onLanguageState?.({ code, status: "active" });
     const text = code ? GREETING[code] ?? `Let's learn ${LEARN_LANGUAGES[code]}!` : "Okay, just English for now!";
-    if (audio.current && canTake(sound.current, "greeting")) void greet(text);
-    else showFlash(text); // mid-question: don't talk over her own line
+    if (greetNow && audio.current && canTake(sound.current, "greeting")) void greet(text);
+    else if (!onLanguageState) showFlash(text);
   }
 
   const flashTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -437,13 +463,15 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     if (ac.signal.aborted) return;
     showFlash(null);
     releaseSound("greeting");
+    setLanguageTick(tick => tick + 1);
   }
 
   // Kid view: the language row drives this player.
   useEffect(() => {
-    if (learnProp !== undefined) applyLearn(learnProp);
+    const code = learnProp ?? pendingLanguage.current;
+    if (code !== undefined) applyLearn(code, requestedLesson?.language !== code);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the prop only
-  }, [learnProp]);
+  }, [learnProp, stage, languageTick]);
 
   // Hands-free: the kid's spoken answer → local Whisper → Luna.
   async function transcribeAndJudge(clip: Blob) {
@@ -575,7 +603,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
   function pickSpot(sp: Spot) {
     spotRef.current = sp;
     setSpot(sp);
-    ctxRef.current = { ...ctxRef.current, known: isKnown(sp), practice: canPractice(sp, learnRef.current) };
+    ctxRef.current = { ...ctxRef.current, practiceOnly: !!sp.practiceOnly, known: isKnown(sp), practice: canPractice(sp, learnRef.current) };
   }
 
   function jump(sp: Spot) {
@@ -588,7 +616,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     pickSpot(sp);
     lastResumed.current = null;
     episode.current!.currentTime = Math.max(0, sp.t - 2);
-    commit({ ...INITIAL, known: isKnown(sp), practice: canPractice(sp, learnRef.current) }, `jump ${sp.id}`);
+    commit({ ...INITIAL, practiceOnly: !!sp.practiceOnly, known: isKnown(sp), practice: canPractice(sp, learnRef.current) }, `jump ${sp.id}`);
     episode.current!.play();
   }
 
@@ -639,6 +667,26 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     void episode.current!.play();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on start
   }, [started]);
+
+  useEffect(() => {
+    if (requestedLesson && requestedLesson.requestedAt > lastLessonRequest.current) {
+      pendingLanguageLesson.current = requestedLesson;
+      lastLessonRequest.current = requestedLesson.requestedAt;
+    }
+    const request = pendingLanguageLesson.current;
+    if (!request || !started || stage !== "watching" || request.language !== learnRef.current) return;
+    const word = TRANSLATIONS[request.id]?.[request.language];
+    const translation = TRANSLATIONS[request.id];
+    pendingLanguageLesson.current = null;
+    if (!word || !translation) return;
+    const at = episode.current!.currentTime;
+    ticket();
+    pickSpot({ id: request.id, text: `Say ${word.word}`, question: `Can you say ${word.word}?`, answer: word.word,
+      practiceOnly: true, practiceLine: request.id === "demo-addition-1" ? ({ hi: "practiceHindiThree", es: "practiceSpanishThree" } as Record<string,string>)[request.language] : undefined,
+      skill: "words", visual: false, t: at, pauseAt: at, resumeAt: at, gap: 0, talk: [at, at], wait: [at, at] });
+    send("PAUSE_POINT");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- queued requests wait for the active exchange to finish
+  }, [requestedLesson, stage, started, learnProp, languageTick]);
 
   useEffect(() => {
     if (wantsAddition(previousFocus.current, learningFocus?.numbers)) queuedAddition.current = true;

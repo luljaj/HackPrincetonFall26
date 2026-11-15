@@ -55,7 +55,8 @@ export function subscribeToLiveEvents(onEvents: (events: LiveEventView[]) => voi
   return c ? c.onUpdate(api.live.latest, {}, (events) => onEvents(events)) : null;
 }
 
-export type LivePlan = { language?: string; focus?: Record<string, string>; updatedAt: number };
+export type RequestedLesson = { id: string; language: string; requestedAt: number };
+export type LivePlan = { lesson?: RequestedLesson; language?: string; focus?: Record<string, string>; updatedAt: number };
 
 /** The parent's learning plan (learning-plan.md), every time it changes, including once on load. */
 export function subscribeToPlan(onPlan: (plan: LivePlan) => void): (() => void) | null {

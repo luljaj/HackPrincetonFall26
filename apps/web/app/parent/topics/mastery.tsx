@@ -1,15 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Mastery, SkillLevel, WordLevel } from "../../../lib/play/mastery";
+import { subscribeToPlan } from "../../../lib/parent/subscribe";
+import { LanguageCodeSchema, LANGUAGE_NAMES } from "../../../lib/play/language-lessons";
+import { LearningAnalysis } from "./learning-analysis";
+import { LanguageLessonControls, useLanguageLessons } from "./language-lessons";
 import type { PlayTurn } from "../../../lib/play/trace";
 import { categoryProgress } from "../../../lib/parent/mastery-chart";
 import { languageName } from "../../../lib/play/view";
 import { shortDate } from "./parts";
 
-const SKILL: Record<SkillLevel, string> = { new: "Not yet", practising: "Practising", got_it: "Got it", rusty: "Needs a refresh" };
+const SKILL: Record<SkillLevel, string> = { new: "Not yet", practising: "Practising", got_it: "Mastery", rusty: "Needs a refresh" };
 const WORD: Record<WordLevel, string> = { heard: "Heard", said: "Said", remembered: "Remembered" };
-type Evidence = PlayTurn & { skillId: string | null; episode: string };
+type Evidence = Pick<PlayTurn, "turnId" | "question" | "transcript" | "outcome" | "endedAt"> & { answerStatus: string; skillId: string | null; episode: string };
 const PETALS = [
   { id: "numbers", color: "#3b52f5", label: "Numbers", base: "68-2338", box: [110.3, 0, 193.234, 160.364], fill: "68-2343", fillBox: [131.64, 72.3, 112.307, 98.2983], radius: 79, labelAt: [204.5, 37] },
   { id: "shapes", color: "#61bd28", label: "Shapes", base: "68-2337", box: [176.79, 106.29, 160.201, 194.597], fill: "68-2342", fillBox: [167.02, 116.55, 129.675, 151.802], radius: 110.5, labelAt: [294.5, 204] },
@@ -19,10 +23,29 @@ const PETALS = [
 const when = (ms: number) => shortDate(new Date(ms).toISOString());
 
 /* eslint-disable @next/next/no-img-element -- Original Figma SVG assets retain their intrinsic geometry. */
-export function MasterySection({ mastery, name, evidence = [] }: { mastery: Mastery; name: string; evidence?: Evidence[] }) {
+export function MasterySection({ mastery, name, evidence = [], initialLanguage = "" }: { mastery: Mastery; name: string; evidence?: Evidence[]; initialLanguage?: string }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
-  const category = mastery.categories.find(c => c.id === selected);
+  const [language, setLanguage] = useState(initialLanguage);
+  const lastLanguage = useRef(initialLanguage);
+  useEffect(() => subscribeToPlan(plan => {
+    if (typeof plan.language !== "string" || plan.language === lastLanguage.current) return;
+    lastLanguage.current = plan.language;
+    setLanguage(plan.language);
+    setSelected(LanguageCodeSchema.safeParse(plan.language).success ? `language:${plan.language}` : null);
+  }) ?? undefined, []);
+  const parsedLanguage = LanguageCodeSchema.safeParse(language);
+  const languageCode = parsedLanguage.success ? parsedLanguage.data : null;
+  const languageState = useLanguageLessons(languageCode);
+  const languageId = `language:${languageCode ?? ""}`;
+  const languageCategory = languageCode ? { id: languageId, name: LANGUAGE_NAMES[languageCode], skills: languageState.lessons.filter(row => row.active).map(row => ({
+    id: row.lessonId, name: row.word, level: row.level === 3 ? "got_it" as const : row.level > 0 ? "practising" as const : "new" as const,
+    asked: 0, firstTry: 0, lastSeen: row.updatedAt,
+  })) } : null;
+  const petals = PETALS.map(petal => petal.id === "show-spanish" && languageCategory ? { ...petal, id: languageCategory.id, label: languageCategory.name } : petal);
+  const categories = [...mastery.categories.filter(c => !languageCategory || c.id !== "show-spanish"), ...(languageCategory ? [languageCategory] : [])];
+  const category = categories.find(c => c.id === selected) ?? (selected === "show-spanish" || selected?.startsWith("language:") ? languageCategory : undefined);
+  const isLanguage = !!languageCategory && category?.id === languageCategory.id;
   if (!mastery.categories.length) return <p>No skills are available yet.</p>;
   const skills = new Set(category?.skills.map(s => s.id) ?? []);
   const turns = evidence.filter(t => t.skillId && skills.has(t.skillId) && t.outcome && ["first_try", "after_help", "gave", "no_answer"].includes(t.outcome));
@@ -36,12 +59,13 @@ export function MasterySection({ mastery, name, evidence = [] }: { mastery: Mast
         <div className="mastery-map-wrap">
           <div className="mastery-map" role="group" aria-label="Choose a learning subject">
             <svg className="mastery-flower" viewBox="0 0 337 337" aria-hidden="true">
-            {PETALS.map(petal => {
-              const subject = mastery.categories.find(c => c.id === petal.id);
+            {petals.map(petal => {
+              const subject = categories.find(c => c.id === petal.id);
               if (!subject) return null;
               const progress = categoryProgress(subject);
+              if (subject.id === languageId && languageState.lessons.length) { const active = languageState.lessons.filter(l => l.active); progress.fraction = active.length ? active.reduce((n,l) => n + l.level / 3, 0) / active.length : 0; }
               const scale = 154 / petal.radius * Math.sqrt(progress.fraction);
-              return <g key={petal.id} data-subject={petal.id} data-selected={subject.id === selected} style={{ color: petal.color }}>
+              return <g key={petal.id} data-subject={petal.base === "68-2455" ? "show-spanish" : petal.id} data-selected={subject.id === category?.id} style={{ color: petal.color }}>
                   <image className="petal-base" href={`/figma/petal-${petal.base}.svg`} x={petal.box[0]} y={petal.box[1]} width={petal.box[2]} height={petal.box[3]} />
                   {progress.fraction > 0 && <g transform={`translate(168.5 168.5) scale(${scale}) translate(-168.5 -168.5)`}>
                     <image href={`/figma/petal-${petal.fill}.svg`} x={petal.fillBox[0]} y={petal.fillBox[1]} width={petal.fillBox[2]} height={petal.fillBox[3]} />
@@ -51,25 +75,26 @@ export function MasterySection({ mastery, name, evidence = [] }: { mastery: Mast
               </g>;
             })}
             </svg>
-            {PETALS.map(petal => {
-              const subject = mastery.categories.find(c => c.id === petal.id);
+            {petals.map(petal => {
+              const subject = categories.find(c => c.id === petal.id);
               if (!subject) return null;
               const progress = categoryProgress(subject);
-              return <button key={petal.id} type="button" data-subject={petal.id}
-                aria-label={`${petal.label}: ${progress.gotIt} of ${progress.total} skills at Got it`} aria-pressed={subject.id === selected}
+              if (subject.id === languageId && languageState.lessons.length) { const active = languageState.lessons.filter(l => l.active); progress.fraction = active.length ? active.reduce((n,l) => n + l.level / 3, 0) / active.length : 0; }
+              return <button key={petal.id} type="button" data-subject={petal.base === "68-2455" ? "show-spanish" : petal.id}
+                aria-label={`${petal.label}: ${progress.gotIt} of ${progress.total} skills at mastery`} aria-pressed={subject.id === category?.id}
                 onClick={() => { setSelected(subject.id); setExpanded(false); }} />;
             })}
           </div>
-          <p className="mastery-map-note">Skills at “Got it” · tap a petal</p>
+          <p className="mastery-map-note">{languageCode ? "Language petal: lessons remembered" : "Mastery · fill includes practice so far"} · tap a petal</p>
         </div>
         <div className="mastery-detail" aria-live="polite">
-          {category ? <><header>
+          {isLanguage ? <><header><img src="/figma/mastery-imgMastery1.svg" alt="" width={24} height={24} /><div><h3>{languageCategory?.name}</h3><p>Learning language · lessons saved separately</p></div></header><LanguageLessonControls state={languageState} name={name} /></> : category ? <><header>
             {spanish ? <span className="mastery-subject-icon"><img src="/figma/mastery-imgSpanish1.svg" alt="" /></span>
               : <img src="/figma/mastery-imgMastery1.svg" alt="" width={24} height={24} />}
             <div><h3>{category.name}</h3><p>What {name} can do · saved learning evidence</p></div>
           </header>
           <div className="mastery-track" aria-hidden="true">{category.skills.map(s => <i key={s.id} data-level={s.level} />)}</div>
-          <p className="text-xs text-foreground/60">{category.skills.filter(s => s.level === "got_it").length} of {category.skills.length} skills at “Got it”</p>
+          <p className="text-xs text-foreground/60">{category.skills.filter(s => s.level === "got_it").length} of {category.skills.length} skills at mastery</p>
           <img className="mastery-divider" src="/figma/mastery-imgVector2.svg" alt="" />
           <h4 className="text-base">{asked} Questions Practised</h4>
           {shown.length ? <>
@@ -99,13 +124,14 @@ export function MasterySection({ mastery, name, evidence = [] }: { mastery: Mast
             <img src="/figma/mastery-select-subject.svg" alt="" width={32} height={32} />
             <p>Select a subject to view skills</p>
           </div>}
+          {category && <LearningAnalysis key={category.id} subject={category.id} version={`${mastery.categories.flatMap(c => c.skills).map(s => `${s.asked}:${s.lastSeen}`).join(",")}:${languageState.lessons.map(l => `${l.level}:${l.updatedAt}`).join(",")}`} />}
         </div>
       </section>
       <section className="mt-8 space-y-3" aria-label="Other subjects">
         <h3 className="text-xl">Other subjects</h3>
         <div className="mastery-other-subjects">{mastery.categories.filter(c => !PETALS.some(p => p.id === c.id)).map(c => <button type="button" key={c.id} aria-pressed={c.id === selected}
           onClick={() => { setSelected(c.id); setExpanded(false); document.getElementById("mastery-title")?.scrollIntoView({ block: "start" }); }}>
-          <span>{c.name}</span><small>{categoryProgress(c).gotIt}/{c.skills.length} skills at “Got it”</small>
+          <span>{c.name}</span><small>{categoryProgress(c).gotIt}/{c.skills.length} skills at mastery</small>
         </button>)}</div>
       </section>
       <section className="mt-8 space-y-3" aria-label="Language practice">

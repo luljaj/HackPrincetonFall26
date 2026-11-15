@@ -5,6 +5,7 @@ import { FocusSchema } from "./preferences";
 describe("demo mode", () => {
   it("uses direct language and reset commands, while leaving ambiguity to the model", () => {
     expect(demoCommand("Switch Sam to Spanish")).toEqual({ name: "set_language", arguments: '{"language":"es"}' });
+    expect(demoCommand("teach him hindi now")).toEqual({ name: "set_language", arguments: '{"language":"hi"}' });
     expect(demoCommand("Reset Sam on counting")?.name).toBe("reset_skill");
     expect(demoCommand("Start him over on the topic he's on")?.arguments).toContain('"current":true');
     expect(demoCommand("Don't switch Sam to Spanish")).toBeUndefined();

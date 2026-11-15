@@ -50,6 +50,13 @@
       "when": 1794720094712,
       "tag": "0006_superb_warhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794724930431,
+      "tag": "0007_modern_war_machine",
+      "breakpoints": true
     }
   ]
 }
