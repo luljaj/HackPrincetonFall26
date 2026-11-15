@@ -91,6 +91,11 @@ function practiceFor(sp: Spot, language: string): Practice | null {
   const w = language && t ? (t[language] as Word | undefined) : undefined;
   return w && t ? { ...w, english: t.english, language, name: LEARN_LANGUAGES[language] ?? language } : null;
 }
+// Dora's hello when the kid picks a language (romanised so any voice can say it).
+const GREETING: Record<string, string> = {
+  es: "¡Hola! Let's learn Spanish!", fr: "Bonjour! Let's learn French!", de: "Hallo! Let's learn German!",
+  zh: "Nǐ hǎo! Let's learn Chinese!", hi: "Namaste! Let's learn Hindi!", ja: "Konnichiwa! Let's learn Japanese!",
+};
 // Non-Latin words also get their romanization, e.g. 梯子 (tīzi).
 const spoken = (p: Practice) => (p.romanized && p.romanized !== p.word ? `${p.word} (${p.romanized})` : p.word);
 
@@ -143,7 +148,11 @@ type Loop = "talk" | "wait";
 
 // The interactive Dora player. `/lab` shows it with every debug control; the kid view (`/`) shows only the
 // screen, with the mic always on and the same controls in a hidden dev drawer (press ` or add ?dev).
-export function DoraPlayer({ kid = false }: { kid?: boolean }) {
+export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange }: {
+  kid?: boolean;
+  learn?: string; // language to practise, driven by the kid view's language row
+  onLearnChange?: (code: string) => void; // the dev drawer's picker changed it
+}) {
   const [ctx, setCtx] = useState<Ctx>(INITIAL);
   const [started, setStarted] = useState(false);
   const [spot, setSpot] = useState<Spot>(FIREHOUSE);
@@ -176,6 +185,8 @@ export function DoraPlayer({ kid = false }: { kid?: boolean }) {
   const [handsFree, setHandsFree] = useState(kid); // kid view: the mic is always on
   const [devOpen, setDevOpen] = useState(false);
   const [learn, setLearn] = useState(""); // language the kid is learning ("" = off)
+  const [flash, setFlash] = useState<string | null>(null); // a quick caption, e.g. Dora's greeting in the new language
+  const greetAbort = useRef<AbortController | null>(null);
   const learnRef = useRef(learn);
   learnRef.current = learn;
   const [hearing, setHearing] = useState(false);
@@ -273,6 +284,52 @@ export function DoraPlayer({ kid = false }: { kid?: boolean }) {
   }
 
   const answering = () => ["listening", "thinking"].includes(ctxRef.current.stage);
+
+  // Switching language takes effect at once: the very next answer is practised in it, and if the show is
+  // playing Dora greets in that language right away (the show dips while she talks).
+  function applyLearn(code: string) {
+    if (code === learnRef.current) return;
+    setLearn(code);
+    learnRef.current = code;
+    const n = { ...ctxRef.current, practice: !!practiceFor(spotRef.current, code) };
+    ctxRef.current = n;
+    setCtx(n);
+    onLearnChange?.(code);
+    const text = code ? GREETING[code] ?? `Let's learn ${LEARN_LANGUAGES[code]}!` : "Okay, just English for now!";
+    if (audio.current && ctxRef.current.stage === "watching") void greet(text);
+    else showFlash(text); // mid-question: don't talk over her own line
+  }
+
+  const flashTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  function showFlash(text: string | null, ms = 2500) {
+    clearTimeout(flashTimer.current);
+    setFlash(text);
+    if (text) flashTimer.current = setTimeout(() => setFlash(null), ms);
+  }
+
+  async function greet(text: string) {
+    greetAbort.current?.abort();
+    const ac = new AbortController();
+    greetAbort.current = ac;
+    const a = audio.current!;
+    fadeEpisode(0.2);
+    showFlash(text, 8000);
+    try {
+      await streamVoice({ text, context: a.ctx, destination: a.analyser, signal: ac.signal,
+        onSpeaking: (on) => { liveSpeaking.current = on; }, onMetrics: () => undefined });
+    } catch {
+      if (!ac.signal.aborted) await speakFallback(text, ac.signal, onSynth);
+    }
+    if (ac.signal.aborted) return;
+    showFlash(null);
+    if (ctxRef.current.stage === "watching") fadeEpisode(1);
+  }
+
+  // Kid view: the language row drives this player.
+  useEffect(() => {
+    if (learnProp !== undefined) applyLearn(learnProp);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the prop only
+  }, [learnProp]);
 
   function onSynth(on: boolean) {
     synthSpeaking.current = on;
@@ -644,6 +701,7 @@ export function DoraPlayer({ kid = false }: { kid?: boolean }) {
   const sayNow = ctx.practiced ? practiceFor(spot, learn) : spot.say; // what the record button scores
   const lineText = lessonText(stage, spot, ctx.practiced, practiceFor(spot, learn)) ?? (file ? LINES[file] : null);
   const caption = lineText ? (speechCaption ?? lineText)
+    : flash ? flash
     : stage === "listening" ? (hearing ? "🗣️ I'm listening…" : `🎤 ${askedText(spot)}`)
     : stage === "thinking" ? "…" : "";
   const shown = likelyOnly ? SPOTS.filter((x) => x.gap >= LIKELY_GAP) : SPOTS;
@@ -702,11 +760,7 @@ export function DoraPlayer({ kid = false }: { kid?: boolean }) {
           </label>
           <label className={s.say}>
             🌍 Learn
-            <select value={learn} onChange={(e) => {
-              setLearn(e.target.value);
-              learnRef.current = e.target.value;
-              ctxRef.current = { ...ctxRef.current, practice: !!practiceFor(spotRef.current, e.target.value) };
-            }}>
+            <select value={learn} onChange={(e) => applyLearn(e.target.value)}>
               <option value="">off</option>
               {Object.entries(LEARN_LANGUAGES).map(([code, name]) => <option key={code} value={code}>{name}</option>)}
             </select>

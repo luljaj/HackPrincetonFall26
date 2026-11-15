@@ -5,16 +5,30 @@ import { CHANNELS } from "./channels";
 import { DoraPlayer } from "./lab/player";
 import s from "./play.module.css";
 
+// Languages the kid can practise (answers are taught in them after each question).
+const LANGUAGES = [
+  { code: "", flag: "🇺🇸", name: "English" },
+  { code: "es", flag: "🇪🇸", name: "Español" },
+  { code: "fr", flag: "🇫🇷", name: "Français" },
+  { code: "de", flag: "🇩🇪", name: "Deutsch" },
+  { code: "zh", flag: "🇨🇳", name: "中文" },
+  { code: "hi", flag: "🇮🇳", name: "हिन्दी" },
+  { code: "ja", flag: "🇯🇵", name: "日本語" },
+];
+
 const STATIC_MS = 450;
 const OSD_MS = 2500;
 
 // Kid view: a retro wooden TV. Channel 1 is the interactive Dora show (it pauses, asks, listens with the mic
 // always on, and answers); the other channels are coming soon. Press ` for the hidden dev drawer.
+const channelOsd = (i: number) => `CH ${String(i + 1).padStart(2, "0")}  ${CHANNELS[i]!.name.toUpperCase()}`;
+
 export default function Play() {
   const [on, setOn] = useState(false);
   const [ch, setCh] = useState(0);
   const [tuning, setTuning] = useState(false);
-  const [osd, setOsd] = useState(false);
+  const [osd, setOsd] = useState<string | null>(null); // on-screen display text (channel or language)
+  const [learn, setLearn] = useState("");
   const noise = useRef<HTMLCanvasElement>(null);
   const audio = useRef<AudioContext | null>(null);
   const channel = CHANNELS[ch]!;
@@ -36,13 +50,19 @@ export default function Play() {
     if (!on) return;
     setCh((next + CHANNELS.length) % CHANNELS.length);
     setTuning(true);
-    setOsd(true);
+    setOsd(channelOsd((next + CHANNELS.length) % CHANNELS.length));
     hiss();
   }
 
   function power() {
     setOn(!on);
-    setOsd(!on);
+    setOsd(on ? null : channelOsd(ch));
+  }
+
+  function pickLanguage(code: string) {
+    setLearn(code);
+    const l = LANGUAGES.find((x) => x.code === code)!;
+    setOsd(`${l.flag} LEARN ${l.code ? l.name.toUpperCase() : "OFF"}`);
   }
 
   // Static snow while tuning.
@@ -67,9 +87,9 @@ export default function Play() {
 
   useEffect(() => {
     if (!osd) return;
-    const t = setTimeout(() => setOsd(false), OSD_MS);
+    const t = setTimeout(() => setOsd(null), OSD_MS);
     return () => clearTimeout(t);
-  }, [osd, ch]);
+  }, [osd]);
 
   // Remote control: arrows flip channels, number keys jump, P is power.
   useEffect(() => {
@@ -91,7 +111,7 @@ export default function Play() {
           <div className={`${s.screen} ${on ? s.on : s.off}`} style={{ ["--glow" as string]: channel.color }}>
             {on && channel.id === "dora" && (
               <div className={s.player}>
-                <DoraPlayer kid />
+                <DoraPlayer kid learn={learn} onLearnChange={setLearn} />
               </div>
             )}
             {on && channel.id !== "dora" && (
@@ -104,7 +124,7 @@ export default function Play() {
             {on && tuning && <canvas ref={noise} width={160} height={120} className={s.snow} />}
             {on && osd && (
               <div className={s.osd} aria-live="polite">
-                CH {String(ch + 1).padStart(2, "0")} <span>{channel.name.toUpperCase()}</span>
+                {osd}
               </div>
             )}
             {!on && (
@@ -140,6 +160,19 @@ export default function Play() {
         <button className={s.arrow} aria-label="Channel up" onClick={() => tune(ch + 1)}>
           ▲
         </button>
+      </nav>
+
+      <nav className={s.languages} aria-label="Language to learn">
+        {LANGUAGES.map((l) => (
+          <button
+            key={l.code || "en"}
+            className={`${s.lang} ${learn === l.code ? s.active : ""}`}
+            aria-pressed={learn === l.code}
+            onClick={() => pickLanguage(l.code)}
+          >
+            <span aria-hidden>{l.flag}</span> {l.name}
+          </button>
+        ))}
       </nav>
     </main>
   );

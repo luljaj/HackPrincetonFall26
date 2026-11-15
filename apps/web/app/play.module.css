@@ -25,7 +25,7 @@
 .tv {
   /* As big as fits: a 4:3 screen plus the cabinet frame (2 x 22px padding + 2 x 14px bezel = 72px),
      leaving room for the legs and channel buttons below. */
-  width: min(97vw, calc((100vh - 230px) * 4 / 3 + 72px));
+  width: min(97vw, calc((100vh - 270px) * 4 / 3 + 72px)); /* room for channels + languages below */
 }
 
 .cabinet {
@@ -105,8 +105,8 @@
   letter-spacing: 2px;
 }
 
-.osd span {
-  margin-left: 12px;
+.osd {
+  white-space: pre;
 }
 
 .soon {
@@ -227,6 +227,35 @@
 .arrow:active {
   transform: translateY(4px);
   box-shadow: none;
+}
+
+/* ---------- language row ---------- */
+.languages {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: -6px;
+}
+
+.lang {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #3b2414;
+  background: #ffffff8c;
+  box-shadow: 0 3px 0 #0002;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.lang:hover {
+  transform: translateY(-2px);
+}
+
+.lang.active {
+  background: #3b2414;
+  color: #ffe9c9;
 }
 
 @media (max-width: 720px) {
