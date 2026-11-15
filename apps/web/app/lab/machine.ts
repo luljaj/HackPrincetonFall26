@@ -17,14 +17,14 @@ export type Event =
 // practiced: she did, so the next answer is the kid saying the word (nudges counts coached retries).
 export type Ctx = {
   stage: Stage; tries: number; nudges: number; awayFrom: Stage | null;
-  known: boolean; modeled: boolean; practice: boolean; practiced: boolean;
+  practiceOnly: boolean; known: boolean; modeled: boolean; practice: boolean; practiced: boolean;
 };
 
 // Teaching ladder on wrong answers: hint (teach1) → choices (teach2) → model + repeat → warm give.
 export const MAX_TRIES = 3; // wrong answers before Dora models the answer
 export const MAX_NUDGES = 1; // silent or mumbled turns before Dora moves on
 
-export const INITIAL: Ctx = { stage: "watching", tries: 0, nudges: 0, awayFrom: null, known: false, modeled: false, practice: false, practiced: false };
+export const INITIAL: Ctx = { stage: "watching", tries: 0, nudges: 0, awayFrom: null, practiceOnly: false, known: false, modeled: false, practice: false, practiced: false };
 
 // What each stage looks and sounds like. `line` = pre-made audio, `rest` = loop shown when not talking.
 export const STAGES: Record<Stage, { assistant: boolean; line?: string; rest: "wait" | "happy" }> = {
@@ -68,7 +68,7 @@ export function next(c: Ctx, e: Event): Ctx {
     case "watching":
       return e === "PAUSE_POINT" ? to("entering", { tries: 0, nudges: 0, modeled: false, practiced: false }) : c;
     case "entering":
-      return e === "TRANSITION_DONE" ? to("asking") : c;
+      return e === "TRANSITION_DONE" ? to(c.practiceOnly ? "practicing" : "asking") : c;
     case "asking":
     case "nudging":
     case "teaching":

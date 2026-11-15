@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { subscribeToSession } from "../../../lib/parent/subscribe";
 import { useEffect } from "react";
 
 // The parent view is one page made of several sections, more than one of which asks for a refresh:
@@ -12,10 +13,11 @@ export function AutoRefresh({ seconds }: { seconds: number }) {
   const router = useRouter();
   useEffect(() => {
     if (running++ > 0) return () => { running--; };
+    const stop = subscribeToSession("live", () => router.refresh());
     const id = window.setInterval(() => {
       if (document.visibilityState === "visible") router.refresh();
     }, seconds * 1000);
-    return () => { running--; window.clearInterval(id); };
+    return () => { running--; stop(); window.clearInterval(id); };
   }, [router, seconds]);
   return null;
 }

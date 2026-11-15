@@ -72,3 +72,10 @@ test("leaving mid-question gets a welcome back; leaving while watching doesn't",
 test("events that don't apply are ignored", () => {
   assert.equal(next(INITIAL, "CORRECT"), INITIAL);
 });
+
+test("a parent-requested language lesson enters practice directly, then resumes the show", () => {
+  const listening = run(["PAUSE_POINT", "TRANSITION_DONE", "LINE_DONE"], { ...INITIAL, practiceOnly: true });
+  assert.equal(listening.stage, "listening");
+  assert.equal(listening.practiced, true);
+  assert.equal(run(["SPEECH_END", "CORRECT", "LINE_DONE", "TRANSITION_DONE"], listening).stage, "watching");
+});

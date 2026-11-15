@@ -23,6 +23,7 @@ export const liveEvent = {
 
 const level = v.union(v.literal("less"), v.literal("usual"), v.literal("more"));
 export const planFields = {
+  lesson: v.optional(v.object({ id: v.string(), language: v.string(), requestedAt: v.number() })),
   language: v.optional(v.string()), // language being practised: "" = off, else es | fr | de | zh | hi | ja
   focus: v.optional(v.record(v.string(), level)), // mastery category id → level
 };

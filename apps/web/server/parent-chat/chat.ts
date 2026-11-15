@@ -4,7 +4,9 @@ import type { ParentView } from "../../lib/parent/types";
 import type { PlayStats } from "./tools";
 import { FOCUS_LEVELS, PLAN_LANGUAGES, SUBJECTS, type Focus, type ParentPreferences } from "../../lib/parent/preferences";
 import { CATEGORIES, type Mastery } from "../../lib/play/mastery";
-import { chatTools, runTool, resetSkillTool, setFocusTool, setLanguageTool } from "./tools";
+import { LanguageCodeSchema, LessonKeySchema, LessonLevelSchema, LESSON_LEVELS } from "../../lib/play/language-lessons";
+import type { LanguageLessonStore } from "../storage/language-lessons";
+import { listLanguageLessonsTool, changeLessonTool, chatTools, runTool, resetSkillTool, setFocusTool, setLanguageTool } from "./tools";
 
 const MAX_ROUNDS = 4;
 
@@ -26,15 +28,17 @@ export type ChatVisual = {
 };
 export type FocusChange = { before: Focus; after: Focus };
 export type MasteryChange = { target: string; skillIds: string[] };
-export type LearningAccess = { currentSkill: () => Promise<string | null>; resetSkills: (ids: readonly string[]) => Promise<void>; mastery: () => Promise<Mastery>; setLanguage: (language: (typeof PLAN_LANGUAGES)[number]) => Promise<boolean> };
+export type LearningAccess = { currentSkill: () => Promise<string | null>; resetSkills: (ids: readonly string[]) => Promise<void>; mastery: () => Promise<Mastery>; setLanguage: (language: (typeof PLAN_LANGUAGES)[number]) => Promise<boolean>; lessons?: LanguageLessonStore };
 export type DirectCommand = { name: "reset_skill" | "set_language"; arguments: string };
-export type ChatResult = { reply: string; sessionIds: string[]; visual?: ChatVisual; focusChange?: FocusChange; masteryReset?: MasteryChange[]; languageChange?: string };
+export type ChatResult = { reply: string; sessionIds: string[]; visual?: ChatVisual; focusChange?: FocusChange; masteryReset?: MasteryChange[]; languageChange?: string; lessonChanged?: boolean };
 
 const ResetArgs = z.strictObject({
   skill: z.enum(CATEGORIES.flatMap(c => c.skills.map(s => s.id))).nullable(),
   category: z.enum(CATEGORIES.map(c => c.id)).nullable(),
   current: z.literal(true).nullable(),
 }).refine(v => [v.skill, v.category, v.current].filter(x => x !== null).length === 1, "Choose exactly one reset target.");
+const LessonChangeArgs = LessonKeySchema.extend({ action: z.enum(["set_level", "remove", "restore", "use_recorded"]), level: LessonLevelSchema.nullable() })
+  .refine(v => v.action === "set_level" ? v.level !== null : v.level === null, "Only set_level takes a level.");
 const LanguageArgs = z.strictObject({ language: z.enum(PLAN_LANGUAGES) });
 const LANGUAGE_NAMES: Record<string, string> = { "": "English", es: "Spanish", fr: "French", de: "German", zh: "Chinese", hi: "Hindi", ja: "Japanese" };
 const UNAVAILABLE_LANGUAGE = "Live language changes are unavailable";
@@ -116,6 +120,7 @@ export function chatInstructions(child: string, now: Date, focus?: Focus): strin
 Use the tools for every fact. Only state counts, quotes, and dates that appear in tool results. If no tool covers the question, say you don't have that data.
 For 'why did he miss it?', read the latest relevant session and quote what the child actually said; distinguish a possible misunderstanding from a known cause. Never infer attention, motivation, or ability from one answer. Offer one short next step supported by that evidence.
 For unrelated requests, briefly say you help with ${child}'s learning and offer a relevant action; do not invent a data-based answer.
+Use list_language_lessons to read per-lesson levels; change_lesson allows explicit create/update/lower/remove/restore requests. Parent-set levels are adjustments, not evidence of what the child independently answered. Never edit levels merely because the parent asks how the child is doing.
 set_language changes the TV's learning language; set_focus only changes how often categories appear. The show's Spanish category is not a language setting. Never claim a switch or reset succeeded unless its tool says saved=true. reset_skill keeps history but starts the chosen skill/category at Not yet; current=true resolves the skill of the newest saved pause and the reply must name it. After resetting, get_skill_progress uses current reset-aware mastery; session details remain historical. If a write tool isn't available, say that action is unavailable.
 Wording rules: never say "mastered", "score", a percentage, or that the show caused learning. Say "answered correctly before help", "answered correctly after help", "assessed as incorrect", or "unclear". Plain counts are fine. Say so when there is only a little data. If sessions are marked isSample, mention it's sample data.
 ${steer}
@@ -137,8 +142,9 @@ export async function runChat(
 ): Promise<ChatResult> {
   const input: unknown[] = [{ role: "system", content: chatInstructions(child, now, focus?.current) }, ...messages];
   const sessionIds = new Set<string>();
-  const tools = [...chatTools, ...(focus ? [setFocusTool] : []), ...(learning ? [resetSkillTool, setLanguageTool] : [])];
+  const tools = [...chatTools, ...(focus ? [setFocusTool] : []), ...(learning ? [resetSkillTool, setLanguageTool] : []), ...(learning?.lessons ? [listLanguageLessonsTool, changeLessonTool] : [])];
   let focusChange: FocusChange | undefined;
+  let lessonChanged = false;
   let activePlay = play;
   const masteryReset: MasteryChange[] = [];
   let languageChange: string | undefined;
@@ -168,11 +174,11 @@ export async function runChat(
         .trim();
       if (!reply) throw new Error("Empty chat reply.");
       const drawn = parseVisual(reply);
-      const extra = { ...(focusChange ? { focusChange } : {}), ...(masteryReset.length ? { masteryReset } : {}), ...(languageChange !== undefined ? { languageChange } : {}) };
+      const extra = { ...(lessonChanged ? { lessonChanged: true } : {}), ...(focusChange ? { focusChange } : {}), ...(masteryReset.length ? { masteryReset } : {}), ...(languageChange !== undefined ? { languageChange } : {}) };
       if (receipts.length || failures.length) {
         const items: ChatVisual["items"] = [
           ...masteryReset.map(r => ({ label: r.target, value: "Not yet", detail: "Earlier answers remain in history.", tone: "neutral" as const })),
-          ...(languageChange !== undefined ? [{ label: "Learning language", value: LANGUAGE_NAMES[languageChange] ?? languageChange, detail: "Applies at Dora's next line.", tone: "neutral" as const }] : []),
+          ...(languageChange !== undefined ? [{ label: "Learning language", value: LANGUAGE_NAMES[languageChange] ?? languageChange, detail: "Updates live; practice follows the current question.", tone: "neutral" as const }] : []),
         ];
         return { reply: [...receipts, ...failures].join("; ") + ".", sessionIds: [...sessionIds], visual: { headline: failures.length ? "Some changes weren't applied" : "Learning updated", kind: items.length ? "rows" : "none", items }, ...extra };
       }
@@ -185,6 +191,30 @@ export async function runChat(
       try {
         args = JSON.parse(call.arguments ?? "{}");
       } catch {}
+      if ((call.name === "list_language_lessons" || call.name === "change_lesson") && learning?.lessons) {
+        let data: unknown;
+        try {
+          if (call.name === "list_language_lessons") {
+            const language = LanguageCodeSchema.parse(args.language);
+            data = await learning.lessons.list(language);
+          } else {
+            const change = LessonChangeArgs.parse(args);
+            if (change.action === "use_recorded") await learning.lessons.deleteOverride(change.language, change.lessonId);
+            else await learning.lessons.write({ language: change.language, lessonId: change.lessonId,
+              ...(change.action === "set_level" && change.level !== null ? { level: change.level } : { active: change.action === "restore" }) });
+            const lesson = (await learning.lessons.list(change.language)).find(row => row.lessonId === change.lessonId);
+            if (!lesson) throw new Error("Unknown lesson");
+            lessonChanged = true;
+            receipts.push(change.action === "remove" ? `${lesson.word} was removed from practice; its progress is saved`
+              : change.action === "restore" ? `${lesson.word} is back in practice at level ${lesson.level}`
+              : change.action === "use_recorded" ? `${lesson.word} now uses recorded progress`
+              : `${lesson.word} is set to level ${lesson.level} (${LESSON_LEVELS[lesson.level]}) by the parent`);
+            data = { saved: true, lesson };
+          }
+        } catch { const error = "That lesson change couldn't be completed; choose a supported language, prepared lesson and level"; failures.push(error); data = { saved: false, error }; }
+        input.push({ type: "function_call_output", call_id: call.call_id, output: JSON.stringify(data) });
+        continue;
+      }
       if ((call.name === "reset_skill" || call.name === "set_language") && learning) {
         let data: unknown;
         try {
@@ -192,7 +222,7 @@ export async function runChat(
             const { language } = LanguageArgs.parse(args);
             if (!(await learning.setLanguage(language))) throw new Error(UNAVAILABLE_LANGUAGE);
             languageChange = language;
-            receipts.push(`${LANGUAGE_NAMES[language]} is selected for Dora's next line`);
+            receipts.push(`${LANGUAGE_NAMES[language]} is selected on the TV; Dora will finish the current question before starting its practice`);
             data = { saved: true, language };
           } else {
             const target = ResetArgs.parse(args);

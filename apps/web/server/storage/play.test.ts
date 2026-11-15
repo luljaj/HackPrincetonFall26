@@ -136,3 +136,20 @@ describe.each([
     expect(await store.topics()).toEqual([]);
   });
 });
+
+describe("older TV counting evidence", () => {
+  it("includes committed real counting answers in Numbers, excludes samples, and preserves resets", async () => {
+    const db = drizzle(new PGlite(), { schema });
+    await migrate(db, { migrationsFolder: "./drizzle" });
+    for (const [sessionId, isSample] of [["old-tv", false], ["old-sample", true]] as const) {
+      await db.insert(schema.sessions).values({ sessionId, sceneId: "demo-scene", objectiveId: "count-small-sets", sceneSnapshot: {}, isSample, createdAt: new Date(t0) });
+      await db.insert(schema.interactions).values({ sessionId, interactionId: sessionId+"-answer", turnNumber: 1, sceneId: "demo-scene", objectiveId: "count-small-sets", questionId: "count", questionText: "How many apples?", answerGuide: "Two", transcript: "Two", responseType: "teaching", responseText: "Yes", answerStatus: "correct", assistanceBefore: true, assistanceInResponse: false, turnResponse: {}, completedAt: new Date(t0+1) });
+    }
+    const store = createPostgresPlayStore(db as unknown as StoreDb);
+    expect((await store.mastery()).categories.flatMap(c => c.skills).find(s => s.id === "how-many")).toMatchObject({ asked: 1, firstTry: 0, level: "practising" });
+    expect(await store.legacyEvidence()).toHaveLength(1);
+    await store.resetSkills(["how-many"], t0+2);
+    expect((await store.mastery()).categories.flatMap(c => c.skills).find(s => s.id === "how-many")?.asked).toBe(0);
+    expect(await store.legacyEvidence()).toHaveLength(1);
+  });
+});

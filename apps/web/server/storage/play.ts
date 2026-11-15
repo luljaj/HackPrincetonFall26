@@ -1,15 +1,18 @@
-import { and, asc, desc, eq, inArray, isNotNull, lt, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, lt, ne, notExists, or, sql } from "drizzle-orm";
 import { foldSession, type PlayBatch, type PlayEvent, type PlaySessionSummary, type PlayTurn } from "../../lib/play/trace";
 import { masteryFrom, skillOf, type Mastery } from "../../lib/play/mastery";
 import { PersistenceError } from "./contract";
 import type { StoreDb } from "./postgres";
-import { masteryResets, playEvents, playSessions, playTurns } from "./schema";
+import { interactions, sessions, masteryResets, playEvents, playSessions, playTurns } from "./schema";
 
 export type PlaySessionRecord = { session: PlaySessionSummary; turns: PlayTurn[] };
 export type PracticeRow = { language: string; words: string[]; tried: number; saidIt: number; lastSeen: number };
 export type TopicRow = { topic: string; subject: string; questions: number; firstTry: number; afterHelp: number; gave: number; noAnswer: number; lastSeen: number };
 
+export type LegacyEvidence = { sessionId: string; turnId: string; spotId: string; question: string; transcript: string; episodeId: string; answerStatus: string;
+  outcome: "first_try" | "after_help" | "gave" | "no_answer"; endedAt: number; practiceLanguage: null; practiceWord: null; practiceOutcome: null };
 export type PlayStore = {
+  legacyEvidence(): Promise<LegacyEvidence[]>;
   /** Saves a batch (duplicates ignored), re-folds the session, returns its current state. */
   ingest(batch: PlayBatch): Promise<PlaySessionRecord>;
   list(limit: number): Promise<PlaySessionRecord[]>;
@@ -90,7 +93,18 @@ export function createPostgresPlayStore(db: StoreDb): PlayStore {
     lastEventAt: r.lastEventAt.getTime(), endedAt: ms(r.endedAt), watchedSeconds: r.watchedSeconds,
   });
 
+  const legacyEvidence = async (): Promise<LegacyEvidence[]> => {
+    const older = await db.select({ sessionId: interactions.sessionId, turnId: interactions.interactionId, objectiveId: interactions.objectiveId,
+      question: interactions.questionText, transcript: interactions.transcript, episodeId: interactions.sceneId,
+      answerStatus: interactions.answerStatus, assistanceBefore: interactions.assistanceBefore, endedAt: interactions.completedAt })
+      .from(interactions).innerJoin(sessions, eq(sessions.sessionId, interactions.sessionId))
+      .where(and(eq(sessions.isSample, false), notExists(db.select({ id: playTurns.turnId }).from(playTurns).where(and(eq(playTurns.sessionId, interactions.sessionId), isNotNull(playTurns.outcome))))));
+    return older.filter(row => skillOf(`objective:${row.objectiveId}`)).map(row => ({ ...row,
+      spotId: `objective:${row.objectiveId}`, endedAt: row.endedAt.getTime(), outcome: row.answerStatus === "correct" ? row.assistanceBefore ? "after_help" : "first_try" : row.answerStatus === "incorrect" ? "gave" : "no_answer",
+      practiceLanguage: null, practiceWord: null, practiceOutcome: null }));
+  };
   return {
+    legacyEvidence,
     async ingest(batch) {
       // Retention: what the kid said is kept TRANSCRIPT_DAYS, then blanked (turns) and removed (events).
       // Batches arrive every 2 s; the sweep only needs to run about once an hour per server.
@@ -171,7 +185,8 @@ export function createPostgresPlayStore(db: StoreDb): PlayStore {
         .innerJoin(playSessions, eq(playTurns.sessionId, playSessions.sessionId))
         .where(and(eq(playSessions.learnerKey, learnerKey), or(isNotNull(playTurns.outcome), isNotNull(playTurns.practiceWord))));
       const resets = await db.select().from(masteryResets).where(eq(masteryResets.learnerKey, learnerKey));
-      return masteryFrom(rows.map((r) => ({ ...r, endedAt: r.endedAt.getTime() })), Date.now(), resets.map(r => ({ skillId: r.skillId, resetAt: r.resetAt.getTime() })));
+      const legacy = await legacyEvidence();
+      return masteryFrom([...rows.map((r) => ({ ...r, endedAt: r.endedAt.getTime() })), ...legacy], Date.now(), resets.map(r => ({ skillId: r.skillId, resetAt: r.resetAt.getTime() })));
     },
     async resetSkills(skillIds, at = Date.now()) {
       if (!skillIds.length) return;
@@ -215,6 +230,7 @@ export function createMemoryPlayStore(): PlayStore {
   const records = new Map<string, PlaySessionRecord>();
   const resets = new Map<string, number>();
   return {
+    async legacyEvidence() { return []; },
     async ingest(batch) {
       const s = events.get(batch.sessionId) ?? { episodeId: batch.episodeId, bySeq: new Map() };
       for (const e of batch.events) if (!s.bySeq.has(e.seq)) s.bySeq.set(e.seq, e);

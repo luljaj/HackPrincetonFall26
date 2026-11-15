@@ -126,6 +126,16 @@ export const masteryResets = pgTable("mastery_resets", {
   resetAt: timestamp("reset_at", { withTimezone: true }).notNull(),
 }, t => [primaryKey({ columns: [t.learnerKey, t.skillId] })]);
 
+export const lessonProgress = pgTable("lesson_progress", {
+  learnerKey: text("learner_key").notNull(),
+  language: text("language").notNull(),
+  lessonId: text("lesson_id").notNull(),
+  level: integer("level"),
+  levelSetAt: timestamp("level_set_at", { withTimezone: true }),
+  active: boolean("active").notNull().default(true),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+}, t => [primaryKey({ columns: [t.learnerKey, t.language, t.lessonId] })]);
+
 // ---- Play-mode session trace (lib/play/trace.ts). Postgres is the record; Convex only gets pings. ----
 
 // One row per viewing.

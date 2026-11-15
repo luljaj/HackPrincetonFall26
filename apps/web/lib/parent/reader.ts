@@ -51,12 +51,14 @@ function withPlay(reader: ParentViewReader): ParentViewReader {
   return {
     async getParentView(sessionId) {
       const record = await play.get(sessionId);
-      return record ? playToParentView(record.session, record.turns) : reader.getParentView(sessionId);
+      if (record?.turns.some(t => t.outcome)) return playToParentView(record.session, record.turns);
+      return (await reader.getParentView(sessionId)) ?? (record ? playToParentView(record.session, record.turns) : null);
     },
     async listParentViews(limit) {
       const [records, rest] = await Promise.all([play.list(limit), reader.listParentViews(limit)]);
       const played = records.filter((r) => r.turns.length > 0).map((r) => playToParentView(r.session, r.turns));
-      return [...played, ...rest].sort((a, b) => b.startedAt.localeCompare(a.startedAt)).slice(0, limit);
+      const playIds = new Set(played.map(v => v.progress.sessionId));
+      return [...played, ...rest.filter(v => !playIds.has(v.progress.sessionId))].sort((a, b) => b.startedAt.localeCompare(a.startedAt)).slice(0, limit);
     },
   };
 }

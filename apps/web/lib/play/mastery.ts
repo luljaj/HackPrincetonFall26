@@ -30,7 +30,8 @@ const TAUGHT = new Set(Object.values(LESSON_SKILL));
 export const CATEGORIES = curriculum.categories
   .map((c) => ({ ...c, skills: c.skills.filter((s) => TAUGHT.has(s.id)) }))
   .filter((c) => c.skills.length > 0);
-export const skillOf = (spotId: string): string | null => LESSON_SKILL[spotId] ?? null;
+const LEGACY_LESSONS: Record<string, string> = { "objective:count-small-sets": "how-many" };
+export const skillOf = (spotId: string): string | null => LESSON_SKILL[spotId] ?? LEGACY_LESSONS[spotId] ?? null;
 
 const DONE = new Set(["first_try", "after_help", "gave", "no_answer"]);
 

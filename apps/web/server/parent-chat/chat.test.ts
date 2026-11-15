@@ -1,3 +1,4 @@
+import { createMemoryLanguageLessonStore } from "../storage/language-lessons";
 import { DEFAULT_FOCUS } from "../../lib/parent/preferences";
 import { describe, expect, it } from "vitest";
 import { sampleView } from "../../lib/parent/fixtures";
@@ -107,7 +108,7 @@ describe("runChat", () => {
     const result = await runChat(f.client, "m", [{ role: "user", content: "switch Sam to Spanish" }], [], "Sam", undefined, undefined, undefined, learning);
     expect(languages).toEqual(["es"]);
     expect(result.languageChange).toBe("es");
-    expect(result.reply).toContain("Dora's next line");
+    expect(result.reply).toContain("selected on the TV");
     const failed = await runChat(toolClient([{ name: "set_language", args: { language: "fr" } }]).client, "m", [{ role: "user", content: "switch" }], [], "Sam", undefined, undefined, undefined, { ...learning, setLanguage: async () => false });
     expect(failed.languageChange).toBeUndefined();
     expect(failed.reply).toContain("unavailable");
@@ -120,6 +121,21 @@ describe("runChat", () => {
     expect(result.languageChange).toBe("es");
     expect(languages).toEqual(["es"]);
   });
+  it("can explicitly lower, remove and restore a language lesson while preserving Spanish progress", async () => {
+    const { learning } = await learningFixture();
+    const lessons = createMemoryLanguageLessonStore();
+    await lessons.write({ language: "es", lessonId: "demo-addition-1", level: 2 });
+    await lessons.write({ language: "hi", lessonId: "demo-addition-1", level: 3 });
+    const f = toolClient([{ name: "change_lesson", args: { language: "hi", lessonId: "demo-addition-1", action: "set_level", level: 1 } },
+      { name: "change_lesson", args: { language: "hi", lessonId: "demo-addition-1", action: "remove", level: null } },
+      { name: "change_lesson", args: { language: "hi", lessonId: "demo-addition-1", action: "restore", level: null } }]);
+    const result = await runChat(f.client, "m", [{ role: "user", content: "Lower Hindi three to level 1, remove it, then restore it" }], [], "Sam", undefined, undefined, undefined, { ...learning, lessons });
+    expect(result.lessonChanged).toBe(true);
+    expect((await lessons.list("hi")).find(row => row.lessonId === "demo-addition-1")).toMatchObject({ level: 1, active: true });
+    expect((await lessons.list("es")).find(row => row.lessonId === "demo-addition-1")?.level).toBe(2);
+    expect(result.reply).toContain("level 1");
+  });
+
   it("runs a tool round, then returns the text reply with the sessions it used", async () => {
     const calls: Array<Record<string, unknown>> = [];
     const client: ChatClient = {

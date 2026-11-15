@@ -44,7 +44,7 @@ export function demoAnswer(child: string, before: Focus) {
 
 /** Rehearsed commands use the real write tools, without a model round trip. Ambiguity goes to the model. */
 export function demoCommand(prompt: string) {
-  const text = prompt.toLowerCase().replace(/[.!?]+$/g, "").trim();
+  const text = prompt.toLowerCase().replace(/[.!?]+$/g, "").trim().replace(/\s+(now|please|right now)$/g, "");
   if (/\b(not|never|don'?t|do not)\b/.test(text)) return undefined;
   if (/\b(and|then|also|addition|adding)\b/.test(text)) return undefined;
   const names = ["english", "spanish", "french", "german", "chinese", "hindi", "japanese"];
