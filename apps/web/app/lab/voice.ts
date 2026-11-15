@@ -147,16 +147,16 @@ export async function fetchVoice({ text, language, durationSeconds, context, sig
   text: string; language: string; durationSeconds: number; context: AudioContext; signal: AbortSignal;
 }): Promise<AudioBuffer> {
   const response = await fetch("/api/voice", {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, language, durationSeconds }), signal,
+    method: "POST", headers: { "Content-Type": "application/json", "X-Voice-Priority": "dub" }, body: JSON.stringify({ text, language, durationSeconds }), signal,
   });
   if (!response.ok) throw new Error("Voice service unavailable.");
   return collectVoice(response, context);
 }
 
 /** A whole line, generated ahead of time so it can start the instant Dora needs it (no streaming wait). */
-export async function fetchLine({ text, learningLanguage, context }: { text: string; learningLanguage?: string; context: AudioContext }): Promise<AudioBuffer> {
+export async function fetchLine({ text, learningLanguage, context, signal }: { text: string; learningLanguage?: string; context: AudioContext; signal: AbortSignal }): Promise<AudioBuffer> {
   const response = await fetch("/api/voice", {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, learningLanguage }),
+    method: "POST", headers: { "Content-Type": "application/json", "X-Voice-Priority": "prepare" }, body: JSON.stringify({ text, learningLanguage }), signal,
   });
   if (!response.ok) throw new Error("Voice service unavailable.");
   return collectVoice(response, context);

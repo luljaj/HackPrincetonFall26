@@ -15,6 +15,7 @@ import { DEMO_EDIT, DEMO_PAUSE_IDS, demoPauseAt, skipTarget } from "./demo-edit"
 import s from "./lab.module.css";
 import { afterRelease, canTake, type SoundOwner } from "./sound";
 import { fetchLine, fetchVoice, captionFallback, streamVoice } from "./voice";
+import { PreparedLines } from "./prepared-lines";
 import dubsData from "./dubs.json";
 import { listenOnce, openMic, recorderOptions, VAD } from "./listen";
 import { localFlair } from "./flair";
@@ -283,18 +284,23 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
   const [flash, setFlash] = useState<string | null>(null); // a quick caption (lab only: the kid view shows a card)
   // Dub audio, kept for the session: the re-voiced lines (per language) and the show's no-voice beds.
   const dubCache = useRef(new Map<string, AudioBuffer | "pending">());
+  const dubPreparation = useRef(new AbortController());
   const bedCache = useRef(new Map<number, AudioBuffer | "pending">());
   const sound = useRef<SoundOwner>("show"); // who controls the show's volume (app/lab/sound.ts)
 
   // Each audio cache entry: missing → "pending" → decoded. A failed load leaves it missing, so a later
   // prefetch pass tries again.
-  async function loadOnce<K>(cache: Map<K, AudioBuffer | "pending">, key: K, load: () => Promise<AudioBuffer>, tries = 1, waitMs = 0) {
+  async function loadOnce<K>(cache: Map<K, AudioBuffer | "pending">, key: K, load: () => Promise<AudioBuffer>, tries = 1, waitMs = 0, signal?: AbortSignal) {
     if (cache.has(key)) return;
     cache.set(key, "pending");
     for (let attempt = 0; attempt < tries; attempt++) {
+      if (signal?.aborted) break;
       try {
-        return void cache.set(key, await load());
+        const buffer = await load();
+        if (signal?.aborted) break;
+        return void cache.set(key, buffer);
       } catch {
+        if (signal?.aborted) break;
         if (attempt < tries - 1) await new Promise((resolve) => setTimeout(resolve, waitMs));
       }
     }
@@ -304,10 +310,11 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
   function dubVoice(d: Dub, lang: string) {
     const text = d[lang];
     if (typeof text !== "string") return;
-    // The voice server takes one line at a time (429 while busy): wait our turn.
+    const signal = dubPreparation.current.signal;
+    // Dubs run behind live replies and stop when the current language or moment changes.
     return loadOnce(dubCache.current, `${d.start}:${lang}`, () => fetchVoice({ text, language: lang,
       durationSeconds: Math.max(0.1, Math.min(d.end - d.start + 0.3, (d.nextSpeechAt ?? d.end + 1) - d.start - DUB_FADE_S)),
-      context: audio.current!.ctx, signal: new AbortController().signal }), 12, 600);
+      context: audio.current!.ctx, signal }), 12, 600, signal);
   }
 
   function dubBed(d: Dub) {
@@ -499,20 +506,18 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     fetch("/api/play/memory").then((r) => r.json()).then((m: Memory) => { memory.current = { name: m.name ?? "", words: m.words ?? {} }; })
       .catch(() => undefined); // no memory: Dora just teaches every word as new
   }, [kid]);
-  const readyLines = useRef(new Map<string, AudioBuffer>());
-  const pendingLines = useRef(new Set<string>());
-  const lineId = (text: string) => `${learnRef.current}|${text}`;
-  function prepareLine(text: string | null) {
-    const a = audio.current;
-    if (!text || !a) return;
-    const id = lineId(text);
-    if (readyLines.current.has(id) || pendingLines.current.has(id)) return;
-    pendingLines.current.add(id);
-    fetchLine({ text, learningLanguage: learnRef.current || undefined, context: a.ctx })
-      .then((buffer) => { readyLines.current.set(id, buffer); })
-      .catch(() => undefined) // not ready in time: the line just streams live as before
-      .finally(() => pendingLines.current.delete(id));
+  const preparedLines = useRef(new PreparedLines((text, language, signal) => fetchLine({
+    text, learningLanguage: language || undefined, context: audio.current!.ctx, signal,
+  })));
+  function cancelPendingLines() {
+    preparedLines.current.cancel();
+    dubPreparation.current.abort();
+    dubPreparation.current = new AbortController();
   }
+  function prepareLine(text: string | null) {
+    if (text && audio.current) preparedLines.current.prepare(text, learnRef.current);
+  }
+  useEffect(() => () => cancelPendingLines(), []);
   /** Play a prepared line through Dora's mouth analyser; resolves when it ends (or is cut off). */
   function playPrepared(buffer: AudioBuffer, signal: AbortSignal, onStart: () => void): Promise<void> {
     const a = audio.current!;
@@ -548,6 +553,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
   // switching to English mid-practice just ends the practice.
   function applyLearn(code: string) {
     if (code === learnRef.current) return;
+    cancelPendingLines();
     setLearn(code);
     learnRef.current = code;
     rec({ type: "language", language: code });
@@ -719,6 +725,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
   }
 
   function pickSpot(sp: Spot) {
+    cancelPendingLines();
     spotRef.current = sp;
     setSpot(sp);
     ctxRef.current = { ...ctxRef.current, practiceOnly: !!sp.practiceOnly, known: isKnown(sp), practice: canPractice(sp, learnRef.current) };
@@ -916,17 +923,17 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
     const speechAbort = new AbortController();
     setSpeechCaption(null);
     const lineKey = `${stage}:${speechVersion}`;
-    // Get Dora's next predictable lines ready while this stage runs, in the order they're likely to be needed
-    // (the voice server makes one at a time; a ~3 s Hindi line is ready long before the kid finishes answering).
-    {
+    if (meta.line || stage === "paused" || stage === "watching") cancelPendingLines();
+    // Prepare one likely line at a time while the kid answers; live speech always takes priority.
+    if (stage === "listening" || stage === "thinking") {
       const c = ctxRef.current;
       const p = practiceFor(sp, learnRef.current);
-      if (stage === "entering" && c.practice && p) prepareLine(lessonText("practicing", sp, false, p, memory.current)); // after a right answer
-      if (stage === "teaching") { // a miss: the later rungs of the ladder become likely
+      if (!c.practiced && c.practice && p) prepareLine(lessonText("practicing", sp, false, p, memory.current));
+      if (!c.practiced && stage === "thinking") {
         prepareLine(lessonText("modeling", sp, c.practiced, null));
         prepareLine(lessonText("giving", sp, c.practiced, null));
       }
-      if (stage === "practicing" && p) {
+      if (c.practiced && p) {
         prepareLine(lessonText("celebrating", sp, true, p, memory.current)); // "Yes! …! You said it in Hindi!"
         prepareLine(lessonText("nudging", sp, true, p, memory.current)); // "Your turn! Can you say …?"
         prepareLine(lessonText("practicing", sp, true, p, memory.current)); // "Listen: …! Let's try … one more time!"
@@ -1111,7 +1118,7 @@ export function DoraPlayer({ kid = false, learn: learnProp, onLearnChange, contr
         setSpeechCaption(text ?? null);
         setVoiceError("");
         // Live when the text differs from the saved recording (custom, lesson, or a swapped catchphrase).
-        const prepared = text && customText === null ? readyLines.current.get(lineId(text)) : undefined;
+        const prepared = text && customText === null ? preparedLines.current.get(text, learnRef.current) : undefined;
         if (prepared) {
           void playPrepared(prepared, speechAbort.signal, () => { doraStartedSpeaking(); setVoiceFor(lineKey); })
             .then(() => { if (!speechAbort.signal.aborted) send("LINE_DONE"); });

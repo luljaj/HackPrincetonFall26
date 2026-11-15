@@ -8,13 +8,15 @@ ROOT = Path(__file__).resolve().parent.parent
 PROFILE = ROOT / 'voices/dora/profile.json'
 
 
-def load_multilingual():
-    from huggingface_hub import snapshot_download
+def load_multilingual(vocoder='mlx'):
+    from huggingface_hub import snapshot_download, hf_hub_download
     from chatterbox.mtl_tts_mlx import ChatterboxMultilingualTTSMLX
     checkpoint = Path(snapshot_download('ResembleAI/chatterbox', revision='5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18', allow_patterns=[
         've.pt', 's3gen.pt', 't3_mtl23ls_v3.safetensors',
         'grapheme_mtl_merged_expanded_v1.json', 'Cangjie5_TC.json',
     ]))
+    meanflow = hf_hub_download('ResembleAI/chatterbox-turbo', 's3gen_meanflow.safetensors',
+        revision='749d1c1a46eb10492095d68fbcf55691ccf137cd') if vocoder == 'meanflow' else None
     # MLX 1.3.1's local loader hardcodes the V2 filename; V3 uses the same architecture.
     with tempfile.TemporaryDirectory(prefix='dora-v3-') as directory:
         folder = Path(directory)
@@ -22,7 +24,7 @@ def load_multilingual():
             (folder / name).symlink_to(checkpoint / name)
         (folder / 't3_mtl23ls_v2.safetensors').symlink_to(checkpoint / 't3_mtl23ls_v3.safetensors')
         return ChatterboxMultilingualTTSMLX.from_local(folder, use_default_speaker=False,
-            device='mps', vocoder='mlx', t3_dtype='float16')
+            device='mps', vocoder=vocoder, meanflow_path=meanflow, t3_dtype='float16')
 
 
 def read_profile(path=PROFILE):
@@ -34,7 +36,7 @@ def read_profile(path=PROFILE):
     return data, reference
 
 
-def load_voice(profile=PROFILE, engine='turbo', exaggeration=0.7, use_adapter=True, reference_override=None, adapter_strength=None):
+def load_voice(profile=PROFILE, engine='turbo', exaggeration=0.7, use_adapter=True, reference_override=None, adapter_strength=None, vocoder='mlx'):
     data, reference = read_profile(profile)
     data["fine_tuned"] = False
     strength = data.get('adapter_strength', 1.0) if adapter_strength is None else adapter_strength
@@ -43,7 +45,7 @@ def load_voice(profile=PROFILE, engine='turbo', exaggeration=0.7, use_adapter=Tr
     if reference_override is not None:
         reference = Path(reference_override).resolve(strict=True)
     if engine == 'multilingual':
-        model = load_multilingual()
+        model = load_multilingual(vocoder)
         model.prepare_conditionals(str(reference), exaggeration=.3)
     elif engine == 'original':
         from chatterbox.tts_mlx import ChatterboxTTSMLX

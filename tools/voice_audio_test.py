@@ -1,8 +1,35 @@
 import unittest
 import numpy as np
-from voice_audio import VoicePostProcessor, fit_dub, join_speech
+from voice_audio import VoicePostProcessor, fit_dub, join_speech, stream_join_speech
 
 class VoiceAudioTest(unittest.TestCase):
+    def test_language_stream_starts_before_the_next_span_is_generated(self):
+        calls=[]
+        def span(name):
+            calls.append(name)
+            yield np.ones(2400,dtype=np.float32)*.1
+            calls.append(name+' finished')
+        speech=stream_join_speech([span('English'),span('Hindi')],24000)
+        self.assertGreater(len(next(speech)),0)
+        self.assertEqual(calls,['English'])
+        list(speech)
+        self.assertEqual(calls,['English','English finished','Hindi','Hindi finished'])
+
+    def test_streamed_language_join_matches_whole_audio_even_with_tiny_chunks(self):
+        sr=24000
+        wave=.2*np.sin(np.arange(1200)*.12).astype(np.float32)
+        parts=[np.concatenate([np.zeros(800),wave,np.zeros(1000)]),
+            np.zeros(100),np.array([.1,.2,.1]),
+            np.concatenate([np.zeros(900),wave,np.zeros(800)])]
+        expected=join_speech(parts,sr)
+        for size in [1,137,2400,10000]:
+            with self.subTest(size=size):
+                def chunks(part):
+                    for i in range(0,len(part),size):yield part[i:i+size]
+                streams=[chunks(p) for p in parts]
+                actual=np.concatenate(list(stream_join_speech(streams,sr)))
+                np.testing.assert_allclose(actual,expected,atol=1e-7)
+
     def test_language_spans_drop_padding_and_crossfade(self):
         sr=24000
         padded=np.concatenate([np.zeros(sr),np.ones(sr)*.1,np.zeros(sr)])

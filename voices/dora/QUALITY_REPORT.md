@@ -1,5 +1,7 @@
 # Voice quality comparison
 
+November 15 live update: the V3 model/reference remain in use, with a faster MeanFlow decoder for live speech. Saved lines retain the previous decoder. See [the timing, transcript and speaker-proxy comparison](../../docs/dora-voice-latency.md); the historical checks below describe the earlier live decoder.
+
 ## Current local setup: Multilingual V3
 
 The user compared volume-matched Turbo and Multilingual V3 samples and preferred V3 as closer to Dora. Both the resident server and all 19 saved lab lines now use V3, with the same reference and disabled Turbo pilot adapter. The V3 checkpoint is pinned to Hugging Face revision `5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18`; the installed MLX 1.3.1 loader's legacy V2 filename is bridged locally without changing the actual V3 weights.

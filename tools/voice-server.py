@@ -7,22 +7,29 @@ import argparse
 import base64
 import json
 import logging
-import threading
+import select
+import socket
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from voice_runtime import PROFILE, load_voice, parse_voice_request, generation_options, speech_parts
-from voice_audio import processor_for, polish_audio, fit_dub, join_speech
+from voice_audio import processor_for, polish_audio, fit_dub, join_speech, stream_join_speech
+from voice_queue import VoiceQueue
+
+
+class SpeechPreempted(Exception):
+    pass
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--profile', default=str(PROFILE))
     parser.add_argument('--engine', choices=['turbo', 'nano', 'multilingual'], default='multilingual')
+    parser.add_argument('--vocoder', choices=['mlx', 'meanflow'], default='meanflow')
     parser.add_argument('--port', type=int, default=8766)
     args = parser.parse_args()
-    model, profile = load_voice(args.profile, args.engine)
-    busy = threading.Lock()
+    model, profile = load_voice(args.profile, args.engine, vocoder=args.vocoder)
+    queue = VoiceQueue()
     word_cache = {}
     logging.info('Warming the voice model…')
     if args.engine == 'multilingual':
@@ -45,8 +52,16 @@ def main():
                 return self.json_response(404, {'error': 'Not found'})
             self.json_response(200, {'ready': True, 'voice': profile['id'], 'engine': args.engine,
                 'checkpoint': 't3_mtl23ls_v3' if args.engine == 'multilingual' else args.engine,
+                'vocoder': args.vocoder if args.engine == 'multilingual' else args.engine,
                 'languages': ['en', 'es', 'fr', 'de', 'zh', 'hi', 'ja'] if args.engine == 'multilingual' else ['en'],
-                'fineTuned': profile['fine_tuned'], 'sampleRate': model.sr, 'busy': busy.locked()})
+                'fineTuned': profile['fine_tuned'], 'sampleRate': model.sr, **queue.status()})
+
+        def disconnected(self):
+            try:
+                readable, _, _ = select.select([self.connection], [], [], 0)
+                return bool(readable) and not self.connection.recv(1, socket.MSG_PEEK)
+            except OSError:
+                return True
 
         def do_POST(self):
             if self.path != '/speech':
@@ -56,43 +71,67 @@ def main():
                 if not 0 < size <= 4096:
                     raise ValueError('Invalid request size.')
                 text, language, duration, learning_language = parse_voice_request(self.rfile.read(size))
+                priority_name = 'dub' if duration is not None else self.headers.get('X-Voice-Priority', 'live')
+                if priority_name not in ('live', 'prepare', 'dub'):
+                    raise ValueError('Invalid speech priority.')
+                priority = ('live', 'prepare', 'dub').index(priority_name)
                 parts = speech_parts(text, language, learning_language)
                 if any(code != 'en' for code, _ in parts) and args.engine != 'multilingual':
                     raise ValueError('This engine only supports English. Start with --engine multilingual.')
             except (ValueError, UnicodeError) as exc:
                 return self.json_response(400, {'error': str(exc)})
-            # Live replies wait for the current line; speculative dubs retry in the background.
-            acquired = busy.acquire(timeout=30) if duration is None else busy.acquire(blocking=False)
-            if not acquired:
-                return self.json_response(429, {'error': 'Voice is busy. Try again shortly.'})
-            stream = None
-            headers_sent = False
             started = time.perf_counter()
             try:
+                acquired = queue.acquire(priority, self.disconnected)
+            except ConnectionAbortedError:
+                return
+            if not acquired:
+                return self.json_response(429, {'error': 'Voice is busy. Try again shortly.'})
+            queued_seconds = time.perf_counter() - started
+            stream = None
+            model_streams = []
+            headers_sent = False
+            try:
                 import numpy as np
-                options = generation_options(profile, args.engine, language)
-                if duration is not None or len(parts) > 1 or parts[0][0] != language:
-                    pieces = []
-                    for code, span in parts:
-                        if code != 'en' and args.engine != 'multilingual':
-                            raise ValueError('Non-English speech needs the multilingual engine.')
-                        key = (code, span)
-                        samples = word_cache.get(key)
-                        if samples is None:
-                            samples = np.concatenate(list(model.generate_stream(span, **generation_options(profile, args.engine, code))))
-                            if code != 'en' and len(span) <= 32:
-                                if len(word_cache) >= 128:
-                                    word_cache.pop(next(iter(word_cache)))
-                                word_cache[key] = samples
-                        pieces.append(samples)
+
+                def check_current():
+                    if self.disconnected():
+                        raise ConnectionAbortedError('Speech client disconnected.')
+                    if queue.should_yield(priority):
+                        raise SpeechPreempted()
+
+                def part_audio(code, span):
+                    check_current()
+                    key = (code, span)
+                    cached = word_cache.get(key)
+                    if cached is not None:
+                        yield cached
+                        return
+                    generated = model.generate_stream(span, **generation_options(profile, args.engine, code))
+                    model_streams.append(generated)
+                    cache_word = code != 'en' and len(span) <= 32
+                    chunks = []
+                    for chunk in generated:
+                        check_current()
+                        if cache_word:
+                            chunks.append(chunk)
+                        yield chunk
+                    if cache_word and chunks:
+                        if len(word_cache) >= 128:
+                            word_cache.pop(next(iter(word_cache)))
+                        word_cache[key] = np.concatenate(chunks)
+
+                if duration is not None:
+                    pieces = [np.concatenate(list(part_audio(code, span))) for code, span in parts]
                     samples = join_speech(pieces, model.sr) if len(pieces) > 1 else pieces[0]
                     samples = polish_audio(samples, model.sr, profile)
-                    if duration is not None:
-                        samples = fit_dub(samples, model.sr, duration)
+                    check_current()
+                    samples = fit_dub(samples, model.sr, duration)
                     stream = iter([samples])
                     processor = None
                 else:
-                    stream = model.generate_stream(text, **options)
+                    streams = (part_audio(code, span) for code, span in parts)
+                    stream = stream_join_speech(streams, model.sr) if len(parts) > 1 else part_audio(*parts[0])
                     processor = processor_for(profile, model.sr)
                 first = next(stream)
                 self.send_response(200)
@@ -113,11 +152,23 @@ def main():
                 first_audio = time.perf_counter() - started
                 emit_audio(processor.process(first) if processor else first)
                 for chunk in stream:
+                    check_current()
                     emit_audio(processor.process(chunk) if processor else chunk)
                 if processor:
                     emit_audio(processor.finish())
-                emit({'type': 'done', 'firstAudioSeconds': round(first_audio, 3), 'generationSeconds': round(time.perf_counter() - started, 3)})
-            except (BrokenPipeError, ConnectionResetError):
+                emit({'type': 'done', 'firstAudioSeconds': round(first_audio, 3), 'queueSeconds': round(queued_seconds, 3),
+                    'generationSeconds': round(time.perf_counter() - started, 3)})
+            except SpeechPreempted:
+                logging.info('Yielding speculative speech to a higher-priority reply.')
+                try:
+                    if headers_sent:
+                        self.wfile.write(b'{"type":"error","error":"Preparation interrupted by a live reply."}\n')
+                        self.wfile.flush()
+                    else:
+                        self.json_response(429, {'error': 'Live speech takes priority. Try again shortly.'})
+                except OSError:
+                    pass
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
                 logging.info('Speech client disconnected; stopping generation.')
             except Exception:
                 logging.exception('Speech generation failed')
@@ -130,9 +181,13 @@ def main():
                 else:
                     self.json_response(500, {'error': 'Speech generation failed.'})
             finally:
-                if stream is not None and hasattr(stream, 'close'):
-                    stream.close()
-                busy.release()
+                try:
+                    if stream is not None and hasattr(stream, 'close'):
+                        stream.close()
+                    for generated in model_streams:
+                        generated.close()
+                finally:
+                    queue.release()
                 self.close_connection = True
 
     ThreadingHTTPServer(('127.0.0.1', args.port), Handler).serve_forever()
