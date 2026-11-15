@@ -40,12 +40,36 @@ export default function Play() {
   }, [learningNotice]);
   const [focus, setFocus] = useState<Record<string, string>>({});
   const [captionsEnabled, setCaptionsEnabled] = useState(true);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [fullscreenError, setFullscreenError] = useState(false);
+  const screen = useRef<HTMLDivElement>(null);
   const [playerControls, setPlayerControls] = useState<HTMLDivElement | null>(
     null,
   );
   const noise = useRef<HTMLCanvasElement>(null);
   const audio = useRef<AudioContext | null>(null);
   const channel = CHANNELS[ch]!;
+
+  useEffect(() => {
+    const syncFullscreen = () =>
+      setFullscreen(document.fullscreenElement === screen.current);
+    document.addEventListener("fullscreenchange", syncFullscreen);
+    return () =>
+      document.removeEventListener("fullscreenchange", syncFullscreen);
+  }, []);
+
+  async function toggleFullscreen() {
+    setFullscreenError(false);
+    try {
+      if (document.fullscreenElement === screen.current) {
+        await document.exitFullscreen();
+      } else {
+        await screen.current?.requestFullscreen();
+      }
+    } catch {
+      setFullscreenError(true);
+    }
+  }
 
   function hiss() {
     const ctx = (audio.current ??= new AudioContext());
@@ -146,6 +170,7 @@ export default function Play() {
       <div className={s.tv}>
         <div className={s.cabinet}>
           <div
+            ref={screen}
             className={`${s.screen} ${on ? s.on : s.off}`}
             style={{ ["--glow" as string]: channel.color }}
           >
@@ -189,6 +214,38 @@ export default function Play() {
               </p>
             )}
             <div className={s.glass} />
+            <button
+              type="button"
+              className={s.fullscreen}
+              aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+              title={fullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+              onClick={toggleFullscreen}
+            >
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path
+                  d={
+                    fullscreen
+                      ? "M4 9h5V4m6 0v5h5M4 15h5v5m6 0v-5h5"
+                      : "M9 4H4v5m11-5h5v5M4 15v5h5m6 0h5v-5"
+                  }
+                />
+              </svg>
+            </button>
+            {fullscreenError && (
+              <p className={s.fullscreenError} role="status">
+                Fullscreen is unavailable. Please try again.
+              </p>
+            )}
           </div>
         </div>
         <div className={s.legs}>
